@@ -614,6 +614,8 @@ class DVector:
                 trans_vector = self.zoning_system.translate(
                     new_zoning, weighting=weighting, cache_path=cache_path
                 )
+        else:
+            trans_vector = self.zoning_system.validate_translation_data(new_zoning, trans_vector)
         factor_col = self.zoning_system.translation_column_name(new_zoning)
         # factors equal one to propagate perfectly
         # This only works for perfect nesting
