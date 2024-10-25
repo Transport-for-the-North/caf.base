@@ -1522,12 +1522,14 @@ class DVector:
             subsets = target.data.segmentation.input.subsets
             if len(subsets) > 0:
                 for comp_target in targets:
+                    if target == comp_target:
+                        continue
                     if set(subsets.keys()).intersection(comp_target.data.segmentation.names) != set(subsets.keys()):
                         continue
                     comp_seg = comp_target.data.segmentation.copy()
                     comp_seg.input.subsets = subsets
                     comp_seg.reinit()
-                    comp_val = comp_target.data.loc[comp_seg.ind()].sum().sum()
+                    comp_val = comp_target.data.data.loc[comp_seg.ind()].sum().sum()
                     if not math.isclose(comp_val, target.data.sum(), rel_tol=1e3):
                         raise ValueError(
                             "Input target DVectors do not have consistent "
@@ -2224,7 +2226,7 @@ class IpfTarget:
                         continue
             else:
                 agg_2 = target_2.copy()
-                
+
             agg_1 = target_1.copy()
             common_segs = target_1.segmentation.overlap(target_2.segmentation)
 
