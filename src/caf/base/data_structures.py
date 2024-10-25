@@ -1702,7 +1702,7 @@ class DVector:
             rmse = new_dvec.calc_rmse(targets)
             LOG.info(f"RMSE = {rmse} after {i + 1} iterations.")
             if rmse < tol:
-                print("Convergence met, returning DVector.")
+                LOG.info("Convergence met, returning DVector.")
                 return new_dvec, rmse
             if abs(rmse - prev_rmse) < tol:
                 LOG.info(f"RMSE has stopped improving at {rmse}.")
