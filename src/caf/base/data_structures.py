@@ -1505,7 +1505,7 @@ class DVector:
     def validate_ipf_targets(
         self,
         targets: Collection[IpfTarget],
-        rel_tol: float = 1e-5,
+        rel_tol: float = 1e-3,
         cache_path: None | PathLike = None,
     ):
         """
@@ -1539,7 +1539,7 @@ class DVector:
                     comp_seg.input.subsets = subsets
                     comp_seg.reinit()
                     comp_val = comp_target.data.data.loc[comp_seg.ind()].sum().sum()
-                    if not math.isclose(comp_val, target.data.sum(), rel_tol=1e3):
+                    if not math.isclose(comp_val, target.data.sum(), rel_tol=rel_tol):
                         raise ValueError(
                             "Input target DVectors do not have consistent "
                             f"sums, so ipf will fail target at position {position} doesn't match "
@@ -1552,7 +1552,7 @@ class DVector:
                     target_sum = target.data.sum()
                 else:
                     # TODO don't hard code this
-                    if not math.isclose(target_sum, target.data.sum(), rel_tol=1e3):
+                    if not math.isclose(target_sum, target.data.sum(), rel_tol=rel_tol):
                         raise ValueError(
                             "Input target DVectors do not have consistent "
                             f"sums, so ipf will fail target at position {position} doesn't match "
