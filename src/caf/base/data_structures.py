@@ -1655,7 +1655,7 @@ class DVector:
         DVector matched to targets, rmse achieved.
         """
         # check DVectors compatible
-        targets = self.validate_ipf_targets(targets, zone_trans_cache)
+        targets = self.validate_ipf_targets(targets, cache_path=zone_trans_cache)
         new_dvec = self.copy()
         prev_rmse = np.inf
         rmse = np.inf
