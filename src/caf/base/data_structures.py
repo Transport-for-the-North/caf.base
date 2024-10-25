@@ -1519,18 +1519,34 @@ class DVector:
         """
         target_sum = 0.0
         for position, target in enumerate(targets):
-            # Check targets sum to the same, or they can't converge. Potentially could allow
-            # IPF for non-agreeing targets to get as close as possible.
-            if target_sum == 0:
-                target_sum = target.data.sum()
+            subsets = target.data.segmentation.input.subsets
+            if len(subsets) > 0:
+                for comp_target in targets:
+                    if set(subsets.keys()).intersection(comp_target.data.segmentation.names) != set(subsets.keys()):
+                        continue
+                    comp_seg = comp_target.data.segmentation.copy()
+                    comp_seg.input.subsets = subsets
+                    comp_seg.reinit()
+                    comp_val = comp_target.data.loc[comp_seg.ind()].sum().sum()
+                    if not math.isclose(comp_val, target.data.sum(), rel_tol=1e3):
+                        raise ValueError(
+                            "Input target DVectors do not have consistent "
+                            f"sums, so ipf will fail target at position {position} doesn't match "
+                            "the first target. It is possible later targets also don't match."
+                        )
             else:
-                # TODO don't hard code this
-                if not math.isclose(target_sum, target.data.sum(), rel_tol=1e5):
-                    raise ValueError(
-                        "Input target DVectors do not have consistent "
-                        f"sums, so ipf will fail target at position {position} doesn't match "
-                        "the first target. It is possible later targets also don't match."
-                    )
+                # Check targets sum to the same, or they can't converge. Potentially could allow
+                # IPF for non-agreeing targets to get as close as possible.
+                if target_sum == 0:
+                    target_sum = target.data.sum()
+                else:
+                    # TODO don't hard code this
+                    if not math.isclose(target_sum, target.data.sum(), rel_tol=1e3):
+                        raise ValueError(
+                            "Input target DVectors do not have consistent "
+                            f"sums, so ipf will fail target at position {position} doesn't match "
+                            "the first target. It is possible later targets also don't match."
+                        )
             # Check for zeros
             zeros = target.data.data.to_numpy() == 0
             if np.sum(zeros) > 0:
