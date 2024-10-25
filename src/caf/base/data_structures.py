@@ -2212,23 +2212,47 @@ class IpfTarget:
         rmses = {}
         for pos in list(itertools.combinations(reversed(targ_dict), 2)):
             target_1, target_2 = targ_dict[pos[1]].data, targ_dict[pos[0]].data
-            if target_1.zoning_system != target_2.zoning_system:
+            # target_2 has subsets, not appropriate for comparison
+            if len(target_2.segmentation.input.subsets) > 1:
                 continue
-            common_segs = target_1.segmentation.overlap(target_2.segmentation)
-            if len(common_segs) == 0:
-                agg_1 = target_1.data.sum()
-                agg_2 = target_2.data.sum()
+            if len(target_1.segmentation.input.subsets) > 1:
+                agg_2 = target_2.copy()
+                for seg, vals in target_1.segmentation.input.subsets.items():
+                    if seg in agg_2.segmentation.names:
+                        agg_2 = agg_2.filter_segment_value(seg, vals)
+                    else:
+                        continue
             else:
-                agg_1 = target_1.aggregate(list(common_segs))
-                agg_2 = target_2.aggregate(list(common_segs))
+                agg_2 = target_2.copy()
+                
+            agg_1 = target_1.copy()
+            common_segs = target_1.segmentation.overlap(target_2.segmentation)
+
+            if agg_1.zoning_system != agg_2.zoning_system:
+                agg_1 = agg_1.remove_zoning()
+                agg_2 = agg_2.remove_zoning()
+            if len(common_segs) == 0:
+                agg_1 = agg_1.data.sum()
+                agg_2 = agg_2.data.sum()
+            else:
+                agg_1 = agg_1.aggregate(list(common_segs))
+                agg_2 = agg_2.aggregate(list(common_segs))
+
             diff = (agg_1 - agg_2) ** 2
-            rmse = (diff.sum() / len(diff)) ** 0.5
+            if isinstance(diff, Number):
+                rmse = diff ** 0.5
+            else:
+                rmse = (diff.sum() / len(diff)) ** 0.5
             rmses[tuple(common_segs)] = rmse
             if adjust:
                 adj = agg_2 / agg_1
-                adj.fill(np.inf, 0)
-                target_1 *= adj
-                target_1 *= target_2.sum() / target_1.sum()
+                if isinstance(adj, pd.Series):
+                    adj = adj.replace(to_replace={np.inf: 0})
+                    target_1.data = target_1.data.mul(adj, axis=1)
+                else:
+                    if not isinstance(adj, Number):
+                        adj.fill(np.inf, 0)
+                        target_1 *= adj
                 targ_dict[pos[1]].data = target_1
         targets = list(targ_dict.values())
         return pd.DataFrame.from_dict(rmses, orient="index"), targets
