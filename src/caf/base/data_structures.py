@@ -1227,9 +1227,15 @@ class DVector:
         self expanded to other as required.
         """
         expansion_segs = other.segmentation - self.segmentation
+
+        if len(expansion_segs) == 0:
+            return self
+
         if match_props:
             splitter = other.data.sum(axis=1)
             return self.add_segments(expansion_segs, split_method="split", splitter=splitter)
+
+
 
         return self.add_segments(expansion_segs)
 
