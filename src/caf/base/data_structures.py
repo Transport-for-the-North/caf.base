@@ -941,7 +941,10 @@ class DVector:
 
     def __len__(self):
         """Return the length of a DVector, defined as number of cells."""
-        return len(self.segmentation) * len(self.zoning_system)
+        length = len(self.segmentation)
+        if self.zoning_system is not None:
+            length *= len(self.zoning_system)
+        return length
 
     def __pow__(self, exponent: int | float, _bypass_validation: bool = True):
         """Return the exponent of a DVector, essentially a wrapper around DataFrame's __pow__ method."""
