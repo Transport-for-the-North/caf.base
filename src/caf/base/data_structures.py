@@ -2224,9 +2224,9 @@ class IpfTarget:
         for pos in list(itertools.combinations(reversed(targ_dict), 2)):
             target_1, target_2 = targ_dict[pos[1]].data, targ_dict[pos[0]].data
             # target_2 has subsets, not appropriate for comparison
-            if len(target_2.segmentation.input.subsets) > 1:
+            if len(target_2.segmentation.input.subsets) > 0:
                 continue
-            if len(target_1.segmentation.input.subsets) > 1:
+            if len(target_1.segmentation.input.subsets) > 0:
                 agg_2 = target_2.copy()
                 for seg, vals in target_1.segmentation.input.subsets.items():
                     if seg in agg_2.segmentation.names:
