@@ -615,7 +615,9 @@ class DVector:
                     new_zoning, weighting=weighting, cache_path=cache_path
                 )
         else:
-            trans_vector = self.zoning_system.validate_translation_data(new_zoning, trans_vector)
+            trans_vector = self.zoning_system.validate_translation_data(
+                new_zoning, trans_vector
+            )
         factor_col = self.zoning_system.translation_column_name(new_zoning)
         # factors equal one to propagate perfectly
         # This only works for perfect nesting
@@ -1235,8 +1237,6 @@ class DVector:
             splitter = other.data.sum(axis=1)
             return self.add_segments(expansion_segs, split_method="split", splitter=splitter)
 
-
-
         return self.add_segments(expansion_segs)
 
     @classmethod
@@ -1533,7 +1533,9 @@ class DVector:
                 for comp_target in targets:
                     if target == comp_target:
                         continue
-                    if set(subsets.keys()).intersection(comp_target.data.segmentation.names) != set(subsets.keys()):
+                    if set(subsets.keys()).intersection(
+                        comp_target.data.segmentation.names
+                    ) != set(subsets.keys()):
                         continue
                     comp_seg = comp_target.data.segmentation.copy()
                     comp_seg.input.subsets = subsets
@@ -2251,7 +2253,7 @@ class IpfTarget:
 
             diff = (agg_1 - agg_2) ** 2
             if isinstance(diff, Number):
-                rmse = diff ** 0.5
+                rmse = diff**0.5
             else:
                 rmse = (diff.sum() / len(diff)) ** 0.5
             rmses[tuple(common_segs)] = rmse
