@@ -2204,7 +2204,7 @@ class IpfTarget:
     )
 
     @staticmethod
-    def check_compatibility(targets: Collection[IpfTarget], adjust: bool = False):
+    def check_compatibility(targets: Collection[DVector], reference: DVector | None = None, adjust: bool = False):
         """
         Check compatibility between ipf targets, and optionally adjust to match.
 
@@ -2222,9 +2222,12 @@ class IpfTarget:
             Whether to change the targets or just report on their compatibility.
         """
         targ_dict = {i: j for i, j in enumerate(targets)}
+        # add reference to end of targ_dict if exists
+        if reference is not None:
+            targ_dict[len(targets)] = reference
         rmses = {}
         for pos in list(itertools.combinations(reversed(targ_dict), 2)):
-            target_1, target_2 = targ_dict[pos[1]].data, targ_dict[pos[0]].data
+            target_1, target_2 = targ_dict[pos[1]], targ_dict[pos[0]]
             # target_2 has subsets, not appropriate for comparison
             if len(target_2.segmentation.input.subsets) > 0:
                 continue
@@ -2268,4 +2271,7 @@ class IpfTarget:
                         target_1 *= adj
                 targ_dict[pos[1]].data = target_1
         targets = list(targ_dict.values())
+        # remove reference from targets
+        if reference is not None:
+            targets = targets[:-1]
         return pd.DataFrame.from_dict(rmses, orient="index"), targets
