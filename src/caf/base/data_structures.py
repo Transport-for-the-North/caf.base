@@ -21,6 +21,7 @@ from pathlib import Path
 from typing import Callable, Literal, Optional, Union
 
 import caf.toolkit as ctk
+from caf.toolkit import translation
 import numpy as np
 import pandas as pd
 
@@ -660,7 +661,7 @@ class DVector:
 
         transposed = self.data.transpose()
         transposed.index.names = [self.zoning_system.column_name]
-        translated = ctk.translation.pandas_vector_zone_translation(
+        translated = translation.pandas_vector_zone_translation(
             transposed,
             trans_vector,
             translation_from_col=self.zoning_system.column_name,
@@ -2204,7 +2205,9 @@ class IpfTarget:
     )
 
     @staticmethod
-    def check_compatibility(targets: Collection[DVector], reference: DVector | None = None, adjust: bool = False):
+    def check_compatibility(
+        targets: Collection[DVector], reference: DVector | None = None, adjust: bool = False
+    ):
         """
         Check compatibility between ipf targets, and optionally adjust to match.
 
