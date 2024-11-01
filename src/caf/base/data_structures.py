@@ -2272,7 +2272,7 @@ class IpfTarget:
                     if not isinstance(adj, Number):
                         adj.fill(np.inf, 0)
                         target_1 *= adj
-                targ_dict[pos[1]].data = target_1
+                targ_dict[pos[1]] = target_1
         targets = list(targ_dict.values())
         # remove reference from targets
         if reference is not None:
