@@ -1534,14 +1534,19 @@ class DVector:
                 for comp_target in targets:
                     if target == comp_target:
                         continue
+                    # Check that subsets exist in comp_target
                     if set(subsets.keys()).intersection(
                         comp_target.data.segmentation.names
                     ) != set(subsets.keys()):
                         continue
                     comp_seg = comp_target.data.segmentation.copy()
                     comp_seg.input.subsets = subsets
-                    comp_seg.reinit()
-                    comp_val = comp_target.data.data.loc[comp_seg.ind()].sum().sum()
+                    comp_seg = comp_seg.reinit()
+                    try:
+                        comp_val = comp_target.data.data.loc[comp_seg.ind()].sum().sum()
+                    # Subsets incompatible
+                    except KeyError:
+                        continue
                     if not math.isclose(comp_val, target.data.sum(), rel_tol=rel_tol):
                         raise ValueError(
                             "Input target DVectors do not have consistent "
