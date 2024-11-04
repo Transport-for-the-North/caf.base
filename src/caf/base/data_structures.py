@@ -343,8 +343,8 @@ class DVector:
             raise TypeError(
                 "data must be a pandas DataFrame or Series. Input " f"value is {value.type}."
             )
-        if isinstance(value, pd.Series):
-            value = value.to_frame()
+        # if isinstance(value, pd.Series):
+        #     value = value.to_frame()
         self._data, _ = self._dataframe_to_dvec(value)
 
     @property
