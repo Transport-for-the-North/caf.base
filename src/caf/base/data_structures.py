@@ -2235,6 +2235,7 @@ class IpfTarget:
             targ_dict[len(targets)] = reference
         rmses = {}
         for pos in list(itertools.combinations(reversed(targ_dict), 2)):
+            skip = False
             target_1, target_2 = targ_dict[pos[1]], targ_dict[pos[0]]
             # target_2 has subsets, not appropriate for comparison
             if len(target_2.segmentation.input.subsets) > 0:
@@ -2245,7 +2246,9 @@ class IpfTarget:
                     if seg in agg_2.segmentation.names:
                         agg_2 = agg_2.filter_segment_value(seg, vals)
                     else:
-                        continue
+                        skip = True
+                if skip:
+                    continue
             else:
                 agg_2 = target_2.copy()
 
