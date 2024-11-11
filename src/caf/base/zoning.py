@@ -544,6 +544,36 @@ class ZoningSystem:
 
         return translation
 
+    def _check_all_columns(self, input_columns):
+        missing_internal_id: np.ndarray = ~np.isin(self.zone_ids, input_columns.values)
+
+        if np.sum(missing_internal_id) == 0:
+            return False
+
+        try:
+            missing_internal_name: np.ndarray | float = ~np.isin(
+                self.zone_names(), input_columns.values
+            )
+        except KeyError:
+            missing_internal_name = np.inf
+        try:
+            missing_internal_desc: np.ndarray | float = ~np.isin(
+                self.zone_descriptions(),
+                input_columns,
+            )
+        except KeyError:
+            missing_internal_desc = np.inf
+
+        if np.sum(missing_internal_id) < (
+            np.sum(missing_internal_desc) | np.sum(missing_internal_id)
+        ):
+            return False
+
+        if np.sum(missing_internal_name) < np.sum(missing_internal_desc):
+            return self.id_to_name
+
+        return self.id_to_desc
+
     def validate_translation_data(
         self,
         other: ZoningSystem,
