@@ -466,7 +466,7 @@ class DVector:
 
             if column_convert is not False:
                 sorted_data.rename(columns=column_convert, inplace=True)
-                if set(sorted_data.columns) != set(self.zoning_system.zone_ids):
+                if set(sorted_data.columns) == set(self.zoning_system.zone_ids):
                     return sorted_data, seg
 
             missing = self.zoning_system.zone_ids[

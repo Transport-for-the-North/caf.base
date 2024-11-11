@@ -564,15 +564,16 @@ class ZoningSystem:
         except KeyError:
             missing_internal_desc = np.inf
 
-        if np.sum(missing_internal_id) < (
-            np.sum(missing_internal_desc) | np.sum(missing_internal_id)
+        if all(
+            np.sum(missing_internal_id) < x
+            for x in (np.sum(missing_internal_desc), np.sum(missing_internal_id))
         ):
             return False
 
         if np.sum(missing_internal_name) < np.sum(missing_internal_desc):
-            return self.id_to_name
+            return self.name_to_id
 
-        return self.id_to_desc
+        return self.desc_to_id
 
     def validate_translation_data(
         self,
