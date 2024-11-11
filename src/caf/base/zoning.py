@@ -525,6 +525,7 @@ class ZoningSystem:
     def _replace_id(
         self, missing_rep, missing_id, translation, zone_system, translation_name, replacer
     ):
+        translation = translation.copy()
         if np.sum(missing_rep) > 0:
             if np.sum(missing_rep) >= np.sum(missing_id):
                 warnings.warn(
