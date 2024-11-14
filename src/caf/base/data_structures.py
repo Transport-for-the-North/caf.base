@@ -2217,11 +2217,11 @@ class IpfTarget:
     )
 
     @staticmethod
-    def _check_loop(target_1, target_2, adjust, targ_dict, ind):
+    def _check_loop(target_1, target_2, adjust, targ_dict, ind, rmses):
         zoning_diff = False
         skip = False
         if len(target_2.segmentation.input.subsets) > 0:
-            return targ_dict
+            return targ_dict, rmses
         if len(target_1.segmentation.input.subsets) > 0:
             agg_2 = target_2.copy()
             for seg, vals in target_1.segmentation.input.subsets.items():
@@ -2230,7 +2230,7 @@ class IpfTarget:
                 else:
                     skip = True
             if skip:
-                return targ_dict
+                return targ_dict, rmses
         else:
             agg_2 = target_2.copy()
 
@@ -2276,7 +2276,7 @@ class IpfTarget:
                     adj.fill(np.inf, 0)
                     target_1 *= adj
             targ_dict[ind] = target_1
-        return targ_dict
+        return targ_dict, rmses
     @staticmethod
     def check_compatibility(
         targets: Collection[DVector], reference: DVector | None = None, adjust: bool = False, chain_adjust: bool = True
@@ -2305,14 +2305,14 @@ class IpfTarget:
         if chain_adjust:
             for pos in list(itertools.combinations(reversed(targ_dict), 2)):
                 target_1, target_2 = targ_dict[pos[1]], targ_dict[pos[0]]
-                targ_dict = IpfTarget._check_loop(target_1, target_2, adjust, targ_dict, pos[1])
+                targ_dict, rmses = IpfTarget._check_loop(target_1, target_2, adjust, targ_dict, pos[1], rmses)
         else:
             target_2 = targ_dict[len(targets)]
             for i in targ_dict:
                 target_1 = targ_dict[i]
                 if target_1 == target_2:
                     continue
-                targ_dict = IpfTarget._check_loop(target_1, target_2, adjust, targ_dict, i)
+                targ_dict, rmses = IpfTarget._check_loop(target_1, target_2, adjust, targ_dict, i, rmses)
 
         targets = list(targ_dict.values())
         # remove reference from targets
