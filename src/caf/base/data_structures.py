@@ -2217,7 +2217,7 @@ class IpfTarget:
     )
 
     @staticmethod
-    def _check_loop(target_1, target_2, adjust, targ_dict, ind, rmses):
+    def _check_loop(target_1, target_2, adjust, targ_dict, ind, rmses, trans_cache=None):
         zoning_diff = False
         skip = False
         if len(target_2.segmentation.input.subsets) > 0:
@@ -2239,9 +2239,12 @@ class IpfTarget:
 
         if agg_1.zoning_system != agg_2.zoning_system:
             try:
-                trans = agg_1.zoning_system.translate(agg_2.zoning_system)
+                if trans_cache is None:
+                    trans = agg_1.zoning_system.translate(agg_2.zoning_system)
+                else:
+                    trans = agg_1.zoning_system.translate(agg_2.zoning_system, cache_path=trans_cache)
                 nested = (
-                    trans[agg_1.zoning_system.translation_column_name(agg_2.zoning_system)]==1).all()
+                    trans[agg_1.zoning_system.translation_column_name(agg_2.zoning_system)] == 1).all()
                 if nested:
                     agg_1 = agg_1.translate_zoning(agg_2.zone_system, trans_vector=trans)
                     zoning_diff = True
@@ -2279,7 +2282,7 @@ class IpfTarget:
         return targ_dict, rmses
     @staticmethod
     def check_compatibility(
-        targets: Collection[DVector], reference: DVector | None = None, adjust: bool = False, chain_adjust: bool = True
+        targets: Collection[DVector], reference: DVector | None = None, adjust: bool = False, chain_adjust: bool = True, trans_cache = None
     ):
         """
         Check compatibility between ipf targets, and optionally adjust to match.
@@ -2305,17 +2308,18 @@ class IpfTarget:
         if chain_adjust:
             for pos in list(itertools.combinations(reversed(targ_dict), 2)):
                 target_1, target_2 = targ_dict[pos[1]], targ_dict[pos[0]]
-                targ_dict, rmses = IpfTarget._check_loop(target_1, target_2, adjust, targ_dict, pos[1], rmses)
+                targ_dict, rmses = IpfTarget._check_loop(target_1, target_2, adjust, targ_dict, pos[1], rmses, trans_cache=trans_cache)
         else:
-            target_2 = targ_dict[len(targets)]
+            target_2 = reference if reference else targets[-1]
             for i in targ_dict:
                 target_1 = targ_dict[i]
                 if target_1 == target_2:
                     continue
-                targ_dict, rmses = IpfTarget._check_loop(target_1, target_2, adjust, targ_dict, i, rmses)
+                targ_dict, rmses = IpfTarget._check_loop(target_1, target_2, adjust, targ_dict, i, rmses, trans_cache=trans_cache)
 
-        targets = list(targ_dict.values())
+        targets_out = list(targ_dict.values())
+        targ_differences = [i / j for i, j in zip(targets_out, targets)]
         # remove reference from targets
         if reference is not None:
             targets = targets[:-1]
-        return pd.DataFrame.from_dict(rmses, orient="index"), targets
+        return pd.DataFrame.from_dict(rmses, orient="index"), targets_out, targ_differences
