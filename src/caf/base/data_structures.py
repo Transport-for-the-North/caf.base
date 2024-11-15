@@ -2242,9 +2242,13 @@ class IpfTarget:
                 if trans_cache is None:
                     trans = agg_1.zoning_system.translate(agg_2.zoning_system)
                 else:
-                    trans = agg_1.zoning_system.translate(agg_2.zoning_system, cache_path=trans_cache)
+                    trans = agg_1.zoning_system.translate(
+                        agg_2.zoning_system, cache_path=trans_cache
+                    )
                 nested = (
-                    trans[agg_1.zoning_system.translation_column_name(agg_2.zoning_system)] == 1).all()
+                    trans[agg_1.zoning_system.translation_column_name(agg_2.zoning_system)]
+                    == 1
+                ).all()
                 if nested:
                     agg_1 = agg_1.translate_zoning(agg_2.zone_system, trans_vector=trans)
                     zoning_diff = True
@@ -2263,14 +2267,16 @@ class IpfTarget:
 
         diff = (agg_1 - agg_2) ** 2
         if isinstance(diff, Number):
-            rmse = diff ** 0.5
+            rmse = diff**0.5
         else:
             rmse = (diff.sum() / len(diff)) ** 0.5
         rmses[tuple(common_segs)] = rmse
         if adjust:
             adj = agg_2 / agg_1
             if zoning_diff:
-                adj = adj.translate_zoning(target_1.zoning_system, trans_vector=trans, no_factors=True)
+                adj = adj.translate_zoning(
+                    target_1.zoning_system, trans_vector=trans, no_factors=True
+                )
             if isinstance(adj, pd.Series):
                 adj = adj.replace(to_replace={np.inf: 0})
                 target_1.data = target_1.data.mul(adj, axis=1)
@@ -2280,9 +2286,14 @@ class IpfTarget:
                     target_1 *= adj
             targ_dict[ind] = target_1
         return targ_dict, rmses
+
     @staticmethod
     def check_compatibility(
-        targets: Collection[DVector], reference: DVector | None = None, adjust: bool = False, chain_adjust: bool = True, trans_cache = None
+        targets: Collection[DVector],
+        reference: DVector | None = None,
+        adjust: bool = False,
+        chain_adjust: bool = True,
+        trans_cache=None,
     ):
         """
         Check compatibility between ipf targets, and optionally adjust to match.
@@ -2308,14 +2319,24 @@ class IpfTarget:
         if chain_adjust:
             for pos in list(itertools.combinations(reversed(targ_dict), 2)):
                 target_1, target_2 = targ_dict[pos[1]], targ_dict[pos[0]]
-                targ_dict, rmses = IpfTarget._check_loop(target_1, target_2, adjust, targ_dict, pos[1], rmses, trans_cache=trans_cache)
+                targ_dict, rmses = IpfTarget._check_loop(
+                    target_1,
+                    target_2,
+                    adjust,
+                    targ_dict,
+                    pos[1],
+                    rmses,
+                    trans_cache=trans_cache,
+                )
         else:
             target_2 = reference if reference else targets[-1]
             for i in targ_dict:
                 target_1 = targ_dict[i]
                 if target_1 == target_2:
                     continue
-                targ_dict, rmses = IpfTarget._check_loop(target_1, target_2, adjust, targ_dict, i, rmses, trans_cache=trans_cache)
+                targ_dict, rmses = IpfTarget._check_loop(
+                    target_1, target_2, adjust, targ_dict, i, rmses, trans_cache=trans_cache
+                )
 
         targets_out = list(targ_dict.values())
         targ_differences = [i / j for i, j in zip(targets_out, targets)]
