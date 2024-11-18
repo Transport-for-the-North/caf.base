@@ -2245,13 +2245,17 @@ class IpfTarget:
                     trans = agg_1.zoning_system.translate(
                         agg_2.zoning_system, cache_path=trans_cache
                     )
-                nested = (
-                    trans[agg_1.zoning_system.translation_column_name(agg_2.zoning_system)]
-                    == 1
-                ).all()
-                if nested:
-                    agg_1 = agg_1.translate_zoning(agg_2.zone_system, trans_vector=trans)
+                nested_1 = (
+                        trans[agg_1.zoning_system.translation_column_name(
+                            agg_2.zoning_system)] == 1).all()
+                nested_2 = (
+                        trans[agg_2.zoning_system.translation_column_name(
+                            agg_1.zoning_system)] == 1).all()
+                if nested_1:
+                    agg_1 = agg_1.translate_zoning(agg_2.zoning_system, trans_vector=trans)
                     zoning_diff = True
+                elif nested_2:
+                    agg_2 = agg_2.translate_zoning(agg_1.zoning_system, trans_vector=trans)
                 else:
                     raise TranslationError("not raised used to trigger exception")
             except TranslationError:
@@ -2274,9 +2278,22 @@ class IpfTarget:
         if adjust:
             adj = agg_2 / agg_1
             if zoning_diff:
-                adj = adj.translate_zoning(
-                    target_1.zoning_system, trans_vector=trans, no_factors=True
-                )
+                if isinstance(adj, DVector):
+                    adj = adj.translate_zoning(target_1.zoning_system, trans_vector=trans,
+                                               no_factors=True)
+                elif isinstance(adj, pd.Series):
+                    adj = translation.pandas_vector_zone_translation(adj,
+                                                                     trans,
+                                                                     f"{agg_2.zoning_system.name}_id",
+                                                                     f"{agg_1.zoning_system.name}_id",
+                                                                     agg_1.zoning_system.translation_column_name(
+                                                                         agg_2.zoning_system),
+                                                                     False)
+                else:
+                    raise TypeError(
+                        "Something has gone wrong. At this point 'adj' should be either a DVector, or "
+                        "a pandas Series. This is likely a code bug rather than user error, please raise "
+                        "as an issue.")
             if isinstance(adj, pd.Series):
                 adj = adj.replace(to_replace={np.inf: 0})
                 target_1.data = target_1.data.mul(adj, axis=1)
