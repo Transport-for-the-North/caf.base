@@ -1414,6 +1414,7 @@ class DVector:
         else:
             try:
                 new_data = self.data.join(lookup).reset_index()
+            # data is series
             except AttributeError:
                 new_data = self.data.to_frame().join(lookup).reset_index()
             if drop_from:
@@ -2282,12 +2283,13 @@ class IpfTarget:
                     adj = adj.translate_zoning(target_1.zoning_system, trans_vector=trans,
                                                no_factors=True)
                 elif isinstance(adj, pd.Series):
+                    # Here use the 'wrong' factors column as we are disaggregating factors
                     adj = translation.pandas_vector_zone_translation(adj,
                                                                      trans,
-                                                                     f"{agg_2.zoning_system.name}_id",
-                                                                     f"{agg_1.zoning_system.name}_id",
-                                                                     agg_1.zoning_system.translation_column_name(
-                                                                         agg_2.zoning_system),
+                                                                     f"{target_2.zoning_system.name}_id",
+                                                                     f"{target_1.zoning_system.name}_id",
+                                                                     target_1.zoning_system.translation_column_name(
+                                                                         target_2.zoning_system),
                                                                      False)
                 else:
                     raise TypeError(
