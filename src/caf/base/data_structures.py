@@ -2286,8 +2286,8 @@ class IpfTarget:
                     # Here use the 'wrong' factors column as we are disaggregating factors
                     adj = translation.pandas_vector_zone_translation(adj,
                                                                      trans,
-                                                                     f"{target_2.zoning_system.name}_id",
-                                                                     f"{target_1.zoning_system.name}_id",
+                                                                     f"{target_2.zoning_system.name.lower()}_id",
+                                                                     f"{target_1.zoning_system.name.lower()}_id",
                                                                      target_1.zoning_system.translation_column_name(
                                                                          target_2.zoning_system),
                                                                      False)
