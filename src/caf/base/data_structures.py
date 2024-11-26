@@ -931,8 +931,13 @@ class DVector:
             " but it can also be a sign of an error. Check the output DVector.",
             SegmentationWarning,
         )
-
-        prod = prod.reorder_levels(new_seg.naming_order)
+        if len(new_seg.naming_order) > 1:
+            try:
+                prod = prod.reorder_levels(new_seg.naming_order)
+            except TypeError:
+                raise SegmentationError("The index levels and segmentation names "
+                                        "don't match here. This shouldn't happen, please "
+                                        "raise as an issue.")
         if not prod.index.equals(new_seg.ind()):
             warnings.warn(
                 "This operation has dropped some rows due to exclusions "
