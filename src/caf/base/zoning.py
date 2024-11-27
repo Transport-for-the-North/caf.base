@@ -567,7 +567,7 @@ class ZoningSystem:
 
         if all(
             np.sum(missing_internal_id) < x
-            for x in (np.sum(missing_internal_desc), np.sum(missing_internal_id))
+            for x in (np.sum(missing_internal_desc), np.sum(missing_internal_name))
         ):
             return False
 
