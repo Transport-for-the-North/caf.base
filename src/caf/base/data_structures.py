@@ -931,8 +931,13 @@ class DVector:
             " but it can also be a sign of an error. Check the output DVector.",
             SegmentationWarning,
         )
-
-        prod = prod.reorder_levels(new_seg.naming_order)
+        if len(new_seg.naming_order) > 1:
+            try:
+                prod = prod.reorder_levels(new_seg.naming_order)
+            except TypeError:
+                raise SegmentationError("The index levels and segmentation names "
+                                        "don't match here. This shouldn't happen, please "
+                                        "raise as an issue.")
         if not prod.index.equals(new_seg.ind()):
             warnings.warn(
                 "This operation has dropped some rows due to exclusions "
@@ -2286,8 +2291,8 @@ class IpfTarget:
                     # Here use the 'wrong' factors column as we are disaggregating factors
                     adj = translation.pandas_vector_zone_translation(adj,
                                                                      trans,
-                                                                     f"{target_2.zoning_system.name}_id",
-                                                                     f"{target_1.zoning_system.name}_id",
+                                                                     f"{target_2.zoning_system.name.lower()}_id",
+                                                                     f"{target_1.zoning_system.name.lower()}_id",
                                                                      target_1.zoning_system.translation_column_name(
                                                                          target_2.zoning_system),
                                                                      False)
