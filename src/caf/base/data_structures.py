@@ -944,7 +944,12 @@ class DVector:
                 f"in the resulting segmentation. {prod.index.difference(new_seg.ind())} "
                 f"rows have been dropped from the pure product."
             )
-            prod = prod.loc[new_seg.ind()]
+            try:
+                prod = prod.loc[new_seg.ind()]
+            except KeyError:
+                raise SegmentationError("This operation has dropped unexpected rows from the data. "
+                                        "This is likely due to nan values being introduced then dropped, "
+                                        "please check your input DVectors.")
 
         return DVector(
             segmentation=new_seg,
