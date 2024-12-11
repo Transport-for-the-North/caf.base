@@ -1317,7 +1317,7 @@ class DVector:
             cut_read=self._cut_read,
         )
 
-    def filter_segment_value(self, segment_name: str, segment_values: int | list[int]):
+    def filter_segment_value(self, segment_name: str, segment_values: int | list[int]) -> DVector:
         """
         Filter a DVector on a given segment.
 
@@ -2371,5 +2371,5 @@ class IpfTarget:
         targ_differences = [i / j for i, j in zip(targets_out, targets)]
         # remove reference from targets
         if reference is not None:
-            targets = targets[:-1]
+            targets_out = targets_out[:-1]
         return pd.DataFrame.from_dict(rmses, orient="index"), targets_out, targ_differences
