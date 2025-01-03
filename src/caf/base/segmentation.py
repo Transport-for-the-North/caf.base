@@ -781,6 +781,45 @@ class Segmentation:
                 out_seg.subsets.update({key: val})
         return Segmentation(out_seg)
 
+    def generate_segment_name(self, segment_params: dict[str, int]) -> str:
+        """Generate name from segment parameters.
+
+        Parameters
+        ----------
+        segment_params : dict[str, int]
+            Parameters to generate name from, this must contain a value
+            for all segments in the segmentation e.g. {"p": 1, "m": 3}.
+
+        Returns
+        -------
+        str
+            Name of segment from parameters in the form
+            "{name}{value}_{name 2}{value 2}" e.g. "p1_m3".
+            The order of the parameters is defined by the segmentation
+            `naming_order`.
+
+        Raises
+        ------
+        KeyError
+            If any segments aren't provided in `segment_params`.
+        """
+        segment_parts = []
+        missing = []
+
+        for name in self.naming_order:
+            try:
+                value = segment_params[name]
+            except KeyError:
+                missing.append(name)
+                continue
+
+            segment_parts.append(f"{name}{value}")
+
+        if len(missing) > 0:
+            raise KeyError(f"missing segments when generating name: {', '.join(missing)}")
+
+        return "_".join(segment_parts)
+
 
 # # # FUNCTIONS # # #
 def ordered_set(list_1: list, list_2: list) -> list:

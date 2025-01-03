@@ -9,12 +9,13 @@ load
 save
 add segmentations
 """
+
 # Built-Ins
+import pandas as pd
 
 # Third Party
 import pytest
-import pandas as pd
-import numpy as np
+
 from caf.base import segmentation
 
 # Local Imports
@@ -159,3 +160,38 @@ class TestInd:
             enum_segments=["ca", "m"], naming_order=["ca", "m"]
         )
         assert aggregated == segmentation.Segmentation(conf)
+
+
+class TestSegmentation:
+    """General tests for `Segmentation` class."""
+
+    @pytest.mark.parametrize(
+        ["segment_params", "expected"],
+        [
+            ({"ca": 1, "gender_3": 1, "m": 1}, "ca1_m1_gender_31"),
+            ({"ca": 2, "gender_3": 10, "m": 13}, "ca2_m13_gender_310"),
+        ],
+    )
+    def test_generate_segment_name(
+        self,
+        vanilla_seg: segmentation.Segmentation,
+        segment_params: dict[str, int],
+        expected: str,
+    ):
+        """Test `Segmentation.generate_segment_name` produces correct names."""
+        name = vanilla_seg.generate_segment_name(segment_params)
+
+        assert name == expected, "incorrect segment name generated"
+
+    @pytest.mark.parametrize("segment_params", [{"ca": 1}, {"gender_3": 1, "m": 2}, {}])
+    def test_generate_segment_name_missing(
+        self, vanilla_seg: segmentation.Segmentation, segment_params: dict[str, int]
+    ):
+        """Test `Segmentation.generate_segment_name` correctly raises KeyError.
+
+        KeyError should be raised when `segment_params` doesn't contain all required
+        segments.
+        """
+        error_msg = "missing segments when generating name:"
+        with pytest.raises(KeyError, match=error_msg):
+            vanilla_seg.generate_segment_name(segment_params)
