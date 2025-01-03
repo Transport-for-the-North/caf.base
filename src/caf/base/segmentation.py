@@ -7,17 +7,16 @@ enumeration from caf.base.segments. Both are used for building segmentations.
 """
 from __future__ import annotations
 
-# Built-Ins
+import collections.abc
 import copy
 import itertools
 import warnings
 from os import PathLike
 from pathlib import Path
-from typing import Literal, Optional, Union
+from typing import Iterator, Literal, Optional, Union
 
+import caf.toolkit as ctk
 import h5py
-
-# Third Party
 import pandas as pd
 import pydantic
 from caf.toolkit import BaseConfig
@@ -819,6 +818,103 @@ class Segmentation:
             raise KeyError(f"missing segments when generating name: {', '.join(missing)}")
 
         return "_".join(segment_parts)
+
+    def iter_segment_parameters(self) -> Iterator[dict[str, int]]:
+        """Iterate through segment parameters.
+
+        Yields
+        ------
+        dict[str, int]
+            Parameters for an individual segment.
+        """
+        for params in self.ind():
+            yield dict(zip(self.naming_order, params))
+
+    def generate_segment_tuple(self, segment_params: dict[str, int]) -> tuple[int, ...]:
+        """Generate segment tuple from parameters.
+
+        Parameters
+        ----------
+        segment_params : dict[str, int]
+            Parameters to generate name from, this must contain a value
+            for all segments in the segmentation e.g. {"p": 1, "m": 3}.
+
+        Returns
+        -------
+        tuple[int, ...]
+            Values of segment parameters, the order of the
+            parameters is defined by the segmentation `naming_order`.
+
+        Raises
+        ------
+        KeyError
+            If any segments aren't provided in `segment_params`.
+        """
+        segment_parts = []
+        missing = []
+
+        for name in self.naming_order:
+            try:
+                segment_parts.append(segment_params[name])
+            except KeyError:
+                missing.append(name)
+                continue
+
+        if len(missing) > 0:
+            raise KeyError(f"missing segments when generating tuple: {', '.join(missing)}")
+
+        return tuple(segment_parts)
+
+    def find_files(
+        self, folder: Path, template: str, suffixes: collections.abc.Sequence[str]
+    ) -> dict[tuple[int, ...], Path]:
+        """Find files split by segmentation in given `folder`.
+
+        Parameters
+        ----------
+        folder : Path
+            Folder to search within, doesn't look in sub-folders.
+        template : str
+            Template for filenames, will be formatted with the segment
+            name so should contain "{segment_name}". File extension shouldn't
+            be included e.g "test" instead of "test.csv".
+        suffixes : collections.abc.Sequence[str]
+            File extensions (suffixes) to search for, will find the first
+            matching file.
+
+        Returns
+        -------
+        dict[tuple[int, ...], Path]
+            Files found for each segment (value), with the
+            segment parameters tuple (key).
+
+        Raises
+        ------
+        FileNotFoundError
+            If a file cannot be found for all possible segments.
+        """
+        missing = []
+        filepaths = {}
+        for params in self.iter_segment_parameters():
+            name = self.generate_segment_name(params)
+            filename = template.format(segment_name=name)
+
+            try:
+                path = ctk.io.find_file(folder, filename, suffixes)
+            except FileNotFoundError:
+                missing.append(filename)
+                continue
+
+            filepaths[self.generate_segment_tuple(params)] = path
+
+        if len(missing) > 0:
+            missing_names = ", ".join(f"'{i}'" for i in missing)
+            raise FileNotFoundError(
+                f"missing {len(missing)} ({len(missing) / len(self):.0%})"
+                f" files: {missing_names}"
+            )
+
+        return filepaths
 
 
 # # # FUNCTIONS # # #

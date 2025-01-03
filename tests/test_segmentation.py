@@ -10,10 +10,9 @@ save
 add segmentations
 """
 
-# Built-Ins
-import pandas as pd
+import pathlib
 
-# Third Party
+import pandas as pd
 import pytest
 
 from caf.base import segmentation
@@ -125,6 +124,16 @@ def fix_add_exp():
     return segmentation.Segmentation(conf)
 
 
+@pytest.fixture(scope="session", name="simple_segmentation")
+def fix_simple_segmentation():
+    """Segmentation containing ca and mode only."""
+    input = segmentation.SegmentationInput(
+        enum_segments=["ca", "m"],
+        naming_order=["ca", "m"],
+    )
+    return segmentation.Segmentation(input)
+
+
 class TestInd:
     def test_vanilla_ind(self, vanilla_seg, expected_vanilla_ind):
         assert expected_vanilla_ind.equal_levels(vanilla_seg.ind())
@@ -195,3 +204,77 @@ class TestSegmentation:
         error_msg = "missing segments when generating name:"
         with pytest.raises(KeyError, match=error_msg):
             vanilla_seg.generate_segment_name(segment_params)
+
+    @pytest.mark.parametrize(
+        ["segment_params", "expected"],
+        [
+            ({"ca": 1, "gender_3": 1, "m": 1}, (1, 1, 1)),
+            ({"ca": 2, "gender_3": 10, "m": 13}, (2, 13, 10)),
+        ],
+    )
+    def test_generate_segment_tuple(
+        self,
+        vanilla_seg: segmentation.Segmentation,
+        segment_params: dict[str, int],
+        expected: tuple[int, ...],
+    ):
+        """Test `Segmentation.generate_segment_tuple` produces correct names."""
+        name = vanilla_seg.generate_segment_tuple(segment_params)
+
+        assert name == expected, "incorrect segment tuple generated"
+
+    @pytest.mark.parametrize("segment_params", [{"ca": 1}, {"gender_3": 1, "m": 2}, {}])
+    def test_generate_segment_tuple_missing(
+        self, vanilla_seg: segmentation.Segmentation, segment_params: dict[str, int]
+    ):
+        """Test `Segmentation.generate_segment_tuple` correctly raises KeyError.
+
+        KeyError should be raised when `segment_params` doesn't contain all required
+        segments.
+        """
+        error_msg = "missing segments when generating tuple:"
+        with pytest.raises(KeyError, match=error_msg):
+            vanilla_seg.generate_segment_tuple(segment_params)
+
+    def test_iter_segment_parameters(self, simple_segmentation: segmentation.Segmentation):
+        """Test `Segmentation.iter_segment_parameters` produces correct dictionaries."""
+        # fmt: off
+        expected = [
+            {"ca": 1, "m": 1}, {"ca": 2, "m": 1},
+            {"ca": 1, "m": 2}, {"ca": 2, "m": 2},
+            {"ca": 1, "m": 3}, {"ca": 2, "m": 3},
+            {"ca": 1, "m": 4}, {"ca": 2, "m": 4},
+            {"ca": 1, "m": 5}, {"ca": 2, "m": 5},
+            {"ca": 1, "m": 6}, {"ca": 2, "m": 6},
+        ]
+        # fmt: on
+        expected = sorted(expected, key=simple_segmentation.generate_segment_tuple)
+        answer = sorted(
+            list(simple_segmentation.iter_segment_parameters()),
+            key=simple_segmentation.generate_segment_tuple,
+        )
+
+        assert answer == expected, "incorrect segmentation parameters"
+
+    def test_find_files(self, vanilla_seg: segmentation.Segmentation, tmp_path: pathlib.Path):
+        """Test `Segmentation.find_files` finds correct files."""
+        folder = tmp_path / "find_files"
+        folder.mkdir()
+
+        template = "test_file_{segment_name}"
+
+        expected = []
+        for params in vanilla_seg.iter_segment_parameters():
+
+            name = vanilla_seg.generate_segment_name(params)
+            path = folder / f"{template.format(segment_name=name)}.csv"
+            path.touch()
+            expected.append(path)
+
+        expected = sorted(expected)
+
+        paths = vanilla_seg.find_files(folder, template, suffixes=[".csv"])
+        assert len(paths) == len(vanilla_seg), "incorrect number of files found"
+
+        paths = sorted(list(paths.values()))
+        assert paths == expected, "incorrect files found"

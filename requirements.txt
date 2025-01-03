@@ -1,6 +1,8 @@
 numpy>=1.24.3, <2
 pandas>=2.0
-caf.toolkit>=0.4.0
+# caf.toolkit>=0.4.0
+# Waiting for new caf.toolkit release
+caf.toolkit @ git+https://github.com/Transport-for-the-North/caf.toolkit.git@find_files
 h5py>=3.9.0
 pydantic>=2.7
 scipy>=1.11.3
