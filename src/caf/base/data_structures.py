@@ -6,6 +6,7 @@ Currently this is only the DVector class, but this may be expanded in the future
 """
 from __future__ import annotations
 
+# Built-Ins
 import enum
 import itertools
 import logging
@@ -20,17 +21,22 @@ from os import PathLike, listdir
 from pathlib import Path
 from typing import Callable, Literal, Optional, Union
 
+# Third Party
 import caf.toolkit as ctk
 import numpy as np
 import pandas as pd
 
+# Local Imports
 # pylint: disable=no-name-in-module,import-error
-from caf.base.segmentation import (Segmentation, SegmentationError,
-                                   SegmentationWarning)
+from caf.base.segmentation import Segmentation, SegmentationError, SegmentationWarning
 from caf.base.segments import SegConverter, Segment, SegmentsSuper
-from caf.base.zoning import (BalancingZones, TranslationError,
-                             TranslationWeighting, ZoningSystem,
-                             normalise_column_name)
+from caf.base.zoning import (
+    BalancingZones,
+    TranslationError,
+    TranslationWeighting,
+    ZoningSystem,
+    normalise_column_name,
+)
 
 # pylint: enable=no-name-in-module,import-error
 

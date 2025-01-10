@@ -3,6 +3,7 @@
 # Allow class self hinting
 from __future__ import annotations
 
+# Built-Ins
 import enum
 import itertools
 import logging
@@ -13,12 +14,14 @@ from os import PathLike
 from pathlib import Path
 from typing import Any, Literal, Optional, Union
 
+# Third Party
 import caf.toolkit as ctk
 import h5py
 import numpy as np
 import pandas as pd
 from typing_extensions import Self
 
+# Local Imports
 from caf.base.segmentation import Segmentation, SegmentationInput
 
 pd.set_option("future.no_silent_downcasting", True)
@@ -422,6 +425,7 @@ class ZoningSystem:
         """Generate spatial zone_translation using `caf.space`, if available."""
         try:
             # pylint: disable=import-outside-toplevel
+            # Third Party
             import caf.space as cs
 
             # pylint: enable=import-outside-toplevel
@@ -878,6 +882,7 @@ class ZoningSystem:
         """
         # pylint: disable=import-outside-toplevel
         try:
+            # Third Party
             import geopandas as gpd
         except ImportError as exc:
             raise ImportError("Geopandas must be installed to use this method.") from exc

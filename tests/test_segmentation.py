@@ -10,17 +10,15 @@ save
 add segmentations
 """
 
+# Built-Ins
 import pathlib
 
+# Third Party
 import pandas as pd
 import pytest
 
-from caf.base import segmentation
-
 # Local Imports
-# pylint: disable=import-error,wrong-import-position
-# Local imports here
-# pylint: enable=import-error,wrong-import-position
+from caf.base import segmentation
 
 # # # CONSTANTS # # #
 

@@ -7,6 +7,7 @@ enumeration from caf.base.segments. Both are used for building segmentations.
 """
 from __future__ import annotations
 
+# Built-Ins
 import collections.abc
 import copy
 import itertools
@@ -15,6 +16,7 @@ from os import PathLike
 from pathlib import Path
 from typing import Iterator, Literal, Optional, Union
 
+# Third Party
 import caf.toolkit as ctk
 import h5py
 import pandas as pd

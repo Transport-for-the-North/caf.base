@@ -1,9 +1,11 @@
 # -*- coding: utf-8 -*-
 """Module defining Segments class and enumeration."""
+# Built-Ins
 import enum
 from pathlib import Path
 from typing import Optional
 
+# Third Party
 import pandas as pd
 import pydantic
 from caf.toolkit import BaseConfig

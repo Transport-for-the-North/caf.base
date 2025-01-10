@@ -14,23 +14,18 @@ aggregate
 translate
 
 """
-from math import isclose
 # Built-Ins
+from math import isclose
 from pathlib import Path
 
+# Third Party
 import numpy as np
 import pandas as pd
 import pytest
 
-# Third Party
+# Local Imports
 from caf.base import data_structures, segmentation
 from caf.base.segments import SegmentsSuper
-
-# Local Imports
-# pylint: disable=import-error,wrong-import-position
-# Local imports here
-# pylint: enable=import-error,wrong-import-position
-
 
 # # # CONSTANTS # # #
 

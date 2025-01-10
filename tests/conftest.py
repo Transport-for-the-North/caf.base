@@ -13,8 +13,8 @@ File purpose:
 # Built-Ins
 from pathlib import Path
 
-import pandas as pd
 # Third Party
+import pandas as pd
 import pytest
 
 # Local Imports
