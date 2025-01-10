@@ -523,8 +523,15 @@ class ZoningSystem:
         return f"{self.name}_to_{other.name}".lower()
 
     def _replace_id(
-        self, missing_rep, missing_id, translation, zone_system, translation_name, replacer
-    ):
+        self,
+        missing_rep: np.ndarray | float,
+        missing_id: np.ndarray,
+        *,
+        translation: pd.DataFrame,
+        zone_system: ZoningSystem,
+        translation_name: str,
+        replacer: dict,
+    ) -> pd.DataFrame:
         if np.sum(missing_rep) > 0:
             if np.sum(missing_rep) >= np.sum(missing_id):
                 warnings.warn(
@@ -613,19 +620,19 @@ class ZoningSystem:
                     translation = self._replace_id(
                         missing_internal_name,
                         missing_internal_id,
-                        translation,
-                        zone_system,
-                        translation_name,
-                        zone_system.name_to_id,
+                        translation=translation,
+                        zone_system=zone_system,
+                        translation_name=translation_name,
+                        replacer=zone_system.name_to_id,
                     )
                 else:
                     translation = self._replace_id(
                         missing_internal_desc,
                         missing_internal_id,
-                        translation,
-                        zone_system,
-                        translation_name,
-                        zone_system.desc_to_id,
+                        translation=translation,
+                        zone_system=zone_system,
+                        translation_name=translation_name,
+                        replacer=zone_system.desc_to_id,
                     )
                 translation = translation[
                     translation[zone_system.column_name].isin(zone_system.zone_ids)
