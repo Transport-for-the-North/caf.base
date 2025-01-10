@@ -125,6 +125,9 @@ class Segmentation:
         config: SegmentationInput
         Instance of SegmentationInput. See that class for details.
     """
+    # pylint: disable=too-many-public-methods
+    # Maybe there is a requirement to look into splitting functionality up
+    # to make this class simpler but for now everything in here is useful
 
     # This currently isn't used and doesn't mean anything. In few places code
     # relating to time periods or time formats is included from normits_core but
@@ -410,7 +413,7 @@ class Segmentation:
             from_seg = self.get_segment(from_seg)
         if from_seg not in self.segments:
             raise SegmentationError(
-                "The segment being translated from is not in the current " "segmentation."
+                "The segment being translated from is not in the current segmentation."
             )
         to_seg, lookup = from_seg.translate_segment(to_seg, reverse=reverse)
         new_conf = self.input.model_copy(deep=True)

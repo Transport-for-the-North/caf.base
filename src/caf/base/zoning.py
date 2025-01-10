@@ -149,7 +149,7 @@ class ZoningSystem:
             raise ValueError(
                 f"mandatory ID column ({self._id_column}) missing from zones data"
             )
-        # TODO: consider replacing with alternative checks that allow string IDs
+        # #75 consider replacing with alternative checks that allow string IDs
         ### This chunk of code requires the zone names to be integers
         ### This has been commented out to allow LSOA (or other) zone codes to be used
         ### directly instead to avoid the added step of providing zone lookups with
@@ -444,7 +444,7 @@ class ZoningSystem:
         )
         conf = cs.ZoningTranslationInputs(zone_1=zone_1, zone_2=zone_2, cache_path=cache_path)
         trans = cs.ZoneTranslation(conf).spatial_translation()
-        # TODO fix return type in caf.space
+        # #76 fix return type in caf.space
         trans[trans.columns[:2]] = trans[trans.columns[:2]].astype(str)
 
         return trans
