@@ -12,10 +12,10 @@ File purpose:
 """
 # Built-Ins
 
+import numpy as np
+import pandas as pd
 # Third Party
 import pytest
-import pandas as pd
-import numpy as np
 
 # Local Imports
 # pylint: disable=import-error,wrong-import-position

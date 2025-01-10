@@ -14,16 +14,17 @@ aggregate
 translate
 
 """
+from math import isclose
 # Built-Ins
 from pathlib import Path
+
+import numpy as np
+import pandas as pd
 import pytest
-from math import isclose
 
 # Third Party
 from caf.base import data_structures, segmentation
 from caf.base.segments import SegmentsSuper
-import pandas as pd
-import numpy as np
 
 # Local Imports
 # pylint: disable=import-error,wrong-import-position

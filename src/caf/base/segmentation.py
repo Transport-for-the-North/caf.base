@@ -125,6 +125,7 @@ class Segmentation:
         config: SegmentationInput
         Instance of SegmentationInput. See that class for details.
     """
+
     # pylint: disable=too-many-public-methods
     # Maybe there is a requirement to look into splitting functionality up
     # to make this class simpler but for now everything in here is useful

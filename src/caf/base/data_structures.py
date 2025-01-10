@@ -25,15 +25,12 @@ import numpy as np
 import pandas as pd
 
 # pylint: disable=no-name-in-module,import-error
-from caf.base.segmentation import Segmentation, SegmentationError, SegmentationWarning
+from caf.base.segmentation import (Segmentation, SegmentationError,
+                                   SegmentationWarning)
 from caf.base.segments import SegConverter, Segment, SegmentsSuper
-from caf.base.zoning import (
-    BalancingZones,
-    TranslationError,
-    TranslationWeighting,
-    ZoningSystem,
-    normalise_column_name,
-)
+from caf.base.zoning import (BalancingZones, TranslationError,
+                             TranslationWeighting, ZoningSystem,
+                             normalise_column_name)
 
 # pylint: enable=no-name-in-module,import-error
 
