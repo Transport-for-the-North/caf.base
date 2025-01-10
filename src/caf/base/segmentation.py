@@ -900,7 +900,7 @@ class Segmentation:
             filename = template.format(segment_name=name)
 
             try:
-                path = ctk.io.find_file(folder, filename, suffixes)
+                path = ctk.io.find_file_with_name(folder, filename, suffixes)
             except FileNotFoundError:
                 missing.append(filename)
                 continue
