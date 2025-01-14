@@ -786,19 +786,19 @@ class Segmentation:
                 out_seg.subsets.update({key: val})
         return Segmentation(out_seg)
 
-    def generate_segment_name(self, segment_params: dict[str, int]) -> str:
-        """Generate name from segment parameters.
+    def generate_slice_name(self, slice_params: dict[str, int]) -> str:
+        """Generate name for a slice of the segmentation from parameters.
 
         Parameters
         ----------
-        segment_params : dict[str, int]
+        slice_params : dict[str, int]
             Parameters to generate name from, this must contain a value
             for all segments in the segmentation e.g. {"p": 1, "m": 3}.
 
         Returns
         -------
         str
-            Name of segment from parameters in the form
+            Name of slice from parameters in the form
             "{name}{value}_{name 2}{value 2}" e.g. "p1_m3".
             The order of the parameters is defined by the segmentation
             `naming_order`.
@@ -806,62 +806,62 @@ class Segmentation:
         Raises
         ------
         KeyError
-            If any segments aren't provided in `segment_params`.
+            If any segments aren't provided in `slice_params`.
         """
-        segment_parts = []
+        slice_parts = []
         missing = []
 
         for name in self.naming_order:
             try:
-                value = segment_params[name]
+                value = slice_params[name]
             except KeyError:
                 missing.append(name)
                 continue
 
-            segment_parts.append(f"{name}{value}")
+            slice_parts.append(f"{name}{value}")
 
         if len(missing) > 0:
             raise KeyError(f"missing segments when generating name: {', '.join(missing)}")
 
-        return "_".join(segment_parts)
+        return "_".join(slice_parts)
 
-    def iter_segment_parameters(self) -> Iterator[dict[str, int]]:
-        """Iterate through segment parameters.
+    def iter_slices(self) -> Iterator[dict[str, int]]:
+        """Iterate through parameters for all segmentation slcies.
 
         Yields
         ------
         dict[str, int]
-            Parameters for an individual segment.
+            Parameters for an individual slice.
         """
         for params in self.ind():
             yield dict(zip(self.naming_order, params))
 
-    def generate_segment_tuple(self, segment_params: dict[str, int]) -> tuple[int, ...]:
+    def generate_slice_tuple(self, slice_params: dict[str, int]) -> tuple[int, ...]:
         """Generate segment tuple from parameters.
 
         Parameters
         ----------
-        segment_params : dict[str, int]
-            Parameters to generate name from, this must contain a value
+        slice_params : dict[str, int]
+            Parameters to generate tuple from, this must contain a value
             for all segments in the segmentation e.g. {"p": 1, "m": 3}.
 
         Returns
         -------
         tuple[int, ...]
-            Values of segment parameters, the order of the
+            Values of slice parameters, the order of the
             parameters is defined by the segmentation `naming_order`.
 
         Raises
         ------
         KeyError
-            If any segments aren't provided in `segment_params`.
+            If any segments aren't provided in `slice_params`.
         """
-        segment_parts = []
+        slice_parts = []
         missing = []
 
         for name in self.naming_order:
             try:
-                segment_parts.append(segment_params[name])
+                slice_parts.append(slice_params[name])
             except KeyError:
                 missing.append(name)
                 continue
@@ -869,7 +869,7 @@ class Segmentation:
         if len(missing) > 0:
             raise KeyError(f"missing segments when generating tuple: {', '.join(missing)}")
 
-        return tuple(segment_parts)
+        return tuple(slice_parts)
 
     def find_files(
         self, folder: Path, template: str, suffixes: collections.abc.Sequence[str]
@@ -891,8 +891,8 @@ class Segmentation:
         Returns
         -------
         dict[tuple[int, ...], Path]
-            Files found for each segment (value), with the
-            segment parameters tuple (key).
+            Files found for each slice (value), with the
+            slice parameters tuple (key).
 
         Raises
         ------
@@ -901,8 +901,8 @@ class Segmentation:
         """
         missing = []
         filepaths = {}
-        for params in self.iter_segment_parameters():
-            name = self.generate_segment_name(params)
+        for params in self.iter_slices():
+            name = self.generate_slice_name(params)
             filename = template.format(segment_name=name)
 
             try:
@@ -911,7 +911,7 @@ class Segmentation:
                 missing.append(filename)
                 continue
 
-            filepaths[self.generate_segment_tuple(params)] = path
+            filepaths[self.generate_slice_tuple(params)] = path
 
         if len(missing) > 0:
             missing_names = ", ".join(f"'{i}'" for i in missing)

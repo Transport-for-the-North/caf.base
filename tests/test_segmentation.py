@@ -186,7 +186,7 @@ class TestSegmentation:
         expected: str,
     ):
         """Test `Segmentation.generate_segment_name` produces correct names."""
-        name = vanilla_seg.generate_segment_name(segment_params)
+        name = vanilla_seg.generate_slice_name(segment_params)
 
         assert name == expected, "incorrect segment name generated"
 
@@ -201,7 +201,7 @@ class TestSegmentation:
         """
         error_msg = "missing segments when generating name:"
         with pytest.raises(KeyError, match=error_msg):
-            vanilla_seg.generate_segment_name(segment_params)
+            vanilla_seg.generate_slice_name(segment_params)
 
     @pytest.mark.parametrize(
         ["segment_params", "expected"],
@@ -217,7 +217,7 @@ class TestSegmentation:
         expected: tuple[int, ...],
     ):
         """Test `Segmentation.generate_segment_tuple` produces correct names."""
-        name = vanilla_seg.generate_segment_tuple(segment_params)
+        name = vanilla_seg.generate_slice_tuple(segment_params)
 
         assert name == expected, "incorrect segment tuple generated"
 
@@ -232,7 +232,7 @@ class TestSegmentation:
         """
         error_msg = "missing segments when generating tuple:"
         with pytest.raises(KeyError, match=error_msg):
-            vanilla_seg.generate_segment_tuple(segment_params)
+            vanilla_seg.generate_slice_tuple(segment_params)
 
     def test_iter_segment_parameters(self, simple_segmentation: segmentation.Segmentation):
         """Test `Segmentation.iter_segment_parameters` produces correct dictionaries."""
@@ -246,10 +246,10 @@ class TestSegmentation:
             {"ca": 1, "m": 6}, {"ca": 2, "m": 6},
         ]
         # fmt: on
-        expected = sorted(expected, key=simple_segmentation.generate_segment_tuple)
+        expected = sorted(expected, key=simple_segmentation.generate_slice_tuple)
         answer = sorted(
-            list(simple_segmentation.iter_segment_parameters()),
-            key=simple_segmentation.generate_segment_tuple,
+            list(simple_segmentation.iter_slices()),
+            key=simple_segmentation.generate_slice_tuple,
         )
 
         assert answer == expected, "incorrect segmentation parameters"
@@ -262,9 +262,9 @@ class TestSegmentation:
         template = "test_file_{segment_name}"
 
         expected = []
-        for params in vanilla_seg.iter_segment_parameters():
+        for params in vanilla_seg.iter_slices():
 
-            name = vanilla_seg.generate_segment_name(params)
+            name = vanilla_seg.generate_slice_name(params)
             path = folder / f"{template.format(segment_name=name)}.csv"
             path.touch()
             expected.append(path)
