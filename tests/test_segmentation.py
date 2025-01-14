@@ -175,8 +175,8 @@ class TestSegmentation:
     @pytest.mark.parametrize(
         ["segment_params", "expected"],
         [
-            ({"ca": 1, "gender_3": 1, "m": 1}, "ca1_m1_gender_31"),
-            ({"ca": 2, "gender_3": 10, "m": 13}, "ca2_m13_gender_310"),
+            ({"ca": 1, "gender_3": 1, "m": 1}, "ca1_m1_gt1"),
+            ({"ca": 2, "gender_3": 10, "m": 13}, "ca2_m13_gt10"),
         ],
     )
     def test_generate_segment_name(
@@ -297,8 +297,8 @@ class TestSegmentation:
     @pytest.mark.parametrize(
         ["name", "expected"],
         [
-            ("ca1_m2_gender_33", {"ca": 1, "m": 2, "gender_3": 3}),
-            ("ca2_m5_gender_31", {"ca": 2, "m": 5, "gender_3": 1}),
+            ("ca1_m2_gt3", {"ca": 1, "m": 2, "gender_3": 3}),
+            ("ca2_m5_gt1", {"ca": 2, "m": 5, "gender_3": 1}),
         ],
     )
     def test_convert_slice_name(

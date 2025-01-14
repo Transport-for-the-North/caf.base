@@ -50,6 +50,9 @@ class Segment(BaseConfig):
         The values forming the segment. Keys are the values, and values are
         descriptions, e.g. for 'p', 1: 'HB work'. Descriptions don't tend to
         get used in DVectors so can be as verbose as desired for clarity.
+    alias: str | None
+        Optional alias to use when producing filenames (or other names)
+        from segmentation slices, if not given then name will be used.
     exclusions: list[Exclusion]
         Define incompatibilities between segments. See Correspondence class
     lookups: list[Exclusion]
@@ -59,6 +62,7 @@ class Segment(BaseConfig):
 
     name: str
     values: dict[int, str]
+    alias: str | None = None
     exclusions: list[Exclusion] = pydantic.Field(default_factory=list)
     lookups: list[Exclusion] = pydantic.Field(default_factory=list)
     model_config = ConfigDict(arbitrary_types_allowed=True)
@@ -104,6 +108,15 @@ class Segment(BaseConfig):
     def __len__(self):
         """Return length of segment."""
         return len(self.values)
+
+    def get_alias(self) -> str:
+        """Get segment alias for use in filenames, if available.
+
+        If Segment alias is None, return the Segment name.
+        """
+        if self.alias is None:
+            return self.name
+        return self.alias
 
     def translate_segment(self, new_seg, reverse: bool = False):
         """

@@ -800,9 +800,9 @@ class Segmentation:
         -------
         str
             Name of slice from parameters in the form
-            "{name}{value}_{name 2}{value 2}" e.g. "p1_m3".
-            The order of the parameters is defined by the segmentation
-            `naming_order`.
+            "{name}{value}_{name 2}{value 2}" e.g. "p1_m3", where name
+            is the segment alias if it has one. The order of the
+            parameters is defined by the segmentation `naming_order`.
 
         Raises
         ------
@@ -813,13 +813,14 @@ class Segmentation:
         missing = []
 
         for name in self.naming_order:
+            segment = self.get_segment(name)
             try:
                 value = slice_params[name]
             except KeyError:
                 missing.append(name)
                 continue
 
-            slice_parts.append(f"{name}{value}")
+            slice_parts.append(f"{segment.get_alias()}{value}")
 
         if len(missing) > 0:
             raise KeyError(f"missing segments when generating name: {', '.join(missing)}")
@@ -922,10 +923,14 @@ class Segmentation:
         params = {}
 
         for nm in self.naming_order:
-            matched = re.findall(rf"(?:\b|_){nm}(\d+)(?:\b|_)", name)
+            segment = self.get_segment(nm)
+            matched = re.findall(rf"(?:\b|_){segment.get_alias()}(\d+)(?:\b|_)", name)
 
             if len(matched) == 0:
-                missing.append(nm)
+                if segment.alias is not None:
+                    missing.append(f"{nm} ({segment.alias})")
+                else:
+                    missing.append(nm)
                 continue
             if len(matched) > 1:
                 raise ValueError(f"found multiple values for {nm} segment in '{name}'")
