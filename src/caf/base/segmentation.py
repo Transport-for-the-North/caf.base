@@ -11,6 +11,7 @@ from __future__ import annotations
 import collections.abc
 import copy
 import itertools
+import re
 import warnings
 from os import PathLike
 from pathlib import Path
@@ -870,6 +871,73 @@ class Segmentation:
             raise KeyError(f"missing segments when generating tuple: {', '.join(missing)}")
 
         return tuple(slice_parts)
+
+    def convert_slice_tuple(self, slice_tuple: tuple[int, ...]) -> dict[str, int]:
+        """Convert a segmentation slice tuple into parameters.
+
+        Parameters
+        ----------
+        slice_tuple : tuple[int, ...]
+            Tuple containing segment values for a single slice.
+
+        Returns
+        -------
+        dict[str, int]
+            Slice parameters with names of segment (key) and
+            value for that segment.
+
+        Raises
+        ------
+        ValueError
+            If the tuple given doesn't have the expected number of values.
+        """
+        if len(slice_tuple) != len(self.naming_order):
+            raise ValueError(
+                f"slice tuple should contain {len(self.naming_order)}"
+                f" values but contains {len(slice_tuple)} values"
+            )
+        return dict(zip(self.naming_order, slice_tuple))
+
+    def convert_slice_name(self, name: str) -> dict[str, int]:
+        """Convert segmentation slice name into parameters.
+
+        Parameters
+        ----------
+        name : str
+            Segmentation slice name e.g. "p1_m3".
+
+        Returns
+        -------
+        dict[str, int]
+            Parameters for the slice e.g. {"p": 1, "m": 3}.
+
+        Raises
+        ------
+        ValueError
+            If multiple values are found for a single segment.
+        KeyError
+            If any segments are missing from the name.
+        """
+        missing = []
+        params = {}
+
+        for nm in self.naming_order:
+            matched = re.findall(rf"(?:\b|_){nm}(\d+)(?:\b|_)", name)
+
+            if len(matched) == 0:
+                missing.append(nm)
+                continue
+            if len(matched) > 1:
+                raise ValueError(f"found multiple values for {nm} segment in '{name}'")
+
+            params[nm] = int(matched[0])
+
+        if len(missing) > 0:
+            raise KeyError(
+                f"missing segments when generating params from name: {', '.join(missing)}"
+            )
+
+        return params
 
     def find_files(
         self, folder: Path, template: str, suffixes: collections.abc.Sequence[str]

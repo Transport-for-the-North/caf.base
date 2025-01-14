@@ -276,3 +276,37 @@ class TestSegmentation:
 
         paths = sorted(list(paths.values()))
         assert paths == expected, "incorrect files found"
+
+    @pytest.mark.parametrize(
+        ["tuple_", "expected"],
+        [
+            ((1, 2, 3), {"ca": 1, "m": 2, "gender_3": 3}),
+            ((2, 5, 1), {"ca": 2, "m": 5, "gender_3": 1}),
+        ],
+    )
+    def test_convert_slice_tuple(
+        self,
+        vanilla_seg: segmentation.Segmentation,
+        tuple_: tuple[int, ...],
+        expected: dict[str, int],
+    ):
+        """Test converting a slice tuple into a parameters dictionary."""
+        answer = vanilla_seg.convert_slice_tuple(tuple_)
+        assert answer == expected
+
+    @pytest.mark.parametrize(
+        ["name", "expected"],
+        [
+            ("ca1_m2_gender_33", {"ca": 1, "m": 2, "gender_3": 3}),
+            ("ca2_m5_gender_31", {"ca": 2, "m": 5, "gender_3": 1}),
+        ],
+    )
+    def test_convert_slice_name(
+        self,
+        vanilla_seg: segmentation.Segmentation,
+        name: str,
+        expected: dict[str, int],
+    ):
+        """Test converting a slice name into a parameters dictionary."""
+        answer = vanilla_seg.convert_slice_name(name)
+        assert answer == expected
