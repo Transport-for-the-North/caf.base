@@ -1,5 +1,8 @@
 # -*- coding: utf-8 -*-
 """Module defining Segments class and enumeration."""
+
+from __future__ import annotations
+
 # Built-Ins
 import enum
 from pathlib import Path
