@@ -320,7 +320,8 @@ class DVector:
     @property
     def zoning_system(self) -> ZoningSystem:
         """Get _zoning_system."""
-
+        if self._zoning_system is None:
+            raise TypeError("This DVector has no zoning.")
         return self._zoning_system
 
     @property
