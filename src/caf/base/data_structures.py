@@ -1779,7 +1779,7 @@ class DVector:
         folder = Path(folder)
         dvecs = []
         for file in listdir(folder):
-            if file.endswith(("hdf", 'dvec')):
+            if file.endswith(("hdf", "dvec")):
                 try:
                     dvec = cls.load(folder / file)
                 except:
@@ -1809,9 +1809,7 @@ class DVector:
                 zoning_system=zoning,
             )
         else:
-            raise SegmentationError(
-                "segmentation should be Segmentation, but is None."
-            )
+            raise SegmentationError("segmentation should be Segmentation, but is None.")
 
     def sum_zoning(self):
         """Sum over zones."""
