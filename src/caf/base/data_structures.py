@@ -320,6 +320,7 @@ class DVector:
     @property
     def zoning_system(self) -> ZoningSystem:
         """Get _zoning_system."""
+
         return self._zoning_system
 
     @property
@@ -505,7 +506,7 @@ class DVector:
         """
         out_path = Path(out_path)
         if "." not in out_path.name:
-            out_path.name = out_path.name
+            out_path = out_path.with_suffix(".dvec")
 
         self._data.to_hdf(out_path, key="data", mode="w", complevel=1)
         if self.zoning_system is not None:
@@ -1349,7 +1350,7 @@ class DVector:
         else:
             new_data = new_data.drop[segment_values]
 
-        new_seg = self.segmentation.update_subsets({segment_name, segment_values}, remove=True)
+        new_seg = self.segmentation.update_subsets({segment_name: segment_values}, remove=True)
 
         return DVector(
             import_data=new_data,
@@ -1629,7 +1630,7 @@ class DVector:
         DVector matched to targets, rmse achieved.
         """
         # check DVectors compatible
-        targets = self.validate_ipf_targets(targets, zone_trans_cache)
+        targets = self.validate_ipf_targets(targets, cache_path=zone_trans_cache)
         new_dvec = self.copy()
         prev_rmse = np.inf
         rmse = np.inf
@@ -1778,7 +1779,7 @@ class DVector:
         folder = Path(folder)
         dvecs = []
         for file in listdir(folder):
-            if file.endswith("hdf"):
+            if file.endswith(("hdf", 'dvec')):
                 try:
                     dvec = cls.load(folder / file)
                 except:
@@ -1801,11 +1802,16 @@ class DVector:
                             )
                 dvecs.append(dvec)
         new_data = pd.concat([dvec.data for dvec in dvecs], axis=1)
-        return cls(
-            import_data=new_data,
-            segmentation=segmentation,
-            zoning_system=zoning,
-        )
+        if isinstance(segmentation, Segmentation):
+            return cls(
+                import_data=new_data,
+                segmentation=segmentation,
+                zoning_system=zoning,
+            )
+        else:
+            raise SegmentationError(
+                "segmentation should be Segmentation, but is None."
+            )
 
     def sum_zoning(self):
         """Sum over zones."""
