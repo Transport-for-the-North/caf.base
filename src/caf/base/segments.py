@@ -1,8 +1,6 @@
 # -*- coding: utf-8 -*-
 """Module defining Segments class and enumeration."""
 
-from __future__ import annotations
-
 # Built-Ins
 import enum
 from pathlib import Path
@@ -65,7 +63,7 @@ class Segment(BaseConfig):
 
     name: str
     values: dict[int, str]
-    alias: str | None = None
+    alias: Optional[str] = None
     exclusions: list[Exclusion] = pydantic.Field(default_factory=list)
     lookups: list[Exclusion] = pydantic.Field(default_factory=list)
     model_config = ConfigDict(arbitrary_types_allowed=True)
