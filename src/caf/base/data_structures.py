@@ -703,9 +703,7 @@ class DVector:
             A dict of self split into DVectors for each zone in agg_zoning
         """
         if self.zoning_system is None:
-            raise TypeError(
-                "This method only works for a DVector with zoning."
-            )
+            raise TypeError("This method only works for a DVector with zoning.")
         if trans is None:
             trans = self.zoning_system.translate(agg_zoning)
         else:
@@ -1095,7 +1093,9 @@ class DVector:
         if self.zoning_system is not None:
             if other.zoning_system is not None:
                 translation = self.zoning_system.translate(agg_zone)
-                if not (translation[self.zoning_system.translation_column_name(agg_zone)] == 1).all():
+                if not (
+                    translation[self.zoning_system.translation_column_name(agg_zone)] == 1
+                ).all():
                     raise TranslationError(
                         "Current zoning must nest perfectly within agg_zone, "
                         "i.e. all factors should be 1. The retrieved zone_translation "
@@ -1106,7 +1106,9 @@ class DVector:
                     agg_zone.column_name
                 ].to_dict()
                 translated_grouped = (
-                    other_grouped_data.rename(columns=translation_dict).groupby(level=0, axis=1).sum()
+                    other_grouped_data.rename(columns=translation_dict)
+                    .groupby(level=0, axis=1)
+                    .sum()
                 )
                 translated_ungrouped = (
                     other.data.rename(columns=translation_dict).groupby(level=0, axis=1).sum()
@@ -1119,7 +1121,9 @@ class DVector:
                     translation=translation,
                     translation_from_col=agg_zone.column_name,
                     translation_to_col=self.zoning_system.column_name,
-                    translation_factors_col=self.zoning_system.translation_column_name(agg_zone),
+                    translation_factors_col=self.zoning_system.translation_column_name(
+                        agg_zone
+                    ),
                 ).T
 
         # Put splitting factors into DVector to apply
@@ -1596,7 +1600,9 @@ class DVector:
                                 )
                         nested = (
                             target.zone_translation[
-                                self.zoning_system.translation_column_name(target.data.zoning_system)
+                                self.zoning_system.translation_column_name(
+                                    target.data.zoning_system
+                                )
                             ]
                             == 1
                         ).all()
@@ -2081,9 +2087,7 @@ class DVector:
             is, the closer self's spatial distribution will be matched to other's.
         """
         if (self.zoning_system is None) or (other.zoning_system is None):
-            raise TypeError(
-                "Self and other most both have zone systems."
-            )
+            raise TypeError("Self and other most both have zone systems.")
         if balancing_zones is None:
             # Zone agnostic, just making sure DVectors matched along common segments
             factor = other.data.sum(axis=1) / self.data.sum(axis=1)
