@@ -1377,6 +1377,7 @@ class DVector:
         self.data = self.data.fillna(infill_value)
 
     def fill(self, find_value: float | int, infill_value: float | int):
+        """Replace find_value with infill_value."""
         self.data = self.data.replace(to_replace={find_value: infill_value})
 
     def translate_segment(
@@ -1990,7 +1991,7 @@ class DVector:
 
     def add_value_to_subset(self, segment: str, value: int, data: pd.DataFrame):
         """
-        Add a value to a subset segment in a DVector
+        Add a value to a subset segment in a DVector.
 
         Parameters
         ----------
