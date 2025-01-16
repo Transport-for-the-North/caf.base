@@ -23,9 +23,9 @@ from typing import Callable, Literal, Optional, Union
 
 # Third Party
 import caf.toolkit as ctk
-from caf.toolkit import translation
 import numpy as np
 import pandas as pd
+from caf.toolkit import translation
 
 # Local Imports
 # pylint: disable=no-name-in-module,import-error
@@ -940,9 +940,11 @@ class DVector:
             try:
                 prod = prod.reorder_levels(new_seg.naming_order)
             except TypeError:
-                raise SegmentationError("The index levels and segmentation names "
-                                        "don't match here. This shouldn't happen, please "
-                                        "raise as an issue.")
+                raise SegmentationError(
+                    "The index levels and segmentation names "
+                    "don't match here. This shouldn't happen, please "
+                    "raise as an issue."
+                )
         if not prod.index.equals(new_seg.ind()):
             warnings.warn(
                 "This operation has dropped some rows due to exclusions "
@@ -952,9 +954,11 @@ class DVector:
             try:
                 prod = prod.loc[new_seg.ind()]
             except KeyError:
-                raise SegmentationError("This operation has dropped unexpected rows from the data. "
-                                        "This is likely due to nan values being introduced then dropped, "
-                                        "please check your input DVectors.")
+                raise SegmentationError(
+                    "This operation has dropped unexpected rows from the data. "
+                    "This is likely due to nan values being introduced then dropped, "
+                    "please check your input DVectors."
+                )
 
         return DVector(
             segmentation=new_seg,
@@ -1331,7 +1335,9 @@ class DVector:
             cut_read=self._cut_read,
         )
 
-    def filter_segment_value(self, segment_name: str, segment_values: int | list[int]) -> DVector:
+    def filter_segment_value(
+        self, segment_name: str, segment_values: int | list[int]
+    ) -> DVector:
         """
         Filter a DVector on a given segment.
 
@@ -2285,11 +2291,13 @@ class IpfTarget:
                         agg_2.zoning_system, cache_path=trans_cache
                     )
                 nested_1 = (
-                        trans[agg_1.zoning_system.translation_column_name(
-                            agg_2.zoning_system)] == 1).all()
+                    trans[agg_1.zoning_system.translation_column_name(agg_2.zoning_system)]
+                    == 1
+                ).all()
                 nested_2 = (
-                        trans[agg_2.zoning_system.translation_column_name(
-                            agg_1.zoning_system)] == 1).all()
+                    trans[agg_2.zoning_system.translation_column_name(agg_1.zoning_system)]
+                    == 1
+                ).all()
                 if nested_1:
                     agg_1 = agg_1.translate_zoning(agg_2.zoning_system, trans_vector=trans)
                     zoning_diff = True
@@ -2318,22 +2326,25 @@ class IpfTarget:
             adj = agg_2 / agg_1
             if zoning_diff:
                 if isinstance(adj, DVector):
-                    adj = adj.translate_zoning(target_1.zoning_system, trans_vector=trans,
-                                               no_factors=True)
+                    adj = adj.translate_zoning(
+                        target_1.zoning_system, trans_vector=trans, no_factors=True
+                    )
                 elif isinstance(adj, pd.Series):
                     # Here use the 'wrong' factors column as we are disaggregating factors
-                    adj = translation.pandas_vector_zone_translation(adj,
-                                                                     trans,
-                                                                     f"{target_2.zoning_system.name.lower()}_id",
-                                                                     f"{target_1.zoning_system.name.lower()}_id",
-                                                                     target_1.zoning_system.translation_column_name(
-                                                                         target_2.zoning_system),
-                                                                     False)
+                    adj = translation.pandas_vector_zone_translation(
+                        adj,
+                        trans,
+                        f"{target_2.zoning_system.name.lower()}_id",
+                        f"{target_1.zoning_system.name.lower()}_id",
+                        target_1.zoning_system.translation_column_name(target_2.zoning_system),
+                        False,
+                    )
                 else:
                     raise TypeError(
                         "Something has gone wrong. At this point 'adj' should be either a DVector, or "
                         "a pandas Series. This is likely a code bug rather than user error, please raise "
-                        "as an issue.")
+                        "as an issue."
+                    )
             if isinstance(adj, pd.Series):
                 adj = adj.replace(to_replace={np.inf: 0})
                 target_1.data = target_1.data.mul(adj, axis=1)

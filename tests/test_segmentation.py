@@ -37,7 +37,7 @@ def fix_vanilla_segmentation():
 def fix_exp_vanilla_ind():
     ca = [1, 2]
     g = [1, 2, 3]
-    m = [1, 2, 3, 4, 5, 6]
+    m = [1, 2, 3, 4, 5, 6, 7, 8]
     ind = pd.MultiIndex.from_product([ca, m, g], names=["ca", "m", "gender_3"])
     return ind
 
@@ -55,7 +55,7 @@ def fix_nam_ord_seg():
 def fix_exp_nam_ord():
     ca = [1, 2]
     g = [1, 2, 3]
-    m = [1, 2, 3, 4, 5, 6]
+    m = [1, 2, 3, 4, 5, 6, 7, 8]
     ind = pd.MultiIndex.from_product([ca, g, m], names=["ca", "gender_3", "m"])
     return ind
 
@@ -244,6 +244,8 @@ class TestSegmentation:
             {"ca": 1, "m": 4}, {"ca": 2, "m": 4},
             {"ca": 1, "m": 5}, {"ca": 2, "m": 5},
             {"ca": 1, "m": 6}, {"ca": 2, "m": 6},
+            {"ca": 1, "m": 7}, {"ca": 2, "m": 7},
+            {"ca": 1, "m": 8}, {"ca": 2, "m": 8},
         ]
         # fmt: on
         expected = sorted(expected, key=simple_segmentation.generate_slice_tuple)

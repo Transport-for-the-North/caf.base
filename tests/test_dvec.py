@@ -33,7 +33,7 @@ from caf.base.segments import SegmentsSuper
 @pytest.fixture(name="dvec_data_1", scope="session")
 def fix_data_1(basic_segmentation_1, min_zoning):
     return pd.DataFrame(
-        data=np.random.rand(18, 5),
+        data=np.random.rand(24, 5),
         index=basic_segmentation_1.ind(),
         columns=min_zoning.zone_ids,
     )
@@ -64,7 +64,7 @@ def fix_single_seg(min_zoning):
 def fix_no_zone_1(basic_segmentation_1):
     data = pd.Series(
         np.random.rand(
-            18,
+            24,
         ),
         index=basic_segmentation_1.ind(),
     )
