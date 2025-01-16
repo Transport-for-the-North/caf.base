@@ -2379,11 +2379,12 @@ class IpfTarget:
         adjust: bool = False
             Whether to change the targets or just report on their compatibility.
         """
+        targets = list(targets)
         targ_dict = {i: j for i, j in enumerate(targets)}
         # add reference to end of targ_dict if exists
         if reference is not None:
             targ_dict[len(targets)] = reference
-        rmses = {}
+        rmses: dict[tuple[str], float] = {}
         if chain_adjust:
             for pos in list(itertools.combinations(reversed(targ_dict), 2)):
                 target_1, target_2 = targ_dict[pos[1]], targ_dict[pos[0]]
