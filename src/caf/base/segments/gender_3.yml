@@ -4,6 +4,7 @@ values:
   1: Child
   2: Male
   3: Female
+alias: gt
 exclusions:
 - other_name: soc
   exclusions:

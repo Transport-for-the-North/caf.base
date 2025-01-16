@@ -14,8 +14,8 @@ File purpose:
 from pathlib import Path
 
 # Third Party
-import pytest
 import pandas as pd
+import pytest
 
 # Local Imports
 # pylint: disable=import-error,wrong-import-position

@@ -4,12 +4,12 @@ Example tests cases for implicit operations for Segmentation levels
 """
 from __future__ import annotations
 
-import enum
+# Built-Ins
 import dataclasses
+import enum
+from typing import Any, Optional
 
-from typing import Any
-from typing import Optional
-
+# Third Party
 import pandas as pd
 
 

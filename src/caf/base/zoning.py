@@ -3,6 +3,7 @@
 # Allow class self hinting
 from __future__ import annotations
 
+# Built-Ins
 import enum
 import itertools
 import logging
@@ -13,12 +14,14 @@ from os import PathLike
 from pathlib import Path
 from typing import Any, Literal, Optional, Union
 
+# Third Party
 import caf.toolkit as ctk
 import h5py
 import numpy as np
 import pandas as pd
 from typing_extensions import Self
 
+# Local Imports
 from caf.base.segmentation import Segmentation, SegmentationInput
 
 pd.set_option("future.no_silent_downcasting", True)
@@ -149,7 +152,7 @@ class ZoningSystem:
             raise ValueError(
                 f"mandatory ID column ({self._id_column}) missing from zones data"
             )
-        # TODO: consider replacing with alternative checks that allow string IDs
+        # #75 consider replacing with alternative checks that allow string IDs
         ### This chunk of code requires the zone names to be integers
         ### This has been commented out to allow LSOA (or other) zone codes to be used
         ### directly instead to avoid the added step of providing zone lookups with
@@ -422,6 +425,7 @@ class ZoningSystem:
         """Generate spatial zone_translation using `caf.space`, if available."""
         try:
             # pylint: disable=import-outside-toplevel
+            # Third Party
             import caf.space as cs
 
             # pylint: enable=import-outside-toplevel
@@ -444,7 +448,7 @@ class ZoningSystem:
         )
         conf = cs.ZoningTranslationInputs(zone_1=zone_1, zone_2=zone_2, cache_path=cache_path)
         trans = cs.ZoneTranslation(conf).spatial_translation()
-        # TODO fix return type in caf.space
+        # #76 fix return type in caf.space
         trans[trans.columns[:2]] = trans[trans.columns[:2]].astype(str)
 
         return trans
@@ -523,9 +527,15 @@ class ZoningSystem:
         return f"{self.name}_to_{other.name}".lower()
 
     def _replace_id(
-        self, missing_rep, missing_id, translation, zone_system, translation_name, replacer
-    ):
-        translation = translation.copy()
+        self,
+        missing_rep: np.ndarray | float,
+        missing_id: np.ndarray,
+        *,
+        translation: pd.DataFrame,
+        zone_system: ZoningSystem,
+        translation_name: str,
+        replacer: dict,
+    ) -> pd.DataFrame:
         if np.sum(missing_rep) > 0:
             if np.sum(missing_rep) >= np.sum(missing_id):
                 warnings.warn(
@@ -645,19 +655,19 @@ class ZoningSystem:
                     translation = self._replace_id(
                         missing_internal_name,
                         missing_internal_id,
-                        translation,
-                        zone_system,
-                        translation_name,
-                        zone_system.name_to_id,
+                        translation=translation,
+                        zone_system=zone_system,
+                        translation_name=translation_name,
+                        replacer=zone_system.name_to_id,
                     )
                 else:
                     translation = self._replace_id(
                         missing_internal_desc,
                         missing_internal_id,
-                        translation,
-                        zone_system,
-                        translation_name,
-                        zone_system.desc_to_id,
+                        translation=translation,
+                        zone_system=zone_system,
+                        translation_name=translation_name,
+                        replacer=zone_system.desc_to_id,
                     )
                 translation = translation[
                     translation[zone_system.column_name].isin(zone_system.zone_ids)
@@ -903,6 +913,7 @@ class ZoningSystem:
         """
         # pylint: disable=import-outside-toplevel
         try:
+            # Third Party
             import geopandas as gpd
         except ImportError as exc:
             raise ImportError("Geopandas must be installed to use this method.") from exc

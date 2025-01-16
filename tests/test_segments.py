@@ -13,14 +13,11 @@ File purpose:
 # Built-Ins
 
 # Third Party
-import pytest
-import pandas as pd
 import numpy as np
+import pandas as pd
+import pytest
 
 # Local Imports
-# pylint: disable=import-error,wrong-import-position
-# Local imports here
-# pylint: enable=import-error,wrong-import-position
 from caf.base import segments
 
 # # # CONSTANTS # # #
