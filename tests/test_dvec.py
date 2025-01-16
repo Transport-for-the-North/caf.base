@@ -15,21 +15,17 @@ translate
 
 """
 # Built-Ins
-from pathlib import Path
-import pytest
 from math import isclose
+from pathlib import Path
 
 # Third Party
-from caf.base import data_structures, segmentation
-from caf.base.segments import SegmentsSuper
-import pandas as pd
 import numpy as np
+import pandas as pd
+import pytest
 
 # Local Imports
-# pylint: disable=import-error,wrong-import-position
-# Local imports here
-# pylint: enable=import-error,wrong-import-position
-
+from caf.base import data_structures, segmentation
+from caf.base.segments import SegmentsSuper
 
 # # # CONSTANTS # # #
 
