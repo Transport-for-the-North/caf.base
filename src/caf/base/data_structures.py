@@ -1602,7 +1602,6 @@ class DVector:
                 if target_sum == 0:
                     target_sum = target.data.sum()
                 else:
-                    # TODO don't hard code this
                     if not math.isclose(target_sum, target.data.sum(), rel_tol=rel_tol):
                         raise ValueError(
                             "Input target DVectors do not have consistent "
