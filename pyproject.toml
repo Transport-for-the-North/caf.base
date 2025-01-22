@@ -106,11 +106,11 @@ namespace_packages = true
 ignore_missing_imports = true
 allow_redefinition = true
 
-[[tool.mypy.overrides]]
-module = [
-  "caf.base._version",
-]
-ignore_errors = true
+#[[tool.mypy.overrides]]
+#module = [
+#  "caf.base._version",
+#]
+#ignore_errors = true
 
 [tool.pydocstyle]
 convention = "numpy"
@@ -120,7 +120,7 @@ add-ignore = [
 ]
 
 [tool.pytest.ini_options]
-#addopts = "--cov=caf.base --cov-report=xml --doctest-modules -n auto"
+addopts = "--cov=caf.base --cov-report=xml --doctest-modules -n auto"
 doctest_optionflags = "NORMALIZE_WHITESPACE"
 pythonpath = "src"
 

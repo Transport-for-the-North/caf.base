@@ -411,7 +411,7 @@ class DVector:
                 f"\tExpected one of: {self._valid_time_formats()}"
             ) from exc
 
-    def _dataframe_to_dvec(self, import_data: pd.DataFrame):
+    def _dataframe_to_dvec(self, import_data: pd.DataFrame | pd.Series):
         """
         Take a dataframe and ensure it is in DVec data format.
 
