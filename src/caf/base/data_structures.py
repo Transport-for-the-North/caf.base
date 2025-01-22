@@ -2268,9 +2268,7 @@ class IpfTarget:
         rmses: dict[tuple[str], float],
         trans_cache=None,
     ):
-        """
-        Internal loop for adjusting/checking IPF targets.
-        """
+        """Run internal loop for adjusting/checking IPF targets."""
 
         zoning_diff = False
         skip = False
