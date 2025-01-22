@@ -346,8 +346,6 @@ class DVector:
             raise TypeError(
                 "data must be a pandas DataFrame or Series. Input " f"value is {value.type}."
             )
-        # if isinstance(value, pd.Series):
-        #     value = value.to_frame()
         self._data, _ = self._dataframe_to_dvec(value)
 
     @property
@@ -940,7 +938,7 @@ class DVector:
             try:
                 prod = prod.reorder_levels(new_seg.naming_order)
             except TypeError:
-                raise SegmentationError(
+                raise NotImplementedError(
                     "The index levels and segmentation names "
                     "don't match here. This shouldn't happen, please "
                     "raise as an issue."
@@ -2262,7 +2260,19 @@ class IpfTarget:
     )
 
     @staticmethod
-    def _check_loop(target_1, target_2, adjust, targ_dict, ind, rmses, trans_cache=None):
+    def _check_loop(
+        target_1: DVector,
+        target_2: DVector,
+        adjust: bool,
+        targ_dict: dict[int, DVector],
+        ind: int,
+        rmses: dict[tuple[str], float],
+        trans_cache=None,
+    ):
+        """
+        Internal loop for adjusting/checking IPF targets.
+        """
+
         zoning_diff = False
         skip = False
         if len(target_2.segmentation.input.subsets) > 0:
@@ -2355,13 +2365,14 @@ class IpfTarget:
             targ_dict[ind] = target_1
         return targ_dict, rmses
 
-    @staticmethod
+    @classmethod
     def check_compatibility(
+        cls,
         targets: Collection[DVector],
         reference: DVector | None = None,
         adjust: bool = False,
         chain_adjust: bool = True,
-        trans_cache=None,
+        trans_cache: Path = None,
     ):
         """
         Check compatibility between ipf targets, and optionally adjust to match.
@@ -2376,8 +2387,17 @@ class IpfTarget:
         ----------
         targets: Collection[IpfTarget]
             The targets to check.
+        reference: DVector | None = None
+            A reference DVector other targets will be compared/adjusted to. If left as None the
+            final DVector in targets will take precedence.
         adjust: bool = False
             Whether to change the targets or just report on their compatibility.
+        chain_adjust: bool = True
+            Whether to 'chain' adjustments, meaning if set to True every DVector will be compared
+            to every other from back to front, else every DVector will be compared to either
+            'reference', or the final DVector in targets.
+        trans_cache: Path = None
+            Dir containing translations, default value will be used if not provided.
         """
         targets = list(targets)
         targ_dict = {i: j for i, j in enumerate(targets)}
@@ -2388,7 +2408,7 @@ class IpfTarget:
         if chain_adjust:
             for pos in list(itertools.combinations(reversed(targ_dict), 2)):
                 target_1, target_2 = targ_dict[pos[1]], targ_dict[pos[0]]
-                targ_dict, rmses = IpfTarget._check_loop(
+                targ_dict, rmses = cls._check_loop(
                     target_1,
                     target_2,
                     adjust,
@@ -2403,7 +2423,7 @@ class IpfTarget:
                 target_1 = targ_dict[i]
                 if target_1 == target_2:
                     continue
-                targ_dict, rmses = IpfTarget._check_loop(
+                targ_dict, rmses = cls._check_loop(
                     target_1, target_2, adjust, targ_dict, i, rmses, trans_cache=trans_cache
                 )
 

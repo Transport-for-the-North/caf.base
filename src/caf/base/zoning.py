@@ -555,7 +555,8 @@ class ZoningSystem:
 
         return translation
 
-    def _check_all_columns(self, input_columns):
+    def check_all_columns(self, input_columns):
+        """Check zoning_system columns and return a lookup if appropriate."""
         missing_internal_id: np.ndarray = ~np.isin(self.zone_ids, input_columns.values)
 
         if np.sum(missing_internal_id) == 0:
