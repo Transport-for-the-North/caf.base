@@ -20,10 +20,10 @@ classifiers = [
 ]
 dependencies = [
     "numpy>=1.24.3, <2",
-    "pandas>=2.0.0" ,
-    "caf.toolkit>=0.4.0",
+    "pandas>=2.2" ,
+    "caf.toolkit>=0.9.0",
     "h5py>=3.9.0",
-    "pydantic>=1.10.12",
+    "pydantic>=2.7",
     "scipy>=1.11.3",
     "strictyaml>=1.7.3",
     "tables>=3.9.1",
@@ -106,11 +106,11 @@ namespace_packages = true
 ignore_missing_imports = true
 allow_redefinition = true
 
-[[tool.mypy.overrides]]
-module = [
-  "caf.base._version",
-]
-ignore_errors = true
+#[[tool.mypy.overrides]]
+#module = [
+#  "caf.base._version",
+#]
+#ignore_errors = true
 
 [tool.pydocstyle]
 convention = "numpy"

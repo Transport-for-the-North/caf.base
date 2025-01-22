@@ -555,6 +555,38 @@ class ZoningSystem:
 
         return translation
 
+    def check_all_columns(self, input_columns: pd.Series):
+        """Check zoning_system columns and return a lookup if appropriate."""
+        missing_internal_id: np.ndarray = ~np.isin(self.zone_ids, input_columns.values)
+
+        if np.sum(missing_internal_id) == 0:
+            return False
+
+        try:
+            missing_internal_name: np.ndarray | float = ~np.isin(
+                self.zone_names(), input_columns.values
+            )
+        except KeyError:
+            missing_internal_name = np.inf
+        try:
+            missing_internal_desc: np.ndarray | float = ~np.isin(
+                self.zone_descriptions(),
+                input_columns,
+            )
+        except KeyError:
+            missing_internal_desc = np.inf
+
+        if all(
+            np.sum(missing_internal_id) < x
+            for x in (np.sum(missing_internal_desc), np.sum(missing_internal_name))
+        ):
+            return False
+
+        if np.sum(missing_internal_name) < np.sum(missing_internal_desc):
+            return self.name_to_id
+
+        return self.desc_to_id
+
     def validate_translation_data(
         self,
         other: ZoningSystem,

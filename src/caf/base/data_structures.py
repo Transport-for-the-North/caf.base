@@ -25,6 +25,7 @@ from typing import Callable, Literal, Optional, Union
 import caf.toolkit as ctk
 import numpy as np
 import pandas as pd
+from caf.toolkit import translation
 
 # Local Imports
 # pylint: disable=no-name-in-module,import-error
@@ -345,8 +346,6 @@ class DVector:
             raise TypeError(
                 "data must be a pandas DataFrame or Series. Input " f"value is {value.type}."
             )
-        if isinstance(value, pd.Series):
-            value = value.to_frame()
         self._data, _ = self._dataframe_to_dvec(value)
 
     @property
@@ -412,7 +411,7 @@ class DVector:
                 f"\tExpected one of: {self._valid_time_formats()}"
             ) from exc
 
-    def _dataframe_to_dvec(self, import_data: pd.DataFrame):
+    def _dataframe_to_dvec(self, import_data: pd.DataFrame | pd.Series):
         """
         Take a dataframe and ensure it is in DVec data format.
 
@@ -464,6 +463,13 @@ class DVector:
         #     ) from exc
 
         if set(sorted_data.columns) != set(self.zoning_system.zone_ids):
+            column_convert = self.zoning_system.check_all_columns(sorted_data.columns)
+
+            if column_convert is not False:
+                sorted_data.rename(columns=column_convert, inplace=True)
+                if set(sorted_data.columns) == set(self.zoning_system.zone_ids):
+                    return sorted_data, seg
+
             missing = self.zoning_system.zone_ids[
                 ~np.isin(self.zoning_system.zone_ids, sorted_data.columns)
             ]
@@ -617,6 +623,10 @@ class DVector:
                 trans_vector = self.zoning_system.translate(
                     new_zoning, weighting=weighting, cache_path=cache_path
                 )
+        else:
+            trans_vector = self.zoning_system.validate_translation_data(
+                new_zoning, trans_vector
+            )
         factor_col = self.zoning_system.translation_column_name(new_zoning)
         # factors equal one to propagate perfectly
         # This only works for perfect nesting
@@ -659,7 +669,7 @@ class DVector:
 
         transposed = self.data.transpose()
         transposed.index.names = [self.zoning_system.column_name]
-        translated = ctk.translation.pandas_vector_zone_translation(
+        translated = translation.pandas_vector_zone_translation(
             transposed,
             trans_vector,
             translation_from_col=self.zoning_system.column_name,
@@ -924,15 +934,29 @@ class DVector:
             " but it can also be a sign of an error. Check the output DVector.",
             SegmentationWarning,
         )
-
-        prod = prod.reorder_levels(new_seg.naming_order)
+        if len(new_seg.naming_order) > 1:
+            try:
+                prod = prod.reorder_levels(new_seg.naming_order)
+            except TypeError:
+                raise NotImplementedError(
+                    "The index levels and segmentation names "
+                    "don't match here. This shouldn't happen, please "
+                    "raise as an issue."
+                )
         if not prod.index.equals(new_seg.ind()):
             warnings.warn(
                 "This operation has dropped some rows due to exclusions "
                 f"in the resulting segmentation. {prod.index.difference(new_seg.ind())} "
                 f"rows have been dropped from the pure product."
             )
-            prod = prod.loc[new_seg.ind()]
+            try:
+                prod = prod.loc[new_seg.ind()]
+            except KeyError:
+                raise SegmentationError(
+                    "This operation has dropped unexpected rows from the data. "
+                    "This is likely due to nan values being introduced then dropped, "
+                    "please check your input DVectors."
+                )
 
         return DVector(
             segmentation=new_seg,
@@ -944,7 +968,10 @@ class DVector:
 
     def __len__(self):
         """Return the length of a DVector, defined as number of cells."""
-        return len(self.segmentation) * len(self.zoning_system)
+        length = len(self.segmentation)
+        if self.zoning_system is not None:
+            length *= len(self.zoning_system)
+        return length
 
     def __pow__(self, exponent: int | float, _bypass_validation: bool = True):
         """Return the exponent of a DVector, essentially a wrapper around DataFrame's __pow__ method."""
@@ -1236,6 +1263,10 @@ class DVector:
         self expanded to other as required.
         """
         expansion_segs = other.segmentation - self.segmentation
+
+        if len(expansion_segs) == 0:
+            return self
+
         if match_props:
             splitter = other.data.sum(axis=1)
             return self.add_segments(expansion_segs, split_method="split", splitter=splitter)
@@ -1302,7 +1333,9 @@ class DVector:
             cut_read=self._cut_read,
         )
 
-    def filter_segment_value(self, segment_name: str, segment_values: int | list[int]):
+    def filter_segment_value(
+        self, segment_name: str, segment_values: int | list[int]
+    ) -> DVector:
         """
         Filter a DVector on a given segment.
 
@@ -1410,6 +1443,7 @@ class DVector:
         else:
             try:
                 new_data = self.data.join(lookup).reset_index()
+            # data is series
             except AttributeError:
                 new_data = self.data.to_frame().join(lookup).reset_index()
             if drop_from:
@@ -1513,7 +1547,7 @@ class DVector:
     def validate_ipf_targets(
         self,
         targets: Collection[IpfTarget],
-        rel_tol: float = 1e-5,
+        rel_tol: float = 1e-3,
         cache_path: None | PathLike = None,
     ):
         """
@@ -1536,18 +1570,40 @@ class DVector:
         """
         target_sum = 0.0
         for position, target in enumerate(targets):
-            # Check targets sum to the same, or they can't converge. Potentially could allow
-            # IPF for non-agreeing targets to get as close as possible.
-            if target_sum == 0:
-                target_sum = target.data.sum()
+            subsets = target.data.segmentation.input.subsets
+            if len(subsets) > 0:
+                for comp_target in targets:
+                    if target == comp_target:
+                        continue
+                    # Check that subsets exist in comp_target
+                    if set(subsets.keys()) <= set(comp_target.data.segmentation.names):
+                        continue
+                    comp_seg = comp_target.data.segmentation.copy()
+                    comp_seg.input.subsets = subsets
+                    comp_seg = comp_seg.reinit()
+                    try:
+                        comp_val = comp_target.data.data.loc[comp_seg.ind()].sum().sum()
+                    # Subsets incompatible
+                    except KeyError:
+                        continue
+                    if not math.isclose(comp_val, target.data.sum(), rel_tol=rel_tol):
+                        raise ValueError(
+                            "Input target DVectors do not have consistent "
+                            f"sums, so ipf will fail target at position {position} doesn't match "
+                            "the first target. It is possible later targets also don't match."
+                        )
             else:
-                # TODO don't hard code this
-                if not math.isclose(target_sum, target.data.sum(), rel_tol=1e5):
-                    raise ValueError(
-                        "Input target DVectors do not have consistent "
-                        f"sums, so ipf will fail target at position {position} doesn't match "
-                        "the first target. It is possible later targets also don't match."
-                    )
+                # Check targets sum to the same, or they can't converge. Potentially could allow
+                # IPF for non-agreeing targets to get as close as possible.
+                if target_sum == 0:
+                    target_sum = target.data.sum()
+                else:
+                    if not math.isclose(target_sum, target.data.sum(), rel_tol=rel_tol):
+                        raise ValueError(
+                            "Input target DVectors do not have consistent "
+                            f"sums, so ipf will fail target at position {position} doesn't match "
+                            "the first target. It is possible later targets also don't match."
+                        )
             # Check for zeros
             zeros = target.data.data.to_numpy() == 0
             if np.sum(zeros) > 0:
@@ -1696,7 +1752,7 @@ class DVector:
             rmse = new_dvec.calc_rmse(targets)
             LOG.info(f"RMSE = {rmse} after {i + 1} iterations.")
             if rmse < tol:
-                print("Convergence met, returning DVector.")
+                LOG.info("Convergence met, returning DVector.")
                 return new_dvec, rmse
             if abs(rmse - prev_rmse) < tol:
                 LOG.info(f"RMSE has stopped improving at {rmse}.")
@@ -2201,7 +2257,122 @@ class IpfTarget:
     )
 
     @staticmethod
-    def check_compatibility(targets: Collection[IpfTarget], adjust: bool = False):
+    def _check_loop(
+        target_1: DVector,
+        target_2: DVector,
+        adjust: bool,
+        targ_dict: dict[int, DVector],
+        ind: int,
+        rmses: dict[tuple[str], float],
+        trans_cache=None,
+    ):
+        """Run internal loop for adjusting/checking IPF targets."""
+
+        zoning_diff = False
+        skip = False
+        if len(target_2.segmentation.input.subsets) > 0:
+            return targ_dict, rmses
+        if len(target_1.segmentation.input.subsets) > 0:
+            agg_2 = target_2.copy()
+            for seg, vals in target_1.segmentation.input.subsets.items():
+                if seg in agg_2.segmentation.names:
+                    agg_2 = agg_2.filter_segment_value(seg, vals)
+                else:
+                    skip = True
+            if skip:
+                return targ_dict, rmses
+        else:
+            agg_2 = target_2.copy()
+
+        agg_1 = target_1.copy()
+        common_segs = target_1.segmentation.overlap(target_2.segmentation)
+
+        if agg_1.zoning_system != agg_2.zoning_system:
+            try:
+                if trans_cache is None:
+                    trans = agg_1.zoning_system.translate(agg_2.zoning_system)
+                else:
+                    trans = agg_1.zoning_system.translate(
+                        agg_2.zoning_system, cache_path=trans_cache
+                    )
+                nested_1 = (
+                    trans[agg_1.zoning_system.translation_column_name(agg_2.zoning_system)]
+                    == 1
+                ).all()
+                nested_2 = (
+                    trans[agg_2.zoning_system.translation_column_name(agg_1.zoning_system)]
+                    == 1
+                ).all()
+                if nested_1:
+                    agg_1 = agg_1.translate_zoning(agg_2.zoning_system, trans_vector=trans)
+                    zoning_diff = True
+                elif nested_2:
+                    agg_2 = agg_2.translate_zoning(agg_1.zoning_system, trans_vector=trans)
+                else:
+                    raise TranslationError("not raised used to trigger exception")
+            except TranslationError:
+                agg_1 = agg_1.remove_zoning()
+                agg_2 = agg_2.remove_zoning()
+
+        if len(common_segs) == 0:
+            agg_1 = float(agg_1.data.sum())
+            agg_2 = float(agg_2.data.sum())
+        else:
+            agg_1 = agg_1.aggregate(list(common_segs))
+            agg_2 = agg_2.aggregate(list(common_segs))
+
+        diff = (agg_1 - agg_2) ** 2
+        if isinstance(diff, float):
+            rmse = diff**0.5
+        else:
+            rmse = (diff.sum() / len(diff)) ** 0.5
+        rmses[tuple(common_segs)] = rmse
+        if adjust:
+            adj = agg_2 / agg_1
+            if zoning_diff:
+                if target_1.zoning_system is not None:
+                    if target_2.zoning_system is not None:
+                        if isinstance(adj, DVector):
+                            adj = adj.translate_zoning(
+                                target_1.zoning_system, trans_vector=trans, no_factors=True
+                            )
+                        elif isinstance(adj, pd.Series):
+                            # Here use the 'wrong' factors column as we are disaggregating factors
+                            adj = translation.pandas_vector_zone_translation(
+                                adj,
+                                trans,
+                                f"{target_2.zoning_system.name.lower()}_id",
+                                f"{target_1.zoning_system.name.lower()}_id",
+                                target_1.zoning_system.translation_column_name(
+                                    target_2.zoning_system
+                                ),
+                                False,
+                            )
+                        else:
+                            raise TypeError(
+                                "Something has gone wrong. At this point 'adj' should be either a DVector, or "
+                                "a pandas Series. This is likely a code bug rather than user error, please raise "
+                                "as an issue."
+                            )
+            if isinstance(adj, pd.Series):
+                adj = adj.replace(to_replace={np.inf: 0})
+                target_1.data = target_1.data.mul(adj, axis=1)
+            else:
+                if not isinstance(adj, Number):
+                    adj.fill(np.inf, 0)
+                    target_1 *= adj
+            targ_dict[ind] = target_1
+        return targ_dict, rmses
+
+    @classmethod
+    def check_compatibility(
+        cls,
+        targets: Collection[DVector],
+        reference: DVector | None = None,
+        adjust: bool = False,
+        chain_adjust: bool = True,
+        trans_cache: Path | None = None,
+    ):
         """
         Check compatibility between ipf targets, and optionally adjust to match.
 
@@ -2215,30 +2386,49 @@ class IpfTarget:
         ----------
         targets: Collection[IpfTarget]
             The targets to check.
+        reference: DVector | None = None
+            A reference DVector other targets will be compared/adjusted to. If left as None the
+            final DVector in targets will take precedence.
         adjust: bool = False
             Whether to change the targets or just report on their compatibility.
+        chain_adjust: bool = True
+            Whether to 'chain' adjustments, meaning if set to True every DVector will be compared
+            to every other from back to front, else every DVector will be compared to either
+            'reference', or the final DVector in targets.
+        trans_cache: Path = None
+            Dir containing translations, default value will be used if not provided.
         """
+        targets = list(targets)
         targ_dict = {i: j for i, j in enumerate(targets)}
-        rmses = {}
-        for pos in list(itertools.combinations(reversed(targ_dict), 2)):
-            target_1, target_2 = targ_dict[pos[1]].data, targ_dict[pos[0]].data
-            if target_1.zoning_system != target_2.zoning_system:
-                continue
-            common_segs = target_1.segmentation.overlap(target_2.segmentation)
-            if len(common_segs) == 0:
-                agg_1 = target_1.data.sum()
-                agg_2 = target_2.data.sum()
-            else:
-                agg_1 = target_1.aggregate(list(common_segs))
-                agg_2 = target_2.aggregate(list(common_segs))
-            diff = (agg_1 - agg_2) ** 2
-            rmse = (diff.sum() / len(diff)) ** 0.5
-            rmses[tuple(common_segs)] = rmse
-            if adjust:
-                adj = agg_2 / agg_1
-                adj.fill(np.inf, 0)
-                target_1 *= adj
-                target_1 *= target_2.sum() / target_1.sum()
-                targ_dict[pos[1]].data = target_1
-        targets = list(targ_dict.values())
-        return pd.DataFrame.from_dict(rmses, orient="index"), targets
+        # add reference to end of targ_dict if exists
+        if reference is not None:
+            targ_dict[len(targets)] = reference
+        rmses: dict[tuple[str], float] = {}
+        if chain_adjust:
+            for pos in list(itertools.combinations(reversed(targ_dict), 2)):
+                target_1, target_2 = targ_dict[pos[1]], targ_dict[pos[0]]
+                targ_dict, rmses = cls._check_loop(
+                    target_1,
+                    target_2,
+                    adjust,
+                    targ_dict,
+                    pos[1],
+                    rmses,
+                    trans_cache=trans_cache,
+                )
+        else:
+            target_2 = reference if reference else targets[-1]
+            for i in targ_dict:
+                target_1 = targ_dict[i]
+                if target_1 == target_2:
+                    continue
+                targ_dict, rmses = cls._check_loop(
+                    target_1, target_2, adjust, targ_dict, i, rmses, trans_cache=trans_cache
+                )
+
+        targets_out = list(targ_dict.values())
+        targ_differences = [i / j for i, j in zip(targets_out, targets)]
+        # remove reference from targets
+        if reference is not None:
+            targets_out = targets_out[:-1]
+        return pd.DataFrame.from_dict(rmses, orient="index"), targets_out, targ_differences
