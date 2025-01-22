@@ -463,7 +463,7 @@ class DVector:
         #     ) from exc
 
         if set(sorted_data.columns) != set(self.zoning_system.zone_ids):
-            column_convert = self.zoning_system._check_all_columns(sorted_data.columns)
+            column_convert = self.zoning_system.check_all_columns(sorted_data.columns)
 
             if column_convert is not False:
                 sorted_data.rename(columns=column_convert, inplace=True)
@@ -2319,14 +2319,14 @@ class IpfTarget:
                 agg_2 = agg_2.remove_zoning()
 
         if len(common_segs) == 0:
-            agg_1 = agg_1.data.sum()
-            agg_2 = agg_2.data.sum()
+            agg_1 = float(agg_1.data.sum())
+            agg_2 = float(agg_2.data.sum())
         else:
             agg_1 = agg_1.aggregate(list(common_segs))
             agg_2 = agg_2.aggregate(list(common_segs))
 
         diff = (agg_1 - agg_2) ** 2
-        if isinstance(diff, Number):
+        if isinstance(diff, float):
             rmse = diff**0.5
         else:
             rmse = (diff.sum() / len(diff)) ** 0.5
@@ -2334,26 +2334,30 @@ class IpfTarget:
         if adjust:
             adj = agg_2 / agg_1
             if zoning_diff:
-                if isinstance(adj, DVector):
-                    adj = adj.translate_zoning(
-                        target_1.zoning_system, trans_vector=trans, no_factors=True
-                    )
-                elif isinstance(adj, pd.Series):
-                    # Here use the 'wrong' factors column as we are disaggregating factors
-                    adj = translation.pandas_vector_zone_translation(
-                        adj,
-                        trans,
-                        f"{target_2.zoning_system.name.lower()}_id",
-                        f"{target_1.zoning_system.name.lower()}_id",
-                        target_1.zoning_system.translation_column_name(target_2.zoning_system),
-                        False,
-                    )
-                else:
-                    raise TypeError(
-                        "Something has gone wrong. At this point 'adj' should be either a DVector, or "
-                        "a pandas Series. This is likely a code bug rather than user error, please raise "
-                        "as an issue."
-                    )
+                if target_1.zoning_system is not None:
+                    if target_2.zoning_system is not None:
+                        if isinstance(adj, DVector):
+                            adj = adj.translate_zoning(
+                                target_1.zoning_system, trans_vector=trans, no_factors=True
+                            )
+                        elif isinstance(adj, pd.Series):
+                            # Here use the 'wrong' factors column as we are disaggregating factors
+                            adj = translation.pandas_vector_zone_translation(
+                                adj,
+                                trans,
+                                f"{target_2.zoning_system.name.lower()}_id",
+                                f"{target_1.zoning_system.name.lower()}_id",
+                                target_1.zoning_system.translation_column_name(
+                                    target_2.zoning_system
+                                ),
+                                False,
+                            )
+                        else:
+                            raise TypeError(
+                                "Something has gone wrong. At this point 'adj' should be either a DVector, or "
+                                "a pandas Series. This is likely a code bug rather than user error, please raise "
+                                "as an issue."
+                            )
             if isinstance(adj, pd.Series):
                 adj = adj.replace(to_replace={np.inf: 0})
                 target_1.data = target_1.data.mul(adj, axis=1)
@@ -2371,7 +2375,7 @@ class IpfTarget:
         reference: DVector | None = None,
         adjust: bool = False,
         chain_adjust: bool = True,
-        trans_cache: Path = None,
+        trans_cache: Path | None = None,
     ):
         """
         Check compatibility between ipf targets, and optionally adjust to match.
