@@ -1576,9 +1576,7 @@ class DVector:
                     if target == comp_target:
                         continue
                     # Check that subsets exist in comp_target
-                    if set(subsets.keys()).intersection(
-                        comp_target.data.segmentation.names
-                    ) != set(subsets.keys()):
+                    if set(subsets.keys()) <= set(comp_target.data.segmentation.names):
                         continue
                     comp_seg = comp_target.data.segmentation.copy()
                     comp_seg.input.subsets = subsets
