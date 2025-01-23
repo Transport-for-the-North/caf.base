@@ -119,7 +119,9 @@ class Segment(BaseConfig):
             return self.name
         return self.alias
 
-    def translate_segment(self, new_seg, reverse: bool = False):
+    def translate_segment(
+        self, new_seg: str | "Segment" | "SegmentsSuper", reverse: bool = False
+    ) -> tuple["Segment", pd.Series]:
         """
         Translate self to new_seg.
 
@@ -148,12 +150,16 @@ class Segment(BaseConfig):
             new_seg = SegmentsSuper(new_seg).get_segment()
         if isinstance(new_seg, SegmentsSuper):
             new_seg = new_seg.get_segment()
+        assert isinstance(new_seg, Segment)
+
         new_name = new_seg.name
         name_1 = self.name
         name_2 = new_name
         if reverse:
             name_1, name_2 = name_2, name_1
-        lookup = pd.read_csv(lookup_dir / f"{name_1}_to_{name_2}.csv", index_col=0).squeeze()
+        lookup = pd.read_csv(
+            lookup_dir / f"{name_1}_to_{name_2}.csv", index_col=0, usecols=[0, 1]
+        ).squeeze()
         return new_seg, lookup
 
     def translate_exclusion(self, new_seg: str):
@@ -240,7 +246,7 @@ class SegmentsSuper(enum.Enum):
     CA = "ca"
     TFN_AT = "tfn_at"
     TFN_TT = "tfn_tt"
-    USERCLASS = "uc"
+    USERCLASS = "userclass"
     ACCOMODATION_TYPE_H = "accom_h"
     ACCOMODATION_TYPE_HR = "accom_hr"
     ADULTS = "adults"

@@ -393,7 +393,7 @@ class Segmentation:
         to_seg: str | Segment,
         reverse: bool = False,
         drop_from: bool = True,
-    ):
+    ) -> tuple[Segmentation, pd.Series]:
         """
         Translate one of the segments making up the segmentation.
 
