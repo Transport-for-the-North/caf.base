@@ -120,7 +120,7 @@ class Segment(BaseConfig):
         return self.alias
 
     def translate_segment(
-        self, new_seg: str | "Segment" | "SegmentsSuper", reverse: bool = False
+        self, new_seg: "str | Segment | SegmentsSuper", reverse: bool = False
     ) -> tuple["Segment", pd.Series]:
         """
         Translate self to new_seg.
