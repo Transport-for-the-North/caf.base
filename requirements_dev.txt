@@ -1,5 +1,5 @@
 # Packaging
-versioningit>=2.2.0, < 3.0.0
+versioningit>= 2.2.0, < 4.0.0
 
 # package linters
 black>=24
