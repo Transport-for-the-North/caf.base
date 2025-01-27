@@ -858,6 +858,11 @@ class Segmentation:
 
             slices = slices.loc[mask]
 
+        if len(slices) == 0:
+            warnings.warn(
+                f"No slices found in segmentation with filter {filter_}", RuntimeWarning
+            )
+
         params: NamedTuple
         for params in slices.itertuples(index=False):
             yield params._asdict()
