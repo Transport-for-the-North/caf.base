@@ -1306,6 +1306,7 @@ class DVector:
         new_data = pd.concat(comb)
         new_segmentation = in_segmentation.add_segment(new_seg)
         new_data = new_data.reorder_levels(new_segmentation.naming_order).sort_index()
+        new_data.index.names = list(map(lambda x: new_seg.name if x is None else x, new_data.index.names))
         return cls(
             segmentation=new_segmentation, import_data=new_data, zoning_system=zoning_system
         )
