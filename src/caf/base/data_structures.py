@@ -307,6 +307,7 @@ class DVector:
             self._data = import_data
         elif isinstance(import_data, (pd.DataFrame, pd.Series)):
             self._data, self._segmentation = self._dataframe_to_dvec(import_data)
+            self._data.columns.name = f"{self._zoning_system.name}_id"
         else:
             raise NotImplementedError(
                 "Don't know how to deal with anything other than: pandas DF, or dict"
@@ -657,6 +658,8 @@ class DVector:
             if len(untranslated) > 0:
                 warnings.warn(f"{untranslated} zones not translated. These are being dropped.")
             translated.drop(untranslated, axis=1, inplace=True)
+            translated.columns.name = f"{new_zoning.name}_id"
+
             return DVector(
                 zoning_system=new_zoning,
                 segmentation=self.segmentation,
