@@ -1114,12 +1114,13 @@ class DVector:
                 "of the same zoning as 'self'."
             )
 
-        common = self.segmentation.overlap(other.segmentation)
+        common = list(self.segmentation.overlap(other.segmentation))
         other_grouped_data = other.data.groupby(level=common).sum()
         splitting_data = other.data / other_grouped_data
         if self.zoning_system is not None:
             if other.zoning_system is not None:
-                translation = self.zoning_system.translate(agg_zone)
+                if self.zoning_system != agg_zone:
+                    translation = self.zoning_system.translate(agg_zone)
                 if not (
                     translation[self.zoning_system.translation_column_name(agg_zone)] == 1
                 ).all():
@@ -1305,8 +1306,9 @@ class DVector:
         comb = {val: dvec.data for val, dvec in in_dic.items()}
         new_data = pd.concat(comb)
         new_segmentation = in_segmentation.add_segment(new_seg)
-        new_data = new_data.reorder_levels(new_segmentation.naming_order).sort_index()
         new_data.index.names = list(map(lambda x: new_seg.name if x is None else x, new_data.index.names))
+        new_data = new_data.reorder_levels(new_segmentation.naming_order).sort_index()
+        
         return cls(
             segmentation=new_segmentation, import_data=new_data, zoning_system=zoning_system
         )
