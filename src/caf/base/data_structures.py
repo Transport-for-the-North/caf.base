@@ -1119,8 +1119,7 @@ class DVector:
         splitting_data = other.data / other_grouped_data
         if self.zoning_system is not None:
             if other.zoning_system is not None:
-                if self.zoning_system != agg_zone:
-                    translation = self.zoning_system.translate(agg_zone)
+                translation = self.zoning_system.translate(agg_zone)
                 if not (
                     translation[self.zoning_system.translation_column_name(agg_zone)] == 1
                 ).all():
