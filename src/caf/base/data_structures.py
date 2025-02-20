@@ -2016,17 +2016,18 @@ class DVector:
         segments used, both must contain subsets.
         """
         new_seg = self.segmentation.copy()
-        intersection = self.data.index.intersection(other.data.index)
+        try:
+            new_data = other.data.reorder_levels(self.segmentation.naming_order)
+        except TypeError:
+            new_data = other.data
+        intersection = self.data.index.intersection(new_data.index)
         # if data.segmentation != self.segmentation:
         #     raise ValueError("Additional data has incorrect segmentation.")
         if other.zoning_system != self.zoning_system:
             raise ValueError("Zoning systems don't match.")
         if len(intersection) > 0:
             raise ValueError("There is an overlap in indices.")
-        try:
-            new_data = other.data.reorder_levels(self.segmentation.naming_order)
-        except TypeError:
-            new_data = other.data
+
         for name in self.segmentation.naming_order:
             own_vals = self.segmentation.seg_dict[name].int_values
             new_vals = other.segmentation.seg_dict[name].int_values
