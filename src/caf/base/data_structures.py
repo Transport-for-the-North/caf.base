@@ -307,6 +307,7 @@ class DVector:
             self._data = import_data
         elif isinstance(import_data, (pd.DataFrame, pd.Series)):
             self._data, self._segmentation = self._dataframe_to_dvec(import_data)
+            self._data.columns.name = f"{self._zoning_system.name}_id"
         else:
             raise NotImplementedError(
                 "Don't know how to deal with anything other than: pandas DF, or dict"
@@ -657,6 +658,8 @@ class DVector:
             if len(untranslated) > 0:
                 warnings.warn(f"{untranslated} zones not translated. These are being dropped.")
             translated.drop(untranslated, axis=1, inplace=True)
+            translated.columns.name = f"{new_zoning.name}_id"
+
             return DVector(
                 zoning_system=new_zoning,
                 segmentation=self.segmentation,
@@ -2015,17 +2018,18 @@ class DVector:
         segments used, both must contain subsets.
         """
         new_seg = self.segmentation.copy()
-        intersection = self.data.index.intersection(other.data.index)
+        try:
+            new_data = other.data.reorder_levels(self.segmentation.naming_order)
+        except TypeError:
+            new_data = other.data
+        intersection = self.data.index.intersection(new_data.index)
         # if data.segmentation != self.segmentation:
         #     raise ValueError("Additional data has incorrect segmentation.")
         if other.zoning_system != self.zoning_system:
             raise ValueError("Zoning systems don't match.")
         if len(intersection) > 0:
             raise ValueError("There is an overlap in indices.")
-        try:
-            new_data = other.data.reorder_levels(self.segmentation.naming_order)
-        except TypeError:
-            new_data = other.data
+
         for name in self.segmentation.naming_order:
             own_vals = self.segmentation.seg_dict[name].int_values
             new_vals = other.segmentation.seg_dict[name].int_values
