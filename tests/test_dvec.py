@@ -53,7 +53,7 @@ def fix_single_seg(min_zoning):
     seg_conf = segmentation.SegmentationInput(enum_segments=["p"], naming_order=["p"])
     seg = segmentation.Segmentation(seg_conf)
     data = pd.DataFrame(
-        data=np.random.rand(15, 5), index=seg.ind(), columns=min_zoning.zone_ids
+        data=np.random.rand(16, 5), index=seg.ind(), columns=min_zoning.zone_ids
     )
     return data_structures.DVector(
         segmentation=seg, import_data=data, zoning_system=min_zoning
