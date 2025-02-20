@@ -307,7 +307,7 @@ class DVector:
             self._data = import_data
         elif isinstance(import_data, (pd.DataFrame, pd.Series)):
             self._data, self._segmentation = self._dataframe_to_dvec(import_data)
-            if zoning_system is not None:
+            if isinstance(self._zoning_system, ZoningSystem):
                 self._data.columns.name = f"{self._zoning_system.name}_id"
         else:
             raise NotImplementedError(
