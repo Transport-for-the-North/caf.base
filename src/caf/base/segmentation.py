@@ -71,13 +71,13 @@ class SegmentationInput(BaseConfig):
     custom_segments: list[Segment] = pydantic.Field(default_factory=list)
     subsets: dict[str, list[int]] = pydantic.Field(default_factory=dict)
 
-    @pydantic.model_validator(mode="before")
+    @pydantic.model_validator(mode="after")
     @classmethod
     def no_copied_names(cls, values):
         """Validate the custom_segments do not clash with existing segments."""
         if "custom_segments" not in values:
             return values
-        v = values["custom_segments"]
+        v = values.custom_segments
         for seg in v:
             if seg.name in SegmentsSuper.values():
                 raise ValueError(
