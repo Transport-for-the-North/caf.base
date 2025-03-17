@@ -19,7 +19,7 @@ from dataclasses import dataclass
 from numbers import Number
 from os import PathLike, listdir
 from pathlib import Path
-from typing import Callable, Literal, Optional, Union
+from typing import Callable, Literal, Optional, Union, Sequence
 
 # Third Party
 import caf.toolkit as ctk
@@ -247,7 +247,7 @@ class DVector:
         self,
         segmentation: Segmentation,
         import_data: pd.DataFrame,
-        zoning_system: Optional[ZoningSystem] = None,
+        zoning_system: Optional[ZoningSystem | Sequence[ZoningSystem]] = None,
         time_format: Optional[Union[str, TimeFormat]] = None,
         val_col: Optional[str] = "val",
         low_memory: bool = False,
@@ -279,7 +279,12 @@ class DVector:
             IS CORRECT. DO NOT MANUALLY SET TO TRUE.
         """
         if zoning_system is not None:
-            if not isinstance(zoning_system, ZoningSystem):
+            if isinstance(zoning_system, Sequence):
+                if len(zoning_system) > 2:
+                    raise NotImplementedError("Only two level zoning systems are allowed.")
+                if not [isinstance(zon, ZoningSystem) for zon in zoning_system].all():
+                    raise TypeError("All zoning_systems must be ZoningSystem objects.")
+            elif not isinstance(zoning_system, ZoningSystem):
                 raise ValueError(
                     "Given zoning_system is not a caf.base.ZoningSystem object."
                     f"Got a {type(zoning_system)} object instead."
@@ -307,8 +312,7 @@ class DVector:
             self._data = import_data
         elif isinstance(import_data, (pd.DataFrame, pd.Series)):
             self._data, self._segmentation = self._dataframe_to_dvec(import_data)
-            if isinstance(self._zoning_system, ZoningSystem):
-                self._data.columns.name = f"{self._zoning_system.name}_id"
+            self._data.columns.name = f"{self._zoning_system.name}_id"
         else:
             raise NotImplementedError(
                 "Don't know how to deal with anything other than: pandas DF, or dict"
