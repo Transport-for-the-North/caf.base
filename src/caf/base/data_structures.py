@@ -19,7 +19,7 @@ from dataclasses import dataclass
 from numbers import Number
 from os import PathLike, listdir
 from pathlib import Path
-from typing import Callable, Literal, Optional, Union, Sequence
+from typing import Callable, Literal, Optional, Sequence, Union
 
 # Third Party
 import caf.toolkit as ctk
