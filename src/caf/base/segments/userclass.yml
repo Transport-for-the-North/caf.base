@@ -1,6 +1,6 @@
 name: userclass
 alias: uc
 values:
-  1: commute
-  2: business
+  1: business
+  2: commute
   3: other
