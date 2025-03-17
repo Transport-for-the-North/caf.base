@@ -1345,8 +1345,6 @@ class DVector:
             cut_read=self._cut_read,
         )
 
-
-
     def filter_segment_value(
         self, segment_name: str, segment_values: int | list[int]
     ) -> DVector:
