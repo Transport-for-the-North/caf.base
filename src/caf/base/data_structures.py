@@ -312,7 +312,6 @@ class DVector:
             self._data = import_data
         elif isinstance(import_data, (pd.DataFrame, pd.Series)):
             self._data, self._segmentation = self._dataframe_to_dvec(import_data)
-            self._data.columns.name = f"{self._zoning_system.name}_id"
         else:
             raise NotImplementedError(
                 "Don't know how to deal with anything other than: pandas DF, or dict"
@@ -433,12 +432,7 @@ class DVector:
             sorted_data = import_data.sort_index()
 
         if expand_to_read:
-            expander = pd.DataFrame(index=seg.ind(), data={"dummy": 1})
-            if isinstance(sorted_data, pd.Series):
-                sorted_data = sorted_data.to_frame()
-            sorted_data = (
-                sorted_data.join(expander, how="outer").fillna(0).drop("dummy", axis=1)
-            )
+            sorted_data.reindex(seg.ind(), inplace=True, fill_value=0)
 
         if self._cut_read:
             full_sum = sorted_data.values.sum()
@@ -467,36 +461,41 @@ class DVector:
         #         "DataFrame columns should be integers corresponding "
         #         f"to zone IDs not {import_data.columns.dtype}"
         #     ) from exc
-
-        if set(sorted_data.columns) != set(self.zoning_system.zone_ids):
-            column_convert = self.zoning_system.check_all_columns(sorted_data.columns)
-
-            if column_convert is not False:
-                sorted_data.rename(columns=column_convert, inplace=True)
-                if set(sorted_data.columns) == set(self.zoning_system.zone_ids):
-                    return sorted_data, seg
-
-            missing = self.zoning_system.zone_ids[
-                ~np.isin(self.zoning_system.zone_ids, sorted_data.columns)
-            ]
-            extra = sorted_data.columns.values[
-                ~np.isin(sorted_data.columns.values, self.zoning_system.zone_ids)
-            ]
-            if len(extra) > 0:
-                raise ValueError(
-                    f"{len(missing)} zone IDs from zoning system {self.zoning_system.name}"
-                    f" aren't found in the DVector data and {len(extra)} column names are"
-                    " found which don't correspond to zone IDs.\nDVector DataFrame column"
-                    " names should be the zone IDs (integers) for the given zone system."
-                )
-            if len(missing) > 0:
-                warnings.warn(
-                    f"{len(missing)} zone IDs from zoning system {self.zoning_system.name}"
-                    f" aren't found in the DVector data. This may be by design"
-                    f" e.g. you are using a subset of a zoning system."
-                )
+        if isinstance(self.zoning_system, Sequence):
+            for lev, sys in zip(sorted_data.columns.levels, self.zoning_system):
+                if set(lev) != set(sys.zone_ids):
+                    column_lookup = self._fix_zoning(lev, sys)
+                    sorted_data.rename(columns=column_lookup, level=lev.name, inplace=True)
+            sorted_data.columns.names = [sys.column_name for sys in self.zoning_system]
+        else:
+            if set(sorted_data.columns) != set(self.zoning_system.zone_ids):
+                column_lookup = self._fix_zoning(sorted_data.columns, self.zoning_system)
+                sorted_data.rename(columns=column_lookup, inplace=True)
 
         return sorted_data, seg
+
+    def _fix_zoning(self, columns, zoning):
+        column_convert = zoning.check_all_columns(columns)
+
+        if column_convert is not False:
+            return column_convert
+
+        missing = zoning.zone_ids[~np.isin(zoning.zone_ids, columns)]
+        extra = columns.values[~np.isin(columns.values, zoning.zone_ids)]
+        if len(extra) > 0:
+            raise ValueError(
+                f"{len(missing)} zone IDs from zoning system {zoning.name}"
+                f" aren't found in the DVector data and {len(extra)} column names are"
+                " found which don't correspond to zone IDs.\nDVector DataFrame column"
+                " names should be the zone IDs (integers) for the given zone system."
+            )
+        if len(missing) > 0:
+            warnings.warn(
+                f"{len(missing)} zone IDs from zoning system {zoning.name}"
+                f" aren't found in the DVector data. This may be by design"
+                f" e.g. you are using a subset of a zoning system."
+            )
+        return column_convert
 
     def save(self, out_path: PathLike):
         """
@@ -521,7 +520,14 @@ class DVector:
 
         self._data.to_hdf(out_path, key="data", mode="w", complevel=1)
         if self.zoning_system is not None:
-            self.zoning_system.save(out_path, "hdf")
+            if isinstance(self.zoning_system, Sequence):
+                raise NotImplementedError(
+                    "Can't currently save a DVector with composite zoning. "
+                    "This feature is currently designed for internal use within a "
+                    "model with outputs aggregated to a single zone system."
+                )
+            else:
+                self.zoning_system.save(out_path, "hdf")
         self.segmentation.save(out_path, "hdf")
 
     @classmethod
