@@ -19,7 +19,7 @@ from dataclasses import dataclass
 from numbers import Number
 from os import PathLike, listdir
 from pathlib import Path
-from typing import Callable, Literal, Optional, Union
+from typing import Callable, Literal, Optional, Sequence, Union
 
 # Third Party
 import caf.toolkit as ctk
@@ -1316,7 +1316,7 @@ class DVector:
             segmentation=new_segmentation, import_data=new_data, zoning_system=zoning_system
         )
 
-    def select_zone(self, zone_id) -> DVector:
+    def select_zone(self, zone_id: int | Sequence[int]) -> DVector:
         """
         Return a DVector for a single zone in a DVector.
 
@@ -1331,6 +1331,14 @@ class DVector:
             A DVector for a single zone, data will be a series.
         """
         out_data = self.data[zone_id]
+        if isinstance(zone_id, Sequence):
+            return DVector(
+                import_data=out_data,
+                segmentation=self.segmentation,
+                zoning_system=self.zoning_system,
+                time_format=self.time_format,
+                cut_read=self._cut_read,
+            )
         return DVector(
             import_data=out_data,
             segmentation=self.segmentation,
