@@ -1060,6 +1060,32 @@ class DVector:
         """Note equals dunder for DVector."""
         return not self.__eq__(other)
 
+    def composite_zoning(
+        self, new_zoning: ZoningSystem, trans_vector: pd.DataFrame | None = None
+    ):
+        if trans_vector is None:
+            trans_vector = self.zoning_system.translate(new_zoning)
+        if set(trans_vector.index.names) != {
+            self.zoning_system.column_name,
+            new_zoning.column_name,
+        }:
+            try:
+                trans_vector.set_index(
+                    [self.zoning_system.column_name, new_zoning.column_name], inplace=True
+                )
+            except:
+                raise ValueError("required zones not found in trans vector.")
+        new_data = self.data.mul(
+            trans_vector[self.zoning_system.translation_column_name(new_zoning)], axis=1
+        )
+        new_zoning = [new_zoning, self.zoning_system]
+        return DVector(
+            import_data=new_data,
+            zoning_system=new_zoning,
+            segmentation=self.segmentation,
+            cut_read=self._cut_read,
+        )
+
     def aggregate(self, segs: list[str] | Segmentation, _bypass_validation: bool = False):
         """
         Aggregate DVector to new segmentation.
