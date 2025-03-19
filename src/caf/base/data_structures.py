@@ -15,11 +15,12 @@ import operator
 import tempfile
 import warnings
 from collections.abc import Collection
+from copy import deepcopy
 from dataclasses import dataclass
 from numbers import Number
 from os import PathLike, listdir
 from pathlib import Path
-from typing import Callable, Literal, Optional, Union, Sequence
+from typing import Callable, Literal, Optional, Sequence, Union
 
 # Third Party
 import caf.toolkit as ctk
@@ -610,6 +611,7 @@ class DVector:
             If there are zone IDs missing from the zone_translation or the
             zone_translation factors don't sum to 1.
         """
+        # TODO this method needs sorting
         # Validate inputs
         if not isinstance(new_zoning, ZoningSystem):
             raise ValueError(
@@ -621,6 +623,12 @@ class DVector:
             raise ValueError(
                 "Cannot translate the zoning system of a DVector that does "
                 "not have a zoning system to begin with."
+            )
+
+        if isinstance(self.zoning_system, Sequence):
+            raise NotImplementedError(
+                "It is not currently implemented to translate "
+                "from a composite zoning system."
             )
 
         # If we're translating to the same thing, return a copy
@@ -728,6 +736,27 @@ class DVector:
         """
         if self.zoning_system is None:
             raise TypeError("This method only works for a DVector with zoning.")
+        out_dvecs = {}
+        if isinstance(self.zoning_system, Sequence):
+            if agg_zoning in self.zoning_system:
+                for zone in self.data.columns.get_level_values(agg_zoning.column_name):
+                    new_data = self.data[
+                        zone
+                    ]  # Assume agg zoning is top level, this should be enforced somewhere
+                    new_zoning = [zon for zon in self.zoning_system if zon != agg_zoning][0]
+                    out_dvecs[zone] = DVector(
+                        import_data=new_data,
+                        segmentation=self.segmentation,
+                        zoning_system=new_zoning,
+                        cut_read=self._cut_read,
+                    )
+                return out_dvecs
+            else:
+                raise NotImplementedError(
+                    "For this method to work with a composite zone "
+                    "system, agg_zoning needs to already be in the "
+                    "zoning_system."
+                )
         if trans is None:
             trans = self.zoning_system.translate(agg_zoning)
         else:
@@ -740,7 +769,6 @@ class DVector:
                 "the current zone system corresponds to only 1 zone in the agg "
                 "zone system."
             )
-        out_dvecs = {}
         for zone in trans[agg_zoning.column_name].unique():
             zones = trans[trans[agg_zoning.column_name] == zone][
                 self.zoning_system.column_name
@@ -758,7 +786,7 @@ class DVector:
     def copy(self, _bypass_validation: bool = True):
         """Class copy method."""
         if self._zoning_system is not None:
-            out_zoning = self._zoning_system.copy()
+            out_zoning = deepcopy(self._zoning_system)
         else:
             out_zoning = None
         return DVector(
