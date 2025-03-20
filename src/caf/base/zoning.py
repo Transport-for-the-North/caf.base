@@ -800,11 +800,31 @@ class ZoningSystem:
         in_path = Path(in_path)
         # If this file exists the zoning should be in the hdf and vice versa
         if mode.lower() == "hdf":
-            zoning = pd.read_hdf(in_path, key="zoning", mode="r")
+            # zoning = pd.read_hdf(in_path, key="zoning", mode="r")
             with h5py.File(in_path, "r") as h_file:
                 # pylint: disable=no-member
-                yam_load = h_file["zoning_meta"][()].decode("utf-8")
-                zoning_meta = ZoningSystemMetaData.from_yaml(yam_load)
+                zonings = [i for i in h_file.keys() if "zoning" in i]
+                metas = [i for i in zonings if "meta" in i]
+                zones = [i for i in zonings if "meta" not in i]
+                if len(metas) != len(zones):
+                    raise ImportError(
+                        "This Dvector has a different number of zoning metas to zoning "
+                        "objects."
+                    )
+                if len(metas) == 1:
+                    yam_load = h_file[metas[0]][()].decode("utf-8")
+                    zoning_meta = ZoningSystemMetaData.from_yaml(yam_load)
+                    zoning = pd.read_hdf(in_path, key=zones[0], mode="r")
+                elif len(metas) == 2:
+                    out = []
+                    for zon, meta in zip(zonings.sort(), metas.sort()):
+                        out.append(cls(name=meta.name, unique_zones=zon, metadata=meta))
+                    if len(out[0] > out[1]):
+                        out[0], out[1] = out[1], out[0]
+                    return out
+                else:
+                    raise ValueError("More than 2 zones aren't currently handled.")
+
         elif mode.lower() == "csv":
             zoning = pd.read_csv(in_path / "zoning.csv")
             zoning_meta = ZoningSystemMetaData.load_yaml(in_path / "zoning_meta.yml")
