@@ -162,7 +162,7 @@ class TestDvec:
         out_dvec = basic_dvec_1.add_segments([segment], split_method="split")
         assert isclose(out_dvec.data.values.sum(), basic_dvec_1.data.values.sum())
 
-    @pytest.mark.parametrize("dvec", ["basic_dvec_1", "basic_dvec_2", "single_seg_dvec"])
+    @pytest.mark.parametrize("dvec", ["basic_dvec_1", "basic_dvec_2", "single_seg_dvec", "comp_zoned_dvec"])
     def test_io(self, dvec, main_dir, request):
         dvec = request.getfixturevalue(dvec)
         dvec.save(main_dir / "dvector.h5")
@@ -170,7 +170,7 @@ class TestDvec:
         assert read_dvec == dvec
 
     @pytest.mark.parametrize(
-        "dvec_1_str", ["basic_dvec_1", "basic_dvec_2", "no_zone_dvec_1", "no_zone_dvec_2"]
+        "dvec_1_str", ["basic_dvec_1", "basic_dvec_2", "no_zone_dvec_1", "no_zone_dvec_2", "comp_zoned_dvec"]
     )
     @pytest.mark.parametrize(
         "dvec_2_str", ["basic_dvec_1", "basic_dvec_2", "no_zone_dvec_1", "no_zone_dvec_2"]
@@ -192,7 +192,7 @@ class TestDvec:
         assert added_dvec.data.sort_index().equals(added_df.sort_index())
 
     @pytest.mark.parametrize(
-        "dvec_1_str", ["basic_dvec_1", "basic_dvec_2", "no_zone_dvec_1", "no_zone_dvec_2"]
+        "dvec_1_str", ["basic_dvec_1", "basic_dvec_2", "no_zone_dvec_1", "no_zone_dvec_2", "comp_zoned_dvec"]
     )
     @pytest.mark.parametrize(
         "dvec_2_str", ["basic_dvec_1", "basic_dvec_2", "no_zone_dvec_1", "no_zone_dvec_2"]
@@ -214,7 +214,7 @@ class TestDvec:
         assert added_dvec.data.sort_index().equals(added_df.sort_index())
 
     @pytest.mark.parametrize(
-        "dvec_1_str", ["basic_dvec_1", "basic_dvec_2", "no_zone_dvec_1", "no_zone_dvec_2"]
+        "dvec_1_str", ["basic_dvec_1", "basic_dvec_2", "no_zone_dvec_1", "no_zone_dvec_2", "comp_zoned_dvec"]
     )
     @pytest.mark.parametrize(
         "dvec_2_str", ["basic_dvec_1", "basic_dvec_2", "no_zone_dvec_1", "no_zone_dvec_2"]
@@ -236,7 +236,7 @@ class TestDvec:
         assert added_dvec.data.sort_index().equals(added_df.sort_index())
 
     @pytest.mark.parametrize(
-        "dvec_1_str", ["basic_dvec_1", "basic_dvec_2", "no_zone_dvec_1", "no_zone_dvec_2"]
+        "dvec_1_str", ["basic_dvec_1", "basic_dvec_2", "no_zone_dvec_1", "no_zone_dvec_2", "comp_zoned_dvec"]
     )
     @pytest.mark.parametrize(
         "dvec_2_str", ["basic_dvec_1", "basic_dvec_2", "no_zone_dvec_1", "no_zone_dvec_2"]

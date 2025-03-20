@@ -817,9 +817,14 @@ class ZoningSystem:
                     zoning = pd.read_hdf(in_path, key=zones[0], mode="r")
                 elif len(metas) == 2:
                     out = []
-                    for zon, meta in zip(zonings.sort(), metas.sort()):
-                        out.append(cls(name=meta.name, unique_zones=zon, metadata=meta))
-                    if len(out[0] > out[1]):
+                    zones.sort()
+                    metas.sort()
+                    for zon, meta in zip(zones, metas):
+                        yam_load = h_file[meta][()].decode("utf-8")
+                        meta = ZoningSystemMetaData.from_yaml(yam_load)
+                        zoning = pd.read_hdf(in_path, key=zon, mode="r")
+                        out.append(cls(name=meta.name, unique_zones=zoning, metadata=meta))
+                    if len(out[0]) > len(out[1]):
                         out[0], out[1] = out[1], out[0]
                     return out
                 else:

@@ -523,11 +523,13 @@ class DVector:
         self._data.to_hdf(out_path, key="data", mode="w", complevel=1)
         if self.zoning_system is not None:
             if isinstance(self.zoning_system, Sequence):
-                raise NotImplementedError(
-                    "Can't currently save a DVector with composite zoning. "
-                    "This feature is currently designed for internal use within a "
-                    "model with outputs aggregated to a single zone system."
-                )
+                for zone in self.zoning_system:
+                    zone.save(out_path, mode="hdf")
+                # raise NotImplementedError(
+                #     "Can't currently save a DVector with composite zoning. "
+                #     "This feature is currently designed for internal use within a "
+                #     "model with outputs aggregated to a single zone system."
+                # )
             else:
                 self.zoning_system.save(out_path, "hdf")
         self.segmentation.save(out_path, "hdf")
@@ -1072,8 +1074,8 @@ class DVector:
             new_zoning.column_name,
         }:
             try:
-                trans_vector.set_index(
-                    [self.zoning_system.column_name, new_zoning.column_name], inplace=True
+                trans_vector = trans_vector.set_index(
+                    [self.zoning_system.column_name, new_zoning.column_name]
                 )
             except:
                 raise ValueError("required zones not found in trans vector.")
