@@ -32,11 +32,13 @@ from caf.base.segments import SegmentsSuper
 
 @pytest.fixture(name="dvec_data_1", scope="session")
 def fix_data_1(basic_segmentation_1, min_zoning):
-    return pd.DataFrame(
+    df = pd.DataFrame(
         data=np.random.rand(24, 5),
         index=basic_segmentation_1.ind(),
         columns=min_zoning.zone_ids,
     )
+    df.columns.name = "zone_1_id"
+    return df
 
 
 @pytest.fixture(name="dvec_data_2", scope="session")
@@ -96,6 +98,22 @@ def fix_basic_dvec_2(min_zoning, basic_segmentation_2, dvec_data_2):
     )
 
 
+# @pytest.fixture(name="")
+
+
+@pytest.fixture(name="comp_zoned_dvec", scope="session")
+def fix_comp_dvec(min_zoning, min_zoning_2, test_trans, basic_segmentation_1, dvec_data_1):
+    data = dvec_data_1.mul(
+        test_trans.set_index(["zone_1_id", "zone_2_id"])["zone_1_to_zone_2"], axis=1
+    )
+    data.columns = data.columns.reorder_levels(["zone_2_id", "zone_1_id"])
+    return data_structures.DVector(
+        segmentation=basic_segmentation_1,
+        zoning_system=[min_zoning_2, min_zoning],
+        import_data=data,
+    )
+
+
 @pytest.fixture(name="expected_trans", scope="session")
 def fix_exp_trans(basic_dvec_1, min_zoning_2):
     orig_data = basic_dvec_1.data
@@ -120,7 +138,11 @@ def fix_exp_trans(basic_dvec_1, min_zoning_2):
 
 # # # FUNCTIONS # # #
 class TestDvec:
-    @pytest.mark.parametrize("dvec", ["basic_dvec_1", "basic_dvec_2"])
+    def test_comp_zone(self, basic_dvec_1, test_trans, min_zoning_2, comp_zoned_dvec):
+        test = basic_dvec_1.composite_zoning(min_zoning_2, test_trans)
+        assert test == comp_zoned_dvec
+
+    @pytest.mark.parametrize("dvec", ["basic_dvec_1", "basic_dvec_2", "comp_zoned_dvec"])
     @pytest.mark.parametrize("subset", [None, [1, 2, 3]])
     @pytest.mark.parametrize("method", ["split", "duplicate"])
     def test_add_segments(self, dvec, subset, method, request):
