@@ -283,7 +283,7 @@ class DVector:
             if isinstance(zoning_system, Sequence):
                 if len(zoning_system) > 2:
                     raise NotImplementedError("Only two level zoning systems are allowed.")
-                if not [isinstance(zon, ZoningSystem) for zon in zoning_system].all():
+                if not all([isinstance(zon, ZoningSystem) for zon in zoning_system]):
                     raise TypeError("All zoning_systems must be ZoningSystem objects.")
             elif not isinstance(zoning_system, ZoningSystem):
                 raise ValueError(
@@ -472,6 +472,7 @@ class DVector:
             if set(sorted_data.columns) != set(self.zoning_system.zone_ids):
                 column_lookup = self._fix_zoning(sorted_data.columns, self.zoning_system)
                 sorted_data.rename(columns=column_lookup, inplace=True)
+            sorted_data.columns.name = self.zoning_system.column_name
 
         return sorted_data, seg
 
@@ -916,6 +917,7 @@ class DVector:
             if other.zoning_system in self.zoning_system:
                 # return_zones = out.data.columns.get_level_values(other.zoning_system.column_name).intersection(other.data.columns)
                 prod = df_method(out.data, other.data)
+                zoning = self.zoning_system
         # Different zonings raise an error rather than trying to translate
         else:
             raise NotImplementedError(
@@ -1078,7 +1080,12 @@ class DVector:
         new_data = self.data.mul(
             trans_vector[self.zoning_system.translation_column_name(new_zoning)], axis=1
         )
+
         new_zoning = [new_zoning, self.zoning_system]
+        new_data.columns = new_data.columns.reorder_levels(
+            [zon.column_name for zon in new_zoning]
+        )
+
         return DVector(
             import_data=new_data,
             zoning_system=new_zoning,
