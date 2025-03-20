@@ -844,42 +844,6 @@ class DVector:
         # Takes exclusions into account before operating
         if len(self.segmentation) < len(other.segmentation):
             out = self.expand_to_other(other)
-
-        # Alternatively could just try the normal method and use the low memory if an exception is raised
-        if self.low_memory:
-            raise NotImplementedError("The low memory method is not currently implemented.")
-        #     # Assume that low memory means there are zoning systems
-        #     if self.zoning_system != other.zoning_system:
-        #         raise ValueError("Zonings don't match.")
-        #     zoning = self.zoning_system
-        #     common_segs = self.segmentation.overlap(other.segmentation)
-        #     max_len = 0
-        #     storage_seg = None
-        #     for seg in common_segs:
-        #         seg_len = len(self.segmentation.seg_dict[seg])
-        #         # Indexing the temp storage by the longest segment
-        #         if seg_len > max_len:
-        #             max_len = seg_len
-        #             storage_seg = seg
-        #     # Temp dir to save inputs in
-        #     with tempfile.TemporaryDirectory() as temp_dir:
-        #         temp_self = Path(temp_dir) / "temp_self.hdf"
-        #         temp_other = Path(temp_dir) / "temp_other.hdf"
-        #         for ind in self.segmentation.seg_dict[storage_seg].values.keys():
-        #             self.data.xs(ind, level=storage_seg).to_hdf(
-        #                 temp_self, mode="a", key=f"node_{ind}"
-        #             )
-        #             other.data.xs(ind, level=storage_seg).to_hdf(
-        #                 temp_other, mode="a", key=f"node_{ind}"
-        #             )
-        #         # TODO potentially delete one or both of the input DVectors
-        #         out_data = {}
-        #         for ind in self.segmentation.seg_dict[storage_seg].values.keys():
-        #             self_section = pd.read_hdf(temp_self, key=f"node_{ind}")
-        #             other_section = pd.read_hdf(temp_other, key=f"node_{ind}")
-        #             out_data[ind] = df_method(self_section, other_section)
-        #         prod = pd.concat(out_data, names=[seg] + out_data[ind].index.names)
-
         else:
             # for the same zoning a simple * gives the desired result
             # This drops any nan values (intersecting index level but missing val)
@@ -917,7 +881,7 @@ class DVector:
                 )
         # Index unchanged, aside from possible order. Segmentation remained the same
         if drop_na:
-            prod.dropna(inplace=True)
+            prod.dropna(inplace=True, how='all')
         else:
             prod.fillna(self.data, inplace=True)
         prod.sort_index(inplace=True)
