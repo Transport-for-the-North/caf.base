@@ -844,41 +844,40 @@ class DVector:
         # Takes exclusions into account before operating
         if len(self.segmentation) < len(other.segmentation):
             out = self.expand_to_other(other)
-        else:
-            # for the same zoning a simple * gives the desired result
-            # This drops any nan values (intersecting index level but missing val)
-            if self.zoning_system == other.zoning_system:
-                if isinstance(self.data, pd.Series):
-                    prod = series_method(out.data, other.data)
-                else:
-                    return_zones = out.data.columns.intersection(other.data.columns)
-                    prod = df_method(out.data[return_zones], other.data[return_zones])
-                # Either None if both are None, or the right zone system
-                zoning = self.zoning_system
-
-            # For a dataframe by a series the mul is broadcast across
-            # for this to work axis needs to be set to 'index'
-            elif self.zoning_system is None:
-                # Allowed but warned
-                logging.warning(
-                    "For this method to work between a DVector with "
-                    "a zoning system and a DVector without one, the "
-                    "DVector with a zoning system must come first. "
-                    "This is being changed internally but if this was "
-                    "not expected, check your inputs"
-                )
-                prod = df_method(other.data, out.data.squeeze(), axis="index")
-                zoning = other.zoning_system
-            elif other.zoning_system is None:
-                prod = df_method(out.data, other.data.squeeze(), axis="index")
-                zoning = self.zoning_system
-            # Different zonings raise an error rather than trying to translate
+        # for the same zoning a simple * gives the desired result
+        # This drops any nan values (intersecting index level but missing val)
+        if self.zoning_system == other.zoning_system:
+            if isinstance(self.data, pd.Series):
+                prod = series_method(out.data, other.data)
             else:
-                raise NotImplementedError(
-                    "The two DVectors have different zonings. "
-                    "To multiply them, one must be translated "
-                    "to match the other."
-                )
+                return_zones = out.data.columns.intersection(other.data.columns)
+                prod = df_method(out.data[return_zones], other.data[return_zones])
+            # Either None if both are None, or the right zone system
+            zoning = self.zoning_system
+
+        # For a dataframe by a series the mul is broadcast across
+        # for this to work axis needs to be set to 'index'
+        elif self.zoning_system is None:
+            # Allowed but warned
+            logging.warning(
+                "For this method to work between a DVector with "
+                "a zoning system and a DVector without one, the "
+                "DVector with a zoning system must come first. "
+                "This is being changed internally but if this was "
+                "not expected, check your inputs"
+            )
+            prod = df_method(other.data, out.data.squeeze(), axis="index")
+            zoning = other.zoning_system
+        elif other.zoning_system is None:
+            prod = df_method(out.data, other.data.squeeze(), axis="index")
+            zoning = self.zoning_system
+        # Different zonings raise an error rather than trying to translate
+        else:
+            raise NotImplementedError(
+                "The two DVectors have different zonings. "
+                "To multiply them, one must be translated "
+                "to match the other."
+            )
         # Index unchanged, aside from possible order. Segmentation remained the same
         if drop_na:
             prod.dropna(inplace=True, how="all")
