@@ -885,9 +885,6 @@ class DVector:
         # Takes exclusions into account before operating
         if len(self.segmentation) < len(other.segmentation):
             out = self.expand_to_other(other)
-
-        # Alternatively could just try the normal method and use the low memory if an exception is raised
-
         # for the same zoning a simple * gives the desired result
         # This drops any nan values (intersecting index level but missing val)
         if self.zoning_system == other.zoning_system:
@@ -929,7 +926,7 @@ class DVector:
             )
         # Index unchanged, aside from possible order. Segmentation remained the same
         if drop_na:
-            prod.dropna(inplace=True)
+            prod.dropna(inplace=True, how="all")
         else:
             prod.fillna(self.data, inplace=True)
         prod.sort_index(inplace=True)
@@ -1357,7 +1354,7 @@ class DVector:
             segmentation=new_segmentation, import_data=new_data, zoning_system=zoning_system
         )
 
-    def select_zone(self, zone_id) -> DVector:
+    def select_zone(self, zone_id: int | Sequence[int]) -> DVector:
         """
         Return a DVector for a single zone in a DVector.
 
@@ -1372,6 +1369,14 @@ class DVector:
             A DVector for a single zone, data will be a series.
         """
         out_data = self.data[zone_id]
+        if isinstance(zone_id, Sequence):
+            return DVector(
+                import_data=out_data,
+                segmentation=self.segmentation,
+                zoning_system=self.zoning_system,
+                time_format=self.time_format,
+                cut_read=self._cut_read,
+            )
         return DVector(
             import_data=out_data,
             segmentation=self.segmentation,
