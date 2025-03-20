@@ -881,7 +881,7 @@ class DVector:
                 )
         # Index unchanged, aside from possible order. Segmentation remained the same
         if drop_na:
-            prod.dropna(inplace=True, how='all')
+            prod.dropna(inplace=True, how="all")
         else:
             prod.fillna(self.data, inplace=True)
         prod.sort_index(inplace=True)
