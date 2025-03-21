@@ -8,7 +8,7 @@ dynamic = ["version"]
 description = "Package Description"
 readme = "README.md"
 license = {"file"= "LICENSE"}
-requires-python = ">=3.9, <3.12"
+requires-python = ">=3.9"
 authors = [
     { name = "Transport for the North" },
 ]
@@ -17,6 +17,8 @@ classifiers = [
     "Programming Language :: Python :: 3.9",
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
 ]
 dependencies = [
     "numpy>=1.24.3, <2",
