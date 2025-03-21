@@ -471,7 +471,8 @@ class DVector:
         else:
             if set(sorted_data.columns) != set(self.zoning_system.zone_ids):
                 column_lookup = self._fix_zoning(sorted_data.columns, self.zoning_system)
-                sorted_data.rename(columns=column_lookup, inplace=True)
+                if column_lookup is not False:
+                    sorted_data.rename(columns=column_lookup, inplace=True)
             sorted_data.columns.name = self.zoning_system.column_name
 
         return sorted_data, seg
@@ -1061,6 +1062,20 @@ class DVector:
         """Note equals dunder for DVector."""
         return not self.__eq__(other)
 
+    def trans_and_comp(
+        self, new_zoning: Sequence[ZoningSystem], trans_vector: pd.DataFrame, factor_col: str
+    ):
+        trans = trans_vector.set_index(
+            [self.zoning_system.column_name] + [zon.column_name for zon in new_zoning]
+        )[factor_col]
+        triple_zoned_df = self.data.mul(trans, axis=1)
+        dual_zoned_df = (
+            triple_zoned_df.T.groupby([zon.column_name for zon in new_zoning]).sum().T
+        )
+        return DVector(
+            import_data=dual_zoned_df, zoning_system=new_zoning, segmentation=self.segmentation
+        )
+
     def composite_zoning(
         self, new_zoning: ZoningSystem, trans_vector: pd.DataFrame | None = None
     ):
@@ -1090,6 +1105,12 @@ class DVector:
             zoning_system=new_zoning,
             segmentation=self.segmentation,
             cut_read=self._cut_read,
+        )
+
+    def aggregate_comp_zones(self, zone_system: ZoningSystem):
+        new_data = self.data.T.groupby(level=zone_system.column_name).sum().T
+        return DVector(
+            import_data=new_data, zoning_system=zone_system, segmentation=self.segmentation
         )
 
     def aggregate(self, segs: list[str] | Segmentation, _bypass_validation: bool = False):
