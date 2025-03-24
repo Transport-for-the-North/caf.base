@@ -15,7 +15,7 @@ import re
 import warnings
 from os import PathLike
 from pathlib import Path
-from typing import Iterator, Literal, Optional, Union
+from typing import Iterator, Literal, NamedTuple, Optional, Union
 
 # Third Party
 import caf.toolkit as ctk
@@ -345,7 +345,7 @@ class Segmentation:
                     SegmentationWarning,
                 )
                 # Define the read subset in the generated config
-                if conf.subsets is not None:
+                if len(conf.subsets) > 0:
                     conf.subsets.update({name: list(read_level)})
                 else:
                     conf.subsets = {name: list(read_level)}
@@ -393,7 +393,7 @@ class Segmentation:
         to_seg: str | Segment,
         reverse: bool = False,
         drop_from: bool = True,
-    ):
+    ) -> tuple[Segmentation, pd.Series]:
         """
         Translate one of the segments making up the segmentation.
 
@@ -529,7 +529,9 @@ class Segmentation:
             if seg.name not in [i.name for i in cust_in]:
                 cust_in.append(seg)
         subsets = self.input.subsets.copy()
-        subsets.update(other.input.subsets)
+        for seg, vals in subsets.items():
+            if seg in other.input.subsets.keys():
+                subsets[seg] = list(set(vals).intersection(other.input.subsets[seg]))
         naming_order = ordered_set(self.naming_order, other.naming_order)
         config = SegmentationInput(
             enum_segments=enum_in,
@@ -827,16 +829,45 @@ class Segmentation:
 
         return "_".join(slice_parts)
 
-    def iter_slices(self) -> Iterator[dict[str, int]]:
+    def iter_slices(self, filter_: dict[str, int] | None = None) -> Iterator[dict[str, int]]:
         """Iterate through parameters for all segmentation slcies.
+
+        Parameters
+        ----------
+        filter_
+            Optional parameters to filter slices e.g. {"p": 1}
+            will exclude any slices where p != 1. If not given
+            will return all slices.
 
         Yields
         ------
         dict[str, int]
             Parameters for an individual slice.
         """
-        for params in self.ind():
-            yield dict(zip(self.naming_order, params))
+        slices = self.ind().to_frame(index=False)
+
+        if filter_ is not None:
+            if not (set(filter_) <= set(self.names)):
+                missing = set(filter_) - set(self.names)
+                raise ValueError(
+                    f"parameters given for segments not present in segmentation: {missing}"
+                )
+
+            slices: pd.DataFrame = self.ind().to_frame(index=False)
+            mask = pd.Series(True, index=slices.index)
+            for nm, value in filter_.items():
+                mask = mask & (slices[nm] == value)
+
+            slices = slices.loc[mask]
+
+        if len(slices) == 0:
+            warnings.warn(
+                f"No slices found in segmentation with filter {filter_}", RuntimeWarning
+            )
+
+        params: NamedTuple
+        for params in slices.itertuples(index=False):
+            yield params._asdict()
 
     def generate_slice_tuple(self, slice_params: dict[str, int]) -> tuple[int, ...]:
         """Generate segment tuple from parameters.
