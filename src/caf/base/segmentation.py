@@ -847,7 +847,7 @@ class Segmentation:
         slices = self.ind().to_frame(index=False)
 
         if filter_ is not None:
-            if not (set(filter_) <= set(self.names)):
+            if not set(filter_) <= set(self.names):
                 missing = set(filter_) - set(self.names)
                 raise ValueError(
                     f"parameters given for segments not present in segmentation: {missing}"
