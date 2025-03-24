@@ -176,6 +176,7 @@ class ZoningSystem:
         optional_columns = (self._name_column, self._desc_column)
         for name in optional_columns:
             if name in zones.columns:
+                zones[name] = zones[name].convert_dtypes(infer_objects=False, convert_string=False)
                 zones.loc[:, name] = zones[name].astype(str)
 
         # Any other columns are assumed to be subset mask columns so should be boolean
