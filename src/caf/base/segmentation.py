@@ -532,6 +532,9 @@ class Segmentation:
         for seg, vals in subsets.items():
             if seg in other.input.subsets.keys():
                 subsets[seg] = list(set(vals).intersection(other.input.subsets[seg]))
+        for seg, vals in other.input.subsets.items():
+            if seg not in subsets:
+                subsets[seg] = vals
         naming_order = ordered_set(self.naming_order, other.naming_order)
         config = SegmentationInput(
             enum_segments=enum_in,
