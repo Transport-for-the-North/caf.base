@@ -345,7 +345,7 @@ class Segmentation:
                     SegmentationWarning,
                 )
                 # Define the read subset in the generated config
-                if conf.subsets is not None:
+                if len(conf.subsets) > 0:
                     conf.subsets.update({name: list(read_level)})
                 else:
                     conf.subsets = {name: list(read_level)}
@@ -529,7 +529,9 @@ class Segmentation:
             if seg.name not in [i.name for i in cust_in]:
                 cust_in.append(seg)
         subsets = self.input.subsets.copy()
-        subsets.update(other.input.subsets)
+        for seg, vals in subsets.items():
+            if seg in other.input.subsets.keys():
+                subsets[seg] = list(set(vals).intersection(other.input.subsets[seg]))
         naming_order = ordered_set(self.naming_order, other.naming_order)
         config = SegmentationInput(
             enum_segments=enum_in,
