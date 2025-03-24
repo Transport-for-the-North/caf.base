@@ -466,7 +466,8 @@ class DVector:
             for lev, sys in zip(sorted_data.columns.levels, self.zoning_system):
                 if set(lev) != set(sys.zone_ids):
                     column_lookup = self._fix_zoning(lev, sys)
-                    sorted_data.rename(columns=column_lookup, level=lev.name, inplace=True)
+                    if column_lookup is not False:
+                        sorted_data.rename(columns=column_lookup, level=lev.name, inplace=True)
             sorted_data.columns.names = [sys.column_name for sys in self.zoning_system]
         else:
             if set(sorted_data.columns) != set(self.zoning_system.zone_ids):
@@ -2042,7 +2043,7 @@ class DVector:
         # Segment by LAD segment total reports - 1 to 1, No weighting
         try:
             lad = ZoningSystem.get_zoning("lad_2020")
-            dvec = self.aggregate(lad_report_seg)
+            dvec = self.aggregate(list(lad_report_seg.overlap(self.segmentation))) # Sometimes no m or tp here
             dvec = dvec.translate_zoning(lad)
             dvec.data.to_csv(lad_report_path)
         except Exception as err:

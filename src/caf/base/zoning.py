@@ -174,10 +174,10 @@ class ZoningSystem:
 
         # Zone names and description columns are optional but should contain strings
         optional_columns = (self._name_column, self._desc_column)
-        for name in optional_columns:
-            if name in zones.columns:
-                zones[name] = zones[name].convert_dtypes(infer_objects=False, convert_string=False)
-                zones.loc[:, name] = zones[name].astype(str)
+        # for name in optional_columns:
+        #     if name in zones.columns:
+        #         zones[name] = zones[name].convert_dtypes(infer_objects=False, convert_string=False)
+        #         zones.loc[:, name] = zones[name].astype(str)
 
         # Any other columns are assumed to be subset mask columns so should be boolean
         # Restrictive boolean conversion is used that expects "TRUE", "FALSE" strings
@@ -552,7 +552,7 @@ class ZoningSystem:
                 )
                 translation[zone_system.column_name].replace(to_replace=replacer, inplace=True)
         else:
-            translation[zone_system.column_name].replace(to_replace=replacer, inplace=True)
+            translation[zone_system.column_name] = translation[zone_system.column_name].replace(to_replace=replacer)
 
         return translation
 
