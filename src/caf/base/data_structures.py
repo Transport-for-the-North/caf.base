@@ -281,8 +281,6 @@ class DVector:
         """
         if zoning_system is not None:
             if isinstance(zoning_system, Sequence):
-                if len(zoning_system) > 2:
-                    raise NotImplementedError("Only two level zoning systems are allowed.")
                 if not all([isinstance(zon, ZoningSystem) for zon in zoning_system]):
                     raise TypeError("All zoning_systems must be ZoningSystem objects.")
             elif not isinstance(zoning_system, ZoningSystem):
@@ -463,6 +461,7 @@ class DVector:
         #         f"to zone IDs not {import_data.columns.dtype}"
         #     ) from exc
         if isinstance(self.zoning_system, Sequence):
+            # Assumes matching orders
             for lev, sys in zip(sorted_data.columns.levels, self.zoning_system):
                 if set(lev) != set(sys.zone_ids):
                     column_lookup = self._fix_zoning(lev, sys)
@@ -1064,17 +1063,41 @@ class DVector:
         return not self.__eq__(other)
 
     def trans_and_comp(
-        self, new_zoning: Sequence[ZoningSystem], trans_vector: pd.DataFrame, factor_col: str
+        self,
+        new_zoning: Sequence[ZoningSystem | str],
+        trans_vector: pd.DataFrame,
+        factor_col: str,
     ):
+        validated_zoning = []
+        for zoning in new_zoning:
+            if isinstance(zoning, str):
+                if zoning not in trans_vector.columns:
+                    raise ValueError("string zoning must be a column of the trans_vector.")
+                validated_zoning.append(ZoningSystem.zoning_from_df_col(trans_vector[zoning]))
+            elif isinstance(zoning, ZoningSystem):
+                validated_zoning.append(zoning)
+            else:
+                raise TypeError(
+                    "Input zone systems must either be an instance of ZoningSystem, or "
+                    "a string matching a column of trans vector for a ZoningSystem to be "
+                    "generated on the fly."
+                )
+
+        trans_vector = trans_vector.rename(
+            columns={zone: f"{zone}_id" for zone in new_zoning if isinstance(zone, str)}
+        )
+
         trans = trans_vector.set_index(
-            [self.zoning_system.column_name] + [zon.column_name for zon in new_zoning]
+            [self.zoning_system.column_name] + [zon.column_name for zon in validated_zoning]
         )[factor_col]
-        triple_zoned_df = self.data.mul(trans, axis=1)
-        dual_zoned_df = (
-            triple_zoned_df.T.groupby([zon.column_name for zon in new_zoning]).sum().T
+        fully_zoned_df = self.data.mul(trans, axis=1)
+        return_zoned_df = (
+            fully_zoned_df.T.groupby([zon.column_name for zon in validated_zoning]).sum().T
         )
         return DVector(
-            import_data=dual_zoned_df, zoning_system=new_zoning, segmentation=self.segmentation
+            import_data=return_zoned_df,
+            zoning_system=validated_zoning,
+            segmentation=self.segmentation,
         )
 
     def composite_zoning(
@@ -2043,7 +2066,9 @@ class DVector:
         # Segment by LAD segment total reports - 1 to 1, No weighting
         try:
             lad = ZoningSystem.get_zoning("lad_2020")
-            dvec = self.aggregate(list(lad_report_seg.overlap(self.segmentation))) # Sometimes no m or tp here
+            dvec = self.aggregate(
+                list(lad_report_seg.overlap(self.segmentation))
+            )  # Sometimes no m or tp here
             dvec = dvec.translate_zoning(lad)
             dvec.data.to_csv(lad_report_path)
         except Exception as err:

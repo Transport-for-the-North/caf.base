@@ -552,7 +552,9 @@ class ZoningSystem:
                 )
                 translation[zone_system.column_name].replace(to_replace=replacer, inplace=True)
         else:
-            translation[zone_system.column_name] = translation[zone_system.column_name].replace(to_replace=replacer)
+            translation[zone_system.column_name] = translation[
+                zone_system.column_name
+            ].replace(to_replace=replacer)
 
         return translation
 
@@ -781,6 +783,12 @@ class ZoningSystem:
             raise ValueError("Mode can only be 'hdf' or 'csv', not " f"{mode}.")
 
     @classmethod
+    def zoning_from_df_col(cls, col: pd.Series):
+        meta = ZoningSystemMetaData(name=col.name)
+        unique_zones = pd.Series(col.unique(), name="zone_id")
+        return cls(name=col.name, unique_zones=unique_zones.to_frame(), metadata=meta)
+
+    @classmethod
     def load(cls, in_path: PathLike, mode: str):
         """
         Create a ZoningSystem instance from path_or_instance_dict.
@@ -813,6 +821,7 @@ class ZoningSystem:
                         "objects."
                     )
                 if len(metas) == 1:
+                    # This should load either old ("zoning") format, or new ("zoning_name") format
                     yam_load = h_file[metas[0]][()].decode("utf-8")
                     zoning_meta = ZoningSystemMetaData.from_yaml(yam_load)
                     zoning = pd.read_hdf(in_path, key=zones[0], mode="r")
