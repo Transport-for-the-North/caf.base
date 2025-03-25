@@ -272,6 +272,7 @@ class SegmentsSuper(enum.Enum):
     TOTAL = "total"
     DIRECTION = "direction"
     DIRECTION_OD = "direction_od"
+    UC = "uc"
 
     @classmethod
     def values(cls):

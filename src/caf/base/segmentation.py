@@ -532,6 +532,9 @@ class Segmentation:
         for seg, vals in subsets.items():
             if seg in other.input.subsets.keys():
                 subsets[seg] = list(set(vals).intersection(other.input.subsets[seg]))
+        for seg, vals in other.input.subsets.items():
+            if seg not in subsets:
+                subsets[seg] = vals
         naming_order = ordered_set(self.naming_order, other.naming_order)
         config = SegmentationInput(
             enum_segments=enum_in,
@@ -847,7 +850,7 @@ class Segmentation:
         slices = self.ind().to_frame(index=False)
 
         if filter_ is not None:
-            if not (set(filter_) <= set(self.names)):
+            if not set(filter_) <= set(self.names):
                 missing = set(filter_) - set(self.names)
                 raise ValueError(
                     f"parameters given for segments not present in segmentation: {missing}"
