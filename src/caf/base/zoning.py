@@ -407,7 +407,7 @@ class ZoningSystem:
         sorted_other = other._zones.sort_index(axis=0, inplace=False).sort_index(
             axis=1, inplace=False
         )
-        if not sorted_self.equals(sorted_other):
+        if not sorted_self.index.equals(sorted_other.index):
             return False
 
         return True

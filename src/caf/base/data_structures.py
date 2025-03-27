@@ -1240,7 +1240,7 @@ class DVector:
             )
 
         common = self.segmentation.overlap(other.segmentation)
-        other_grouped_data = other.data.groupby(level=common).sum()
+        other_grouped_data = other.data.groupby(level=list(common)).sum()
         splitting_data = other.data / other_grouped_data
         if self.zoning_system is not None:
             if other.zoning_system is not None:
