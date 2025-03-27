@@ -38,6 +38,7 @@ from caf.base.zoning import (
     TranslationWeighting,
     ZoningSystem,
     normalise_column_name,
+    ZoningSystemMetaData,
 )
 
 # pylint: enable=no-name-in-module,import-error
@@ -914,10 +915,24 @@ class DVector:
             prod = df_method(out.data, other.data.squeeze(), axis="index")
             zoning = self.zoning_system
         elif isinstance(self.zoning_system, Sequence):
-            if other.zoning_system in self.zoning_system:
-                # return_zones = out.data.columns.get_level_values(other.zoning_system.column_name).intersection(other.data.columns)
+            if isinstance(other.zoning_system, Sequence):
+                if all([i in self.zoning_system for i in other.zoning_system]):
+                    prod = series_method(
+                        out.data.stack(level=out.data.columns.names),
+                        other.data.stack(level=other.data.columns.names),
+                    ).unstack(level=out.data.columns.names)
+
+                    zoning = self.zoning_system
+
+            elif other.zoning_system in self.zoning_system:
                 prod = df_method(out.data, other.data)
                 zoning = self.zoning_system
+            else:
+                raise NotImplementedError(
+                    "The two DVectors have different zonings. "
+                    "To multiply them, one must be translated "
+                    "to match the other."
+                )
         # Different zonings raise an error rather than trying to translate
         else:
             raise NotImplementedError(
@@ -1068,6 +1083,7 @@ class DVector:
         trans_vector: pd.DataFrame,
         factor_col: str,
     ):
+        """Use a trans vector to translate a DVector to a new, composite, zone system."""
         validated_zoning = []
         for zoning in new_zoning:
             if isinstance(zoning, str):
@@ -1100,11 +1116,31 @@ class DVector:
             segmentation=self.segmentation,
         )
 
+    @classmethod
+    def concat_to_comp_zoning(cls, dvecs: dict[int, DVector], zone_system: str | ZoningSystem):
+        if isinstance(zone_system, str):
+            meta = ZoningSystemMetaData(name=zone_system)
+            unique_zones = pd.Series(dvecs.keys(), name=f"zone_id")
+            zone_system = ZoningSystem(
+                name=zone_system, unique_zones=unique_zones.to_frame(), metadata=meta
+            )
+        new_data = pd.concat({zone: dvec.data for zone, dvec in dvecs.items()}, axis=1)
+        return cls(
+            import_data=new_data,
+            zoning_system=[zone_system, dvecs[0].zoning_system],
+            segmentation=dvecs[0].segmentation,
+        )
+
     def composite_zoning(
-        self, new_zoning: ZoningSystem, trans_vector: pd.DataFrame | None = None
+        self, new_zoning: ZoningSystem | str, trans_vector: pd.DataFrame | None = None
     ):
         if trans_vector is None:
             trans_vector = self.zoning_system.translate(new_zoning)
+        if isinstance(new_zoning, str):
+            validated_zoning = ZoningSystem.zoning_from_df_col(trans_vector[new_zoning])
+            trans_vector = trans_vector.rename(columns={new_zoning: f"{new_zoning}_id"})
+        else:
+            validated_zoning = new_zoning
         if set(trans_vector.index.names) != {
             self.zoning_system.column_name,
             new_zoning.column_name,
@@ -1431,7 +1467,7 @@ class DVector:
         )
 
     def filter_segment_value(
-        self, segment_name: str, segment_values: int | list[int]
+        self, segment_name: str, segment_values: int | list[int], keep_filtered: bool = False
     ) -> DVector:
         """
         Filter a DVector on a given segment.
@@ -1449,13 +1485,15 @@ class DVector:
         """
         new_data = self.data.copy()
         new_seg = self.segmentation.copy()
+        if keep_filtered and isinstance(segment_values, int):
+            segment_values = [segment_values]
         if isinstance(self.segmentation.ind(), pd.MultiIndex):
             if isinstance(segment_values, list):
                 new_data = new_data[
                     new_data.index.get_level_values(level=segment_name).isin(segment_values)
                 ]
             else:
-                new_data = new_data.xs(segment_values, level=segment_name)
+                new_data = new_data.xs([segment_values], level=segment_name)
         else:
             new_data = new_data.loc[segment_values]
 
