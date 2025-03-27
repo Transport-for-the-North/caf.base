@@ -825,7 +825,7 @@ class ZoningSystem:
                     yam_load = h_file[metas[0]][()].decode("utf-8")
                     zoning_meta = ZoningSystemMetaData.from_yaml(yam_load)
                     zoning = pd.read_hdf(in_path, key=zones[0], mode="r")
-                elif len(metas) == 2:
+                else:
                     out = []
                     zones.sort()
                     metas.sort()
@@ -834,11 +834,7 @@ class ZoningSystem:
                         meta = ZoningSystemMetaData.from_yaml(yam_load)
                         zoning = pd.read_hdf(in_path, key=zon, mode="r")
                         out.append(cls(name=meta.name, unique_zones=zoning, metadata=meta))
-                    if len(out[0]) > len(out[1]):
-                        out[0], out[1] = out[1], out[0]
-                    return out
-                else:
-                    raise ValueError("More than 2 zones aren't currently handled.")
+                    return sorted(out, key=len)
 
         elif mode.lower() == "csv":
             zoning = pd.read_csv(in_path / "zoning.csv")

@@ -553,6 +553,8 @@ class DVector:
         zoning = ZoningSystem.load(in_path, "hdf")
         segmentation = Segmentation.load(in_path, "hdf")
         data = pd.read_hdf(in_path, key="data", mode="r")
+        if isinstance(data.columns, pd.MultiIndex):
+            data.columns = data.columns.reorder_levels([zon.column_name for zon in zoning])
 
         return cls(
             segmentation=segmentation,
@@ -918,8 +920,8 @@ class DVector:
             if isinstance(other.zoning_system, Sequence):
                 if all([i in self.zoning_system for i in other.zoning_system]):
                     prod = series_method(
-                        out.data.stack(level=out.data.columns.names),
-                        other.data.stack(level=other.data.columns.names),
+                        out.data.stack(level=out.data.columns.names, future_stack=True),
+                        other.data.stack(level=other.data.columns.names, future_stack=True),
                     ).unstack(level=out.data.columns.names)
 
                     zoning = self.zoning_system
@@ -1233,15 +1235,22 @@ class DVector:
                 "agg_zone must be provided. To run this process with no agg_zone "
                 "please use the expand_to_other method."
             )
+
+
+        common = list(self.segmentation.overlap(other.segmentation))
+        if (agg_zone in other.zoning_system and agg_zone in self.zoning_system):
+            splitting_data = other.aggregate_comp_zones(agg_zone) / (other.aggregate(common).aggregate_comp_zones(agg_zone))
+            return self * splitting_data
+
         if other.zoning_system != self.zoning_system:
             raise ValueError(
                 "The 'other' DVector used for splitting must be "
                 "of the same zoning as 'self'."
             )
 
-        common = self.segmentation.overlap(other.segmentation)
         other_grouped_data = other.data.groupby(level=list(common)).sum()
         splitting_data = other.data / other_grouped_data
+
         if self.zoning_system is not None:
             if other.zoning_system is not None:
                 translation = self.zoning_system.translate(agg_zone)
