@@ -1,0 +1,25 @@
+name: direction
+alias: pa
+values:
+  0: non-home-based
+  1: home-based
+exclusions:
+  - other_name: p
+    exclusions:
+      0:
+        - 1
+        - 2
+        - 3
+        - 4
+        - 5
+        - 6
+        - 7
+        - 8
+      1:
+        - 11
+        - 12
+        - 13
+        - 14
+        - 15
+        - 16
+        - 18

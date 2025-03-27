@@ -20,4 +20,6 @@ there.
 Below, a brief summary of patches made since the previous version can be found.
 
 ### V0.1.0
-- List patch notes here
+- Addresses some small bugs in DVector, mainly around typing consitency.
+- Update the P segment to include P17
+- Fix a validator in SegmentaionInput class

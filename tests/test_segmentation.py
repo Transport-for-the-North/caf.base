@@ -234,8 +234,8 @@ class TestSegmentation:
         with pytest.raises(KeyError, match=error_msg):
             vanilla_seg.generate_slice_tuple(segment_params)
 
-    def test_iter_segment_parameters(self, simple_segmentation: segmentation.Segmentation):
-        """Test `Segmentation.iter_segment_parameters` produces correct dictionaries."""
+    def test_iter_slices(self, simple_segmentation: segmentation.Segmentation):
+        """Test `Segmentation.iter_slices` produces correct dictionaries."""
         # fmt: off
         expected = [
             {"ca": 1, "m": 1}, {"ca": 2, "m": 1},
@@ -255,6 +255,33 @@ class TestSegmentation:
         )
 
         assert answer == expected, "incorrect segmentation parameters"
+
+    @pytest.mark.parametrize(
+        ["params", "expected"],
+        [
+            (
+                {"ca": 1, "m": 2},
+                [
+                    {"ca": 1, "m": 2, "gender_3": 1},
+                    {"ca": 1, "m": 2, "gender_3": 2},
+                    {"ca": 1, "m": 2, "gender_3": 3},
+                ],
+            ),
+            (
+                {"m": 1, "gender_3": 2},
+                [{"m": 1, "gender_3": 2, "ca": 1}, {"m": 1, "gender_3": 2, "ca": 2}],
+            ),
+        ],
+    )
+    def test_iter_slices_filter(
+        self,
+        vanilla_seg: segmentation.Segmentation,
+        params: dict[str, int],
+        expected: list[dict[str, int]],
+    ) -> None:
+        """Test getting a subset of segmentation slices matching given slice parameters."""
+        answer = list(vanilla_seg.iter_slices(filter_=params))
+        assert answer == expected
 
     def test_find_files(self, vanilla_seg: segmentation.Segmentation, tmp_path: pathlib.Path):
         """Test `Segmentation.find_files` finds correct files."""
