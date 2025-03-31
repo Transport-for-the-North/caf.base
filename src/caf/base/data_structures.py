@@ -463,7 +463,8 @@ class DVector:
         #     ) from exc
         if isinstance(self.zoning_system, Sequence):
             # Assumes matching orders
-            for lev, sys in zip(sorted_data.columns.levels, self.zoning_system):
+            for sys in self.zoning_system:
+                lev = sorted_data.columns.get_level_values(sys.column_name)
                 if set(lev) != set(sys.zone_ids):
                     column_lookup = self._fix_zoning(lev, sys)
                     if column_lookup is not False:
@@ -1506,7 +1507,7 @@ class DVector:
                     new_data.index.get_level_values(level=segment_name).isin(segment_values)
                 ]
             else:
-                new_data = new_data.xs([segment_values], level=segment_name)
+                new_data = new_data.xs(segment_values, level=segment_name)
         else:
             new_data = new_data.loc[segment_values]
 
