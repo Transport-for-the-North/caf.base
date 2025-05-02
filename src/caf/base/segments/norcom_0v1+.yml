@@ -1,0 +1,13 @@
+# Segment config written on 2025-05-02 at 15:23
+name: norcom_0v1+
+values:    
+    1: No cars    
+    2: 1+ cars
+lookups:
+- other_name: car_availability
+  exclusions:
+    1:
+    - 1
+    2:
+    - 2
+    - 3
