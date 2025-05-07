@@ -782,9 +782,9 @@ class Segmentation:
                     out_seg.subsets[key] = list(set(out_seg.subsets[key] + val))
             else:
                 if remove:
-                    out_seg.subsets[key] = list(set(self.seg_dict[key]) - set(val))
-
-                out_seg.subsets.update({key: val})
+                    out_seg.subsets[key] = list(set(self.seg_dict[key].values) - set(val))
+                else:
+                    out_seg.subsets.update({key: val})
         return Segmentation(out_seg)
 
     def generate_slice_name(self, slice_params: dict[str, int]) -> str:
