@@ -432,7 +432,7 @@ class DVector:
             sorted_data = import_data.sort_index()
 
         if expand_to_read:
-            sorted_data.reindex(seg.ind(), inplace=True, fill_value=0)
+            sorted_data = sorted_data.reindex(seg.ind(), fill_value=0)
 
         if self._cut_read:
             full_sum = sorted_data.values.sum()
@@ -476,6 +476,17 @@ class DVector:
                 if column_lookup is not False:
                     sorted_data.rename(columns=column_lookup, inplace=True)
             sorted_data.columns.name = self.zoning_system.column_name
+            
+        if len(seg.names) > 1:
+            sorted_data.index = sorted_data.index.map(lambda x: tuple(int(i) for i in x))
+        else:
+            sorted_data.index = sorted_data.index.astype(int)
+        if len(sorted_data.columns.names) > 1:
+            temp = sorted_data.T
+            temp.index = temp.index.map(lambda x: tuple(int(i) for i in x))
+            sorted_data = temp.T
+        else:
+            sorted_data.columns = sorted_data.columns.astype(int)
 
         return sorted_data, seg
 
@@ -528,11 +539,6 @@ class DVector:
             if isinstance(self.zoning_system, Sequence):
                 for zone in self.zoning_system:
                     zone.save(out_path, mode="hdf")
-                # raise NotImplementedError(
-                #     "Can't currently save a DVector with composite zoning. "
-                #     "This feature is currently designed for internal use within a "
-                #     "model with outputs aggregated to a single zone system."
-                # )
             else:
                 self.zoning_system.save(out_path, "hdf")
         self.segmentation.save(out_path, "hdf")
@@ -857,6 +863,18 @@ class DVector:
                 _bypass_validation=True,
                 cut_read=self._cut_read,
             )
+        if isinstance(other, pd.Series):
+            # Assume series has zoning and no segmentation, or it would be a DVector
+            prod = df_method(self.data.T, other, axis=0).T
+
+            return DVector(
+                import_data=prod,
+                segmentation=self.segmentation,
+                zoning_system=self._zoning_system,
+                time_format=self.time_format,
+                _bypass_validation=True,
+                cut_read=self._cut_read,
+            )
         if escalate_warnings:
             warnings.filterwarnings("error", category=SegmentationWarning)
         # Make sure the two DVectors have overlapping indices
@@ -1127,7 +1145,7 @@ class DVector:
             zone_system = ZoningSystem(
                 name=zone_system, unique_zones=unique_zones.to_frame(), metadata=meta
             )
-        new_data = pd.concat({zone: dvec.data for zone, dvec in dvecs.items()}, axis=1)
+        new_data = pd.concat({zone: dvec.data for zone, dvec in dvecs.items()}, axis=1, names=[zone_system.column_name, dvecs[0].zoning_system.column_name])
         return cls(
             import_data=new_data,
             zoning_system=[zone_system, dvecs[0].zoning_system],
@@ -1236,7 +1254,6 @@ class DVector:
                 "agg_zone must be provided. To run this process with no agg_zone "
                 "please use the expand_to_other method."
             )
-
 
         common = list(self.segmentation.overlap(other.segmentation))
 
@@ -1979,6 +1996,7 @@ class DVector:
         folder: PathLike,
         zoning: ZoningSystem | None = None,
         segmentation: Segmentation | None = None,
+        axis: int = 0
     ):
         """
         Load all DVectors in a directory and concatenate them into a single DVector.
@@ -2025,11 +2043,14 @@ class DVector:
                                 "not a subset of the current segmentation."
                             )
                 dvecs.append(dvec)
-        new_data = pd.concat([dvec.data for dvec in dvecs], axis=1)
+        new_data = pd.concat([dvec.data for dvec in dvecs], axis=axis)
+        if axis == 0:
+            segmentation.input.subsets = {}
+            segmentation = segmentation.reinit()
         if isinstance(segmentation, Segmentation):
             return cls(
                 import_data=new_data,
-                segmentation=segmentation,
+                segmentation=segmentation.reinit(),
                 zoning_system=zoning,
             )
         else:
