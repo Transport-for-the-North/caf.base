@@ -1557,7 +1557,7 @@ class DVector:
         if isinstance(self.segmentation.ind, pd.MultiIndex):
             new_data = self.data.drop(segment_values, level=segment_name)
         else:
-            new_data = new_data.drop[segment_values]
+            new_data = new_data.drop(segment_values)
 
         new_seg = self.segmentation.update_subsets({segment_name: segment_values}, remove=True)
 
