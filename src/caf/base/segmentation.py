@@ -147,7 +147,7 @@ class SegmentationSlice:
         """Check equality of two SegmentationSlice objects."""
         if not isinstance(value, SegmentationSlice):
             return False
-        return self.as_tuple() == value.as_tuple() and self.naming_order == value.naming_order
+        return (self.as_tuple() + self.naming_order) == (value.as_tuple() + value.naming_order)
 
     def generate_name(self, segments: dict[str, Segment] | None = None) -> str:
         """Generate name for a slice of the segmentation from parameters.
@@ -185,6 +185,11 @@ class SegmentationSlice:
                 slice_parts.append(f"{name}{self[name]}")
 
         return "_".join(slice_parts)
+
+    def __repr__(self):
+        """String representation of the slice."""
+        params = ", ".join(f"{i}={self[i]}" for i in self.naming_order)
+        return f"SegmentationSlice({params})"
 
 
 class SegmentationInput(BaseConfig):

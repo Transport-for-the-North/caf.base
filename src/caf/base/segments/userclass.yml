@@ -4,3 +4,14 @@ values:
   1: business
   2: commute
   3: other
+
+exclusions:
+# UC2 not applicable for nhb directions
+- other_name: direction_od
+  exclusions:
+    2:
+      - 0
+- other_name: direction
+  exclusions:
+    2:
+      - 0
