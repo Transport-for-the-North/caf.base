@@ -4,6 +4,11 @@ values:
   0: non-home-based
   1: from-home
   2: to-home
+values_aliases:
+  0: nhb
+  1: fr
+  2: to
+
 exclusions:
   - other_name: p
     exclusions:

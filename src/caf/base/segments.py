@@ -3,6 +3,7 @@
 
 # Built-Ins
 import enum
+import re
 from pathlib import Path
 from typing import Optional
 
@@ -54,6 +55,9 @@ class Segment(BaseConfig):
     alias: str | None
         Optional alias to use when producing filenames (or other names)
         from segmentation slices, if not given then name will be used.
+    values_aliases: dict[int, str]
+        Optional separate aliases for each value, can be used instead of
+        name and value, e.g. "nhb" for direction 0.
     exclusions: list[Exclusion]
         Define incompatibilities between segments. See Correspondence class
     lookups: list[Exclusion]
@@ -64,6 +68,7 @@ class Segment(BaseConfig):
     name: str
     values: dict[int, str]
     alias: Optional[str] = None
+    values_aliases: dict[int, str] = pydantic.Field(default_factory=dict)
     exclusions: list[Exclusion] = pydantic.Field(default_factory=list)
     lookups: list[Exclusion] = pydantic.Field(default_factory=list)
     model_config = ConfigDict(arbitrary_types_allowed=True)
@@ -114,10 +119,98 @@ class Segment(BaseConfig):
         """Get segment alias for use in filenames, if available.
 
         If Segment alias is None, return the Segment name.
+
+        See Also
+        --------
+        get_value_alias: to get the alias for a single segment value.
         """
         if self.alias is None:
             return self.name
         return self.alias
+
+    def get_value_alias(self, value: int) -> str:
+        """Get value alias if exists, otherwise return name and value int.
+
+        If value doesn't have an alias then returns the segment name alias
+        (if exists) and the value in the format "{name}{value}" e.g. "p1".
+
+        See Also
+        --------
+        get_alias: to get the alias for the segment name.
+        """
+        if value not in self.values:
+            raise ValueError(f"invalid value ({value}) for {self.name} segment")
+
+        return self.values_aliases.get(value, f"{self.get_alias()}{value}")
+
+    def value_regex(self) -> str:
+        """Generate a regular expression to extract segment values.
+
+        Regular expression will match if name / alias and integers
+        are used or if values aliases are used.
+
+        Returns
+        -------
+        str
+            Regular expression where group 1 contains the segment value
+            and group 2 contains the segment alias. One, and only one,
+            group will have a value for any given match.
+        """
+        # Using lookahead to make sure second boundary isn't included in
+        # the match, so multiple matches can share the same boundary
+        # Cannot use look behind because that requires a fixed-width pattern
+        boundary = (r"(?:\b|_)", r"(?=\b|_)")
+
+        if self.alias is None:
+            name_value = rf"{self.name}(\d+)"
+        else:
+            name_value = rf"(?:{self.name}|{self.get_alias()})(\d+)"
+
+        aliases = "|".join(i for i in self.values_aliases.values())
+
+        if len(aliases) > 0:
+            pattern = f"{boundary[0]}(?:{name_value}|({aliases})){boundary[1]}"
+        else:
+            pattern = f"{boundary[0]}{name_value}{boundary[1]}"
+
+        return pattern
+
+    def extract_values(self, text: str) -> list[int]:
+        """Extract segment values from string.
+
+        Will extract all segment values found in `text` and convert
+        to their integer representation. The text can contain multiple
+        values for this segment, or other text (including segments) as
+        long as a boundary (_ or ' ') separates the segment information.
+
+        Parameters
+        ----------
+        text : str
+            Text to parse, acceptable formats are:
+                - "{name|alias}{value}_{name|alias}{value}..."
+                - "{value alias}_{value alias}..."
+                - "{value alias}_{name|alias}{value}..."
+
+        Returns
+        -------
+        list[int]
+            Segment values found in text.
+        """
+        pattern = re.compile(self.value_regex(), re.IGNORECASE)
+        values_lookup = {j: i for i, j in self.values_aliases.items()}
+
+        values = []
+        for match_ in pattern.finditer(text):
+            # Group 1 contains the integer value
+            if match_.group(1) is not None:
+                values.append(int(match_.group(1)))
+                continue
+
+            # Group 2 contains the value alias
+            alias = match_.group(2)
+            values.append(values_lookup[alias])
+
+        return values
 
     def translate_segment(
         self, new_seg: "str | Segment | SegmentsSuper", reverse: bool = False

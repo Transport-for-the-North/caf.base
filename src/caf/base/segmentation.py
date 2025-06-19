@@ -164,9 +164,16 @@ class SegmentationSlice:
         -------
         str
             Name of slice in the form "{name}{value}_{name 2}{value 2}"
-            e.g. "p1_m3", where name is the segment alias if `segments`
-            is given and it has one. The order of the parameters is
-            defined by the `naming_order`.
+            e.g. "p1_m3", where name is the segment alias if it has one.
+            For any segments with a value alias that will be used instead
+            of "{name}{value}". The order of the parameters is defined by
+            the `naming_order`.
+
+        See Also
+        --------
+        Segment.get_alias: to get the segment alias.
+        Segment.get_value_alias
+            to get the alias or "{name}{value}" for a specific segment value.
         """
         slice_parts = []
         if segments is None:
@@ -175,7 +182,7 @@ class SegmentationSlice:
         for name in self.naming_order:
             try:
                 segment = segments.get(name, SegmentsSuper(name).get_segment())
-                slice_parts.append(f"{segment.get_alias()}{self[name]}")
+                slice_parts.append(segment.get_value_alias(self[name]))
             except ValueError as exc:
                 warnings.warn(
                     f"Could not find segment {name} in segments or"
@@ -1044,7 +1051,7 @@ class Segmentation:
 
         for nm in self.naming_order:
             segment = self.get_segment(nm)
-            matched = re.findall(rf"(?:\b|_){segment.get_alias()}(\d+)(?:\b|_)", name)
+            matched = segment.extract_values(name)
 
             if len(matched) == 0:
                 if segment.alias is not None:
@@ -1055,7 +1062,7 @@ class Segmentation:
             if len(matched) > 1:
                 raise ValueError(f"found multiple values for {nm} segment in '{name}'")
 
-            params[nm] = int(matched[0])
+            params[nm] = matched[0]
 
         if len(missing) > 0:
             raise KeyError(
