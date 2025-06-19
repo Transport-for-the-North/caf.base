@@ -1,5 +1,6 @@
 # Segment config written on 2024-06-28 at 11:07
 name: tp
+alias: ts
 values:
   1: Weekday AM peak period (0700 - 0959)
   2: Weekday Inter peak period (1000 - 1559)

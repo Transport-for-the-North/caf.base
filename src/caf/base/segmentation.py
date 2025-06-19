@@ -1076,13 +1076,18 @@ class Segmentation:
     ) -> dict[SegmentationSlice, Path]:
         """Find files split by segmentation in given `folder`.
 
+        Checks if files exist with the generated filename and if
+        any are missing performs more in-depth search to find them.
+        In-depth search finds all files in `folder` and checks
+        if the filename contains all required segment parameters.
+
         Parameters
         ----------
         folder : Path
             Folder to search within, doesn't look in sub-folders.
         template : str
-            Template for filenames, will be formatted with the segment
-            name so should contain "{segment_name}". File extension shouldn't
+            Template for filenames, will be formatted with the slice
+            name so should contain "{slice_name}". File extension shouldn't
             be included e.g "test" instead of "test.csv".
         suffixes : collections.abc.Sequence[str]
             File extensions (suffixes) to search for, will find the first
@@ -1098,29 +1103,75 @@ class Segmentation:
         ------
         FileNotFoundError
             If a file cannot be found for all possible segments.
+        FileExistsError
+            If multiple files are found for the same slice when performing
+            more in-depth search.
+
+        Warns
+        -----
+        RuntimeWarning
+            If any additional unexpected files are found during the
+            in-depth search.
         """
-        missing = []
+        missing = {}
         filepaths = {}
         for params in self.iter_slices():
             name = self.generate_slice_name(params)
-            filename = template.format(segment_name=name)
+            filename = template.format(slice_name=name)
 
             try:
                 path = ctk.io.find_file_with_name(folder, filename, suffixes)
             except FileNotFoundError:
-                missing.append(filename)
+                missing[params] = filename
                 continue
 
             filepaths[params] = path
 
-        if len(missing) > 0:
-            missing_names = ", ".join(f"'{i}'" for i in missing)
-            raise FileNotFoundError(
-                f"missing {len(missing)} ({len(missing) / len(self):.0%})"
-                f" files: {missing_names}"
-            )
+        if len(missing) == 0:
+            return filepaths
+        warnings.warn(
+            f"Found {len(filepaths)} ({len(filepaths) / len(self):.0%}) files,"
+            f" {len(missing)} missing, with initial search. Performing in-depth search.",
+            RuntimeWarning,
+        )
 
-        return filepaths
+        # Find any other files in the folder and attempt to parse the name to see
+        # if they match the missing slices
+        for path in folder.iterdir():
+            if not path.is_file():
+                continue
+            if "".join(path.suffixes) not in suffixes:
+                continue
+            if path in filepaths.values():
+                continue
+
+            try:
+                slice_ = self.convert_slice_name(path.stem)
+            except (ValueError, KeyError) as exc:
+                warnings.warn(
+                    f"Found unexpected file while searching: {path}\n{exc}", RuntimeWarning
+                )
+                continue
+
+            if slice_ in filepaths:
+                raise FileExistsError(
+                    f"found multiple files for {slice_}: '{path.name}' and '{filepaths[slice_]}'"
+                )
+
+            if slice_ in missing:
+                filepaths[slice_] = path
+                missing.pop(slice_)
+            else:
+                warnings.warn(f"Found unexpected file while searching: {path}", RuntimeWarning)
+
+        if len(missing) == 0:
+            return filepaths
+
+        missing_names = ", ".join(f"'{i}'" for i in missing.values())
+        raise FileNotFoundError(
+            f"missing {len(missing)} ({len(missing) / len(self):.0%})"
+            f" files: {missing_names}"
+        )
 
 
 # # # FUNCTIONS # # #
