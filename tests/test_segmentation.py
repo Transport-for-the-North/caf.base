@@ -178,8 +178,8 @@ class TestSegmentation:
         [
             (segmentation.SegmentationSlice({"ca": 1, "m": 1, "gender_3": 1}), "ca1_m1_gt1"),
             (
-                segmentation.SegmentationSlice({"ca": 2, "m": 13, "gender_3": 10}),
-                "ca2_m13_gt10",
+                segmentation.SegmentationSlice({"ca": 2, "m": 2, "gender_3": 3}),
+                "ca2_m2_gt3",
             ),
         ],
     )
@@ -249,13 +249,13 @@ class TestSegmentation:
         folder = tmp_path / "find_files"
         folder.mkdir()
 
-        template = "test_file_{segment_name}"
+        template = "test_file_{slice_name}"
 
         expected = []
         for params in vanilla_seg.iter_slices():
 
             name = vanilla_seg.generate_slice_name(params)
-            path = folder / f"{template.format(segment_name=name)}.csv"
+            path = folder / f"{template.format(slice_name=name)}.csv"
             path.touch()
             expected.append(path)
 

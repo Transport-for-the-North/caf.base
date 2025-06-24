@@ -136,6 +136,7 @@ class SegmentationSlice:
         return SegmentationSlice(dict(zip(naming_order, slice_tuple)))
 
     def __hash__(self) -> int:
+        """Hash the naming order and values tuples."""
         return hash(self.naming_order + self.as_tuple())
 
     def __eq__(self, value) -> bool:
@@ -177,7 +178,6 @@ class SegmentationSlice:
         for name in self.naming_order:
             try:
                 segment = segments.get(name, SegmentsSuper(name).get_segment())
-                slice_parts.append(segment.get_value_alias(self[name]))
             except ValueError as exc:
                 warnings.warn(
                     f"Could not find segment {name} in segments or"
@@ -185,11 +185,14 @@ class SegmentationSlice:
                     RuntimeWarning,
                 )
                 slice_parts.append(f"{name}{self[name]}")
+                continue
+
+            slice_parts.append(segment.get_value_alias(self[name]))
 
         return "_".join(slice_parts)
 
     def __repr__(self):
-        """String representation of the slice."""
+        """Get string representation of the slice."""
         params = ", ".join(f"{i}={self[i]}" for i in self.naming_order)
         return f"SegmentationSlice({params})"
 
