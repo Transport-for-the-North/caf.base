@@ -362,6 +362,7 @@ class SegmentsSuper(enum.Enum):
     SIC_2 = "sic_2_digit"
     SIC_4 = "sic_4_digit"
     STATUS_APS = "status_aps"
+    NORCOM_0V1 = "norcom_0v1+"
     TOTAL = "total"
     DIRECTION = "direction"
     DIRECTION_OD = "direction_od"
