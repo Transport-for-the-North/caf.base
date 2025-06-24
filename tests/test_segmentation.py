@@ -308,8 +308,9 @@ class TestSegmentation:
 @pytest.fixture(name="slice_params")
 def fix_slice_params() -> tuple[list[str], dict[str, int], segmentation.SegmentationSlice]:
     """Returns a slice with the naming order and parameters dict."""
-    names = ["p", "m", "ca", "gender_3"]
-    params = {i: random.randrange(1, 5) for i in names[::-1]}
+    max_values = [("p", 8), ("m", 6), ("ca", 2), ("gender_3", 3)]
+    names = [i[0] for i in max_values]
+    params = {i: random.randrange(1, j) for i, j in max_values}
 
     slice_ = segmentation.SegmentationSlice(params, names)
 
