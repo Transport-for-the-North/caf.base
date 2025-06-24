@@ -12,7 +12,6 @@ import collections
 import collections.abc
 import copy
 import itertools
-import re
 import warnings
 from os import PathLike
 from pathlib import Path
@@ -26,11 +25,7 @@ import pydantic
 from caf.toolkit import BaseConfig
 
 # Local Imports
-# pylint: disable=import-error,wrong-import-position
-# Local imports here
 from caf.base.segments import Segment, SegmentsSuper
-
-# pylint: enable=import-error,wrong-import-position
 
 # # # CONSTANTS # # #
 
@@ -981,7 +976,7 @@ class Segmentation:
         slices: pd.DataFrame = self.ind().to_frame(index=False)
 
         if filter_ is not None:
-            if not (set(filter_) <= set(self.names)):
+            if not set(filter_) <= set(self.names):
                 missing = set(filter_) - set(self.names)
                 raise ValueError(
                     f"parameters given for segments not present in segmentation: {missing}"

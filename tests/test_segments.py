@@ -137,11 +137,17 @@ class TestSegment:
         seg = segment.get_segment()
         assert seg.get_value_alias(value) == alias
 
-    @pytest.mark.parametrize(["segment", "expected"], [
-        (segments.SegmentsSuper.ADULTS, r"(?:\b|_)adults(\d+)(?=\b|_)"),
-        (segments.SegmentsSuper.GENDER_3, r"(?:\b|_)(?:gender_3|gt)(\d+)(?=\b|_)"),
-        (segments.SegmentsSuper.DIRECTION, r"(?:\b|_)(?:(?:direction|pa)(\d+)|(nhb|hb))(?=\b|_)"),
-    ])
+    @pytest.mark.parametrize(
+        ["segment", "expected"],
+        [
+            (segments.SegmentsSuper.ADULTS, r"(?:\b|_)adults(\d+)(?=\b|_)"),
+            (segments.SegmentsSuper.GENDER_3, r"(?:\b|_)(?:gender_3|gt)(\d+)(?=\b|_)"),
+            (
+                segments.SegmentsSuper.DIRECTION,
+                r"(?:\b|_)(?:(?:direction|pa)(\d+)|(nhb|hb))(?=\b|_)",
+            ),
+        ],
+    )
     def test_value_regex(self, segment: segments.SegmentsSuper, expected: str) -> None:
         """Test `value_regex` returns the correct pattern text."""
         seg = segment.get_segment()

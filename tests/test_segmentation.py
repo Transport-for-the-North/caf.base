@@ -27,11 +27,11 @@ from caf.base import segmentation
 # # # CLASSES # # #
 @pytest.fixture(scope="session", name="vanilla_seg")
 def fix_vanilla_segmentation():
-    input = segmentation.SegmentationInput(
+    input_ = segmentation.SegmentationInput(
         enum_segments=["ca", "m", "gender_3"],
         naming_order=["ca", "m", "gender_3"],
     )
-    return segmentation.Segmentation(input)
+    return segmentation.Segmentation(input_)
 
 
 @pytest.fixture(scope="session", name="expected_vanilla_ind")
@@ -45,11 +45,11 @@ def fix_exp_vanilla_ind():
 
 @pytest.fixture(scope="session", name="nam_ord_seg")
 def fix_nam_ord_seg():
-    input = segmentation.SegmentationInput(
+    input_ = segmentation.SegmentationInput(
         enum_segments=["ca", "m", "gender_3"],
         naming_order=["ca", "gender_3", "m"],
     )
-    return segmentation.Segmentation(input)
+    return segmentation.Segmentation(input_)
 
 
 @pytest.fixture(scope="session", name="exp_nam_ord")
@@ -126,11 +126,11 @@ def fix_add_exp():
 @pytest.fixture(scope="session", name="simple_segmentation")
 def fix_simple_segmentation():
     """Segmentation containing ca and mode only."""
-    input = segmentation.SegmentationInput(
+    input_ = segmentation.SegmentationInput(
         enum_segments=["ca", "m"],
         naming_order=["ca", "m"],
     )
-    return segmentation.Segmentation(input)
+    return segmentation.Segmentation(input_)
 
 
 class TestInd:

@@ -141,6 +141,7 @@ class Segment(BaseConfig):
         if value not in self.values:
             raise ValueError(f"invalid value ({value}) for {self.name} segment")
 
+        # Pylint hasn't picked up the type correctly pylint: disable=no-member
         return self.values_aliases.get(value, f"{self.get_alias()}{value}")
 
     def value_regex(self) -> str:
@@ -166,7 +167,10 @@ class Segment(BaseConfig):
         else:
             name_value = rf"(?:{self.name}|{self.get_alias()})(\d+)"
 
-        aliases = "|".join(i for i in self.values_aliases.values())
+        # Pylint hasn't picked up the type correctly
+        aliases = "|".join(
+            i for i in self.values_aliases.values()  # pylint: disable=no-member
+        )
 
         if len(aliases) > 0:
             pattern = f"{boundary[0]}(?:{name_value}|({aliases})){boundary[1]}"
@@ -197,7 +201,10 @@ class Segment(BaseConfig):
             Segment values found in text.
         """
         pattern = re.compile(self.value_regex(), re.IGNORECASE)
-        values_lookup = {j: i for i, j in self.values_aliases.items()}
+        # Pylint hasn't picked up the type correctly
+        values_lookup = {
+            j: i for i, j in self.values_aliases.items()  # pylint: disable=no-member
+        }
 
         values = []
         for match_ in pattern.finditer(text):
