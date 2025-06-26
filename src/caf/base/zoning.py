@@ -952,7 +952,7 @@ class ZoningSystem:
         # pylint: enable=import-outside-toplevel
         gdf = gpd.read_file(shapefile)[[name_col, "geometry"]]
         tfn_bound = gpd.read_file(tfn_bound)
-        inner = gdf.sjoin(tfn_bound, predicate="within")
+        inner = gdf.sjoin(tfn_bound.buffer(10), predicate="within")
         gdf["internal"] = False
         gdf.loc[inner.index, "internal"] = True
         gdf["external"] = ~gdf["internal"]

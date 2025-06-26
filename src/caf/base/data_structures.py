@@ -469,7 +469,7 @@ class DVector:
                     column_lookup = self._fix_zoning(lev, sys)
                     if column_lookup is not False:
                         sorted_data.rename(columns=column_lookup, level=lev.name, inplace=True)
-            sorted_data.columns.names = [sys.column_name for sys in self.zoning_system]
+            sorted_data.columns = sorted_data.columns.reorder_levels([sys.column_name for sys in self.zoning_system])
         else:
             if set(sorted_data.columns) != set(self.zoning_system.zone_ids):
                 column_lookup = self._fix_zoning(sorted_data.columns, self.zoning_system)
@@ -580,6 +580,7 @@ class DVector:
         no_factors: bool = False,
         one_to_one: bool = False,
         _bypass_validation: bool = False,
+        target_zone: Optional[ZoningSystem] = None,
     ) -> DVector:
         """
         Translate this DVector into another zoning system and returns a new DVector.
@@ -639,33 +640,43 @@ class DVector:
                 "not have a zoning system to begin with."
             )
 
-        if isinstance(self.zoning_system, Sequence):
-            raise NotImplementedError(
-                "It is not currently implemented to translate "
-                "from a composite zoning system."
-            )
+        # if isinstance(self.zoning_system, Sequence):
+        #     raise NotImplementedError(
+        #         "It is not currently implemented to translate "
+        #         "from a composite zoning system."
+        #     )
 
         # If we're translating to the same thing, return a copy
         if self.zoning_system == new_zoning:
             return self.copy()
+        if target_zone is None:
+            return_zoning = new_zoning
+            if isinstance(self.zoning_system, ZoningSystem):
+                target_zone = self.zoning_system
+            else:
+                raise ValueError("")
+        else:
+            curr_zoning = self.zoning_system
+            curr_zoning.remove(target_zone)
+            return_zoning = curr_zoning + [new_zoning]
 
         # Translation validation is handled by ZoningSystem with TranslationWarning
         if trans_vector is None:
             if cache_path is None:
-                trans_vector = self.zoning_system.translate(new_zoning, weighting=weighting)
+                trans_vector = target_zone.translate(new_zoning, weighting=weighting)
             else:
-                trans_vector = self.zoning_system.translate(
+                trans_vector = target_zone.translate(
                     new_zoning, weighting=weighting, cache_path=cache_path
                 )
         else:
-            trans_vector = self.zoning_system.validate_translation_data(
+            trans_vector = target_zone.validate_translation_data(
                 new_zoning, trans_vector
             )
-        factor_col = self.zoning_system.translation_column_name(new_zoning)
+        factor_col = target_zone.translation_column_name(new_zoning)
         # factors equal one to propagate perfectly
         # This only works for perfect nesting
         if one_to_one:
-            idx = trans_vector.groupby(f"{normalise_column_name(self.zoning_system.name)}_id")[
+            idx = trans_vector.groupby(f"{normalise_column_name(target_zone.name)}_id")[
                 factor_col
             ].idxmax()
             trans_vector = trans_vector.loc[idx]
@@ -674,15 +685,15 @@ class DVector:
             trans_vector[factor_col] = 1
         # Use a simple replace and group for nested zoning
         if trans_vector[
-            f"{normalise_column_name(self.zoning_system.name)}_id"
+            f"{normalise_column_name(target_zone.name)}_id"
         ].nunique() == len(trans_vector):
-            if set(trans_vector[self.zoning_system.column_name]).intersection(
-                self.zoning_system.zone_ids
-            ) != set(self.zoning_system.zone_ids):
+            if set(trans_vector[target_zone.column_name]).intersection(
+                target_zone.zone_ids
+            ) != set(target_zone.zone_ids):
                 warnings.warn(
                     "Not all zones in the DVector or defined in the zone_translation."
                 )
-            trans_vector = trans_vector.set_index(self.zoning_system.column_name)[
+            trans_vector = trans_vector.set_index(target_zone.column_name)[
                 new_zoning.column_name
             ].to_dict()
             translated = self.data.rename(columns=trans_vector).T.groupby(level=0).sum().T
@@ -704,11 +715,10 @@ class DVector:
             )
 
         transposed = self.data.astype(float).transpose()
-        transposed.index.names = [self.zoning_system.column_name]
         translated = translation.pandas_vector_zone_translation(
             transposed,
             trans_vector,
-            translation_from_col=self.zoning_system.column_name,
+            translation_from_col=target_zone.column_name,
             translation_to_col=new_zoning.column_name,
             translation_factors_col=factor_col,
             check_totals=check_totals,
@@ -716,7 +726,7 @@ class DVector:
         translated = translated.transpose()
 
         return DVector(
-            zoning_system=new_zoning,
+            zoning_system=return_zoning,
             segmentation=self.segmentation,
             time_format=self.time_format,
             import_data=translated,
