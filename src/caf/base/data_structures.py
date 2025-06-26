@@ -2471,6 +2471,8 @@ class DVector:
 
 
 class Config:
+    """Config for pydantic."""
+
     arbitrary_types_allowed = True
 
 
@@ -2507,6 +2509,7 @@ class IpfTarget:
     @pydantic.model_validator(mode="after")
     @classmethod
     def singly_zoned(cls, values):
+        """Validate that dvecs are singly zoned."""
         if isinstance(values.data.zoning_system, Sequence):
             raise TypeError("IPFTargets cannot currently be multizoned.")
         return values
