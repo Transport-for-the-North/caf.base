@@ -27,6 +27,7 @@ import caf.toolkit as ctk
 import numpy as np
 import pandas as pd
 from caf.toolkit import translation
+import pydantic
 
 # Local Imports
 # pylint: disable=no-name-in-module,import-error
@@ -324,7 +325,7 @@ class DVector:
         return self._val_col
 
     @property
-    def zoning_system(self) -> ZoningSystem | None:
+    def zoning_system(self) -> ZoningSystem | Sequence[ZoningSystem] | None:
         """Get _zoning_system."""
         return self._zoning_system
 
@@ -642,25 +643,30 @@ class DVector:
                 "not have a zoning system to begin with."
             )
 
-        # if isinstance(self.zoning_system, Sequence):
-        #     raise NotImplementedError(
-        #         "It is not currently implemented to translate "
-        #         "from a composite zoning system."
-        #     )
-
         # If we're translating to the same thing, return a copy
         if self.zoning_system == new_zoning:
             return self.copy()
+        return_zoning: ZoningSystem | list[ZoningSystem]
         if target_zone is None:
             return_zoning = new_zoning
             if isinstance(self.zoning_system, ZoningSystem):
                 target_zone = self.zoning_system
             else:
-                raise ValueError("")
+                raise ValueError(
+                    "If the current zoning system is a Sequence (i.e. multi zoning), "
+                    "a target_zoning must be provided to know which zone to translate."
+                )
         else:
             curr_zoning = self.zoning_system
-            curr_zoning.remove(target_zone)
-            return_zoning = curr_zoning + [new_zoning]
+            if isinstance(curr_zoning, ZoningSystem):
+                pass
+            # If not a ZoningSystem, it must be a Sequence, so coerce to list
+            elif isinstance(curr_zoning, Sequence):
+                curr_zoning = list(curr_zoning)
+                curr_zoning.remove(target_zone)
+                return_zoning = curr_zoning + [new_zoning]
+            else:
+                raise TypeError(f"ZoningSystem is type {type(self.zoning_system)}")
 
         # Translation validation is handled by ZoningSystem with TranslationWarning
         if trans_vector is None:
@@ -1115,6 +1121,13 @@ class DVector:
         factor_col: str,
     ):
         """Use a trans vector to translate a DVector to a new, composite, zone system."""
+        if isinstance(self.zoning_system, Sequence):
+            raise TypeError(
+                "This method will only work for a DVector with a single zone system. "
+                f"This DVector has {len(self.zoning_system)} zoning sytems."
+            )
+        if self.zoning_system is None:
+            raise TypeError("No zoning system to translate.")
         validated_zoning = []
         for zoning in new_zoning:
             if isinstance(zoning, str):
@@ -1159,16 +1172,22 @@ class DVector:
         ----------
         dvecs: dict[int, Dvector]
             dict of ints to DVectors. Int is the zone for each DVector in the concat.
-        zone_system: str | ZoningSytem
+        zone_system: str | ZoningSystem
             The zoning system to add in the concat. If str this is generated on the fly
             with zones simply being the keys of dvecs.
         """
+
+        if isinstance(dvecs[0].zoning_system, Sequence):
+            raise TypeError("dvecs must have single zoning systems.")
+        if dvecs[0].zoning_system is None:
+            raise TypeError("dvecs must have a zoning system.")
         if isinstance(zone_system, str):
             meta = ZoningSystemMetaData(name=zone_system)
             unique_zones = pd.Series(dvecs.keys(), name=f"zone_id")
             zone_system = ZoningSystem(
                 name=zone_system, unique_zones=unique_zones.to_frame(), metadata=meta
             )
+        assert isinstance(zone_system, ZoningSystem)
         new_data = pd.concat(
             {zone: dvec.data for zone, dvec in dvecs.items()},
             axis=1,
@@ -1184,35 +1203,39 @@ class DVector:
         self, new_zoning: ZoningSystem | str, trans_vector: pd.DataFrame | None = None
     ):
         """Composite zoning for DVector from a translation vector."""
-        if trans_vector is None:
-            trans_vector = self.zoning_system.translate(new_zoning)
+        assert isinstance(self.zoning_system, ZoningSystem)
         if isinstance(new_zoning, str):
+            if trans_vector is None:
+                raise ValueError("If new_zoning is provided as a string, trans_vector must be "
+                                 "provided explictly")
             validated_zoning = ZoningSystem.zoning_from_df_col(trans_vector[new_zoning])
             trans_vector = trans_vector.rename(columns={new_zoning: f"{new_zoning}_id"})
         else:
             validated_zoning = new_zoning
+        if trans_vector is None:
+            trans_vector = self.zoning_system.translate(validated_zoning)
         if set(trans_vector.index.names) != {
             self.zoning_system.column_name,
-            new_zoning.column_name,
+            validated_zoning.column_name,
         }:
             try:
                 trans_vector = trans_vector.set_index(
-                    [self.zoning_system.column_name, new_zoning.column_name]
+                    [self.zoning_system.column_name, validated_zoning.column_name]
                 )
             except:
                 raise ValueError("required zones not found in trans vector.")
         new_data = self.data.mul(
-            trans_vector[self.zoning_system.translation_column_name(new_zoning)], axis=1
+            trans_vector[self.zoning_system.translation_column_name(validated_zoning)], axis=1
         )
 
-        new_zoning = [new_zoning, self.zoning_system]
+        new_zoning = [validated_zoning, self.zoning_system]
         new_data.columns = new_data.columns.reorder_levels(
-            [zon.column_name for zon in new_zoning]
+            [zon.column_name for zon in validated_zoning]
         )
 
         return DVector(
             import_data=new_data,
-            zoning_system=new_zoning,
+            zoning_system=validated_zoning,
             segmentation=self.segmentation,
             cut_read=self._cut_read,
         )
@@ -1286,8 +1309,14 @@ class DVector:
             )
 
         common = list(self.segmentation.overlap(other.segmentation))
-
-        if agg_zone in other.zoning_system and agg_zone in self.zoning_system:
+        check = False
+        if isinstance(other.zoning_system, Sequence):
+            assert isinstance(other.zoning_system, Sequence)
+            check = agg_zone in other.zoning_system
+            if isinstance(self.zoning_system, Sequence):
+                assert isinstance(self.zoning_system, Sequence)
+                check = check & (agg_zone in self.zoning_system)
+        if check:
             splitting_data = other.aggregate_comp_zones(agg_zone) / (
                 other.aggregate(common).aggregate_comp_zones(agg_zone)
             )
@@ -1303,41 +1332,42 @@ class DVector:
 
         splitting_data = other.data / other_grouped_data
 
-        if self.zoning_system is not None:
-            if other.zoning_system is not None:
-                translation = self.zoning_system.translate(agg_zone)
-                if not (
-                    translation[self.zoning_system.translation_column_name(agg_zone)] == 1
-                ).all():
-                    raise TranslationError(
-                        "Current zoning must nest perfectly within agg_zone, "
-                        "i.e. all factors should be 1. The retrieved zone_translation "
-                        "has non-one factors. If this should not be the case "
-                        "double check the zone_translation."
-                    )
-                translation_dict = translation.set_index(self.zoning_system.column_name)[
-                    agg_zone.column_name
-                ].to_dict()
-                translated_grouped = (
-                    other_grouped_data.rename(columns=translation_dict)
-                    .groupby(level=0, axis=1)
-                    .sum()
+        if isinstance(self.zoning_system, ZoningSystem) & isinstance(other.zoning_system, ZoningSystem):
+            assert isinstance(self.zoning_system, ZoningSystem)
+            assert isinstance(other.zoning_system, ZoningSystem)
+            translation = self.zoning_system.translate(agg_zone)
+            if not (
+                translation[self.zoning_system.translation_column_name(agg_zone)] == 1
+            ).all():
+                raise TranslationError(
+                    "Current zoning must nest perfectly within agg_zone, "
+                    "i.e. all factors should be 1. The retrieved zone_translation "
+                    "has non-one factors. If this should not be the case "
+                    "double check the zone_translation."
                 )
-                translated_ungrouped = (
-                    other.data.rename(columns=translation_dict).groupby(level=0, axis=1).sum()
-                )
-                # factors at common segmentation and agg zoning
-                translated = translated_ungrouped / translated_grouped
-                # Translate zoning back to DVec zoning to apply to DVector
-                splitting_data = ctk.translation.pandas_vector_zone_translation(
-                    vector=translated.T,
-                    translation=translation,
-                    translation_from_col=agg_zone.column_name,
-                    translation_to_col=self.zoning_system.column_name,
-                    translation_factors_col=self.zoning_system.translation_column_name(
-                        agg_zone
-                    ),
-                ).T
+            translation_dict = translation.set_index(self.zoning_system.column_name)[
+                agg_zone.column_name
+            ].to_dict()
+            translated_grouped = (
+                other_grouped_data.rename(columns=translation_dict)
+                .groupby(level=0, axis=1)
+                .sum()
+            )
+            translated_ungrouped = (
+                other.data.rename(columns=translation_dict).groupby(level=0, axis=1).sum()
+            )
+            # factors at common segmentation and agg zoning
+            translated = translated_ungrouped / translated_grouped
+            # Translate zoning back to DVec zoning to apply to DVector
+            splitting_data = ctk.translation.pandas_vector_zone_translation(
+                vector=translated.T,
+                translation=translation,
+                translation_from_col=agg_zone.column_name,
+                translation_to_col=self.zoning_system.column_name,
+                translation_factors_col=self.zoning_system.translation_column_name(
+                    agg_zone
+                ),
+            ).T
 
         # Put splitting factors into DVector to apply
         splitting_dvec = DVector(
@@ -1719,6 +1749,7 @@ class DVector:
                     raise TypeError(
                         "A translation is provided but the target has no zoning_system."
                     )
+                assert isinstance(target.data.zoning_system, ZoningSystem)
                 check = self.translate_zoning(
                     target.data.zoning_system,
                     trans_vector=target.zone_translation,
@@ -1838,8 +1869,8 @@ class DVector:
             # Check zoning systems are compatible.
             if self.zoning_system != target.data.zoning_system:
                 target.zoning_diff = True
-                if target.data.zoning_system is not None:
-                    if self.zoning_system is not None:
+                if isinstance(target.data.zoning_system, ZoningSystem):
+                    if isinstance(self.zoning_system, ZoningSystem):
                         if target.zone_translation is None:
                             try:
                                 if cache_path is not None:
@@ -2077,6 +2108,8 @@ class DVector:
                                 "not a subset of the current segmentation."
                             )
                 dvecs.append(dvec)
+        if segmentation is None:
+            raise ValueError("This shouldn't be possible but mypy thinks it is.")
         new_data = pd.concat([dvec.data for dvec in dvecs], axis=axis)
         if axis == 0:
             segmentation.input.subsets = {}
@@ -2350,8 +2383,8 @@ class DVector:
             or down rows to match other. The more detailed the zoning system provided
             is, the closer self's spatial distribution will be matched to other's.
         """
-        if (self.zoning_system is None) or (other.zoning_system is None):
-            raise TypeError("Self and other most both have zone systems.")
+        if (not isinstance(self.zoning_system, ZoningSystem)) or (not isinstance(other.zoning_system, ZoningSystem)):
+            raise TypeError("Self and other must both have single zone systems.")
         if balancing_zones is None:
             # Zone agnostic, just making sure DVectors matched along common segments
             factor = other.data.sum(axis=1) / self.data.sum(axis=1)
@@ -2433,7 +2466,7 @@ class DVector:
         )
 
 
-@dataclass
+@pydantic.dataclasses.dataclass
 class IpfTarget:
     """
     Dataclass to store targets to pass to IPF method of DVector.
@@ -2462,6 +2495,14 @@ class IpfTarget:
     segment_translations: dict[str, str] | None = (
         None  # keys are segment in target, values, segment in seed
     )
+
+    @pydantic.model_validator(mode="after")
+    @classmethod
+    def singly_zoned(cls, values):
+        if isinstance(values.data.zoning_system, Sequence):
+            raise TypeError("IPFTargets cannot currently be multizoned.")
+        return values
+
 
     @staticmethod
     def _check_loop(
@@ -2537,8 +2578,8 @@ class IpfTarget:
         if adjust:
             adj = agg_2 / agg_1
             if zoning_diff:
-                if target_1.zoning_system is not None:
-                    if target_2.zoning_system is not None:
+                if isinstance(target_1.zoning_system, ZoningSystem):
+                    if isinstance(target_2.zoning_system, ZoningSystem):
                         if isinstance(adj, DVector):
                             adj = adj.translate_zoning(
                                 target_1.zoning_system, trans_vector=trans, no_factors=True

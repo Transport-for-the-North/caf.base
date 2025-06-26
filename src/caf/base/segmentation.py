@@ -856,7 +856,6 @@ class Segmentation:
                     f"parameters given for segments not present in segmentation: {missing}"
                 )
 
-            slices: pd.DataFrame = self.ind().to_frame(index=False)
             mask = pd.Series(True, index=slices.index)
             for nm, value in filter_.items():
                 mask = mask & (slices[nm] == value)
