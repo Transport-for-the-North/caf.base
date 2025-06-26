@@ -26,8 +26,8 @@ from typing import Callable, Literal, Optional, Sequence, Union
 import caf.toolkit as ctk
 import numpy as np
 import pandas as pd
-from caf.toolkit import translation
 import pydantic
+from caf.toolkit import translation
 
 # Local Imports
 # pylint: disable=no-name-in-module,import-error
@@ -1206,8 +1206,10 @@ class DVector:
         assert isinstance(self.zoning_system, ZoningSystem)
         if isinstance(new_zoning, str):
             if trans_vector is None:
-                raise ValueError("If new_zoning is provided as a string, trans_vector must be "
-                                 "provided explictly")
+                raise ValueError(
+                    "If new_zoning is provided as a string, trans_vector must be "
+                    "provided explictly"
+                )
             validated_zoning = ZoningSystem.zoning_from_df_col(trans_vector[new_zoning])
             trans_vector = trans_vector.rename(columns={new_zoning: f"{new_zoning}_id"})
         else:
@@ -1332,7 +1334,9 @@ class DVector:
 
         splitting_data = other.data / other_grouped_data
 
-        if isinstance(self.zoning_system, ZoningSystem) & isinstance(other.zoning_system, ZoningSystem):
+        if isinstance(self.zoning_system, ZoningSystem) & isinstance(
+            other.zoning_system, ZoningSystem
+        ):
             assert isinstance(self.zoning_system, ZoningSystem)
             assert isinstance(other.zoning_system, ZoningSystem)
             translation = self.zoning_system.translate(agg_zone)
@@ -1364,9 +1368,7 @@ class DVector:
                 translation=translation,
                 translation_from_col=agg_zone.column_name,
                 translation_to_col=self.zoning_system.column_name,
-                translation_factors_col=self.zoning_system.translation_column_name(
-                    agg_zone
-                ),
+                translation_factors_col=self.zoning_system.translation_column_name(agg_zone),
             ).T
 
         # Put splitting factors into DVector to apply
@@ -2383,7 +2385,9 @@ class DVector:
             or down rows to match other. The more detailed the zoning system provided
             is, the closer self's spatial distribution will be matched to other's.
         """
-        if (not isinstance(self.zoning_system, ZoningSystem)) or (not isinstance(other.zoning_system, ZoningSystem)):
+        if (not isinstance(self.zoning_system, ZoningSystem)) or (
+            not isinstance(other.zoning_system, ZoningSystem)
+        ):
             raise TypeError("Self and other must both have single zone systems.")
         if balancing_zones is None:
             # Zone agnostic, just making sure DVectors matched along common segments
@@ -2502,7 +2506,6 @@ class IpfTarget:
         if isinstance(values.data.zoning_system, Sequence):
             raise TypeError("IPFTargets cannot currently be multizoned.")
         return values
-
 
     @staticmethod
     def _check_loop(
