@@ -784,6 +784,14 @@ class ZoningSystem:
 
     @classmethod
     def zoning_from_df_col(cls, col: pd.Series):
+        """
+        Create a zoning system from the column of a df.
+
+        Parameters
+        ----------
+        col: pd.Series
+            The column from the dataframe to create a zoning system from.
+        """
         meta = ZoningSystemMetaData(name=col.name)
         unique_zones = pd.Series(col.unique(), name="zone_id")
         return cls(name=col.name, unique_zones=unique_zones.to_frame(), metadata=meta)

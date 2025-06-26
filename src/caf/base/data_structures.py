@@ -37,8 +37,8 @@ from caf.base.zoning import (
     TranslationError,
     TranslationWeighting,
     ZoningSystem,
-    normalise_column_name,
     ZoningSystemMetaData,
+    normalise_column_name,
 )
 
 # pylint: enable=no-name-in-module,import-error
@@ -469,14 +469,16 @@ class DVector:
                     column_lookup = self._fix_zoning(lev, sys)
                     if column_lookup is not False:
                         sorted_data.rename(columns=column_lookup, level=lev.name, inplace=True)
-            sorted_data.columns = sorted_data.columns.reorder_levels([sys.column_name for sys in self.zoning_system])
+            sorted_data.columns = sorted_data.columns.reorder_levels(
+                [sys.column_name for sys in self.zoning_system]
+            )
         else:
             if set(sorted_data.columns) != set(self.zoning_system.zone_ids):
                 column_lookup = self._fix_zoning(sorted_data.columns, self.zoning_system)
                 if column_lookup is not False:
                     sorted_data.rename(columns=column_lookup, inplace=True)
             sorted_data.columns.name = self.zoning_system.column_name
-            
+
         if len(seg.names) > 1:
             sorted_data.index = sorted_data.index.map(lambda x: tuple(int(i) for i in x))
         else:
@@ -669,9 +671,7 @@ class DVector:
                     new_zoning, weighting=weighting, cache_path=cache_path
                 )
         else:
-            trans_vector = target_zone.validate_translation_data(
-                new_zoning, trans_vector
-            )
+            trans_vector = target_zone.validate_translation_data(new_zoning, trans_vector)
         factor_col = target_zone.translation_column_name(new_zoning)
         # factors equal one to propagate perfectly
         # This only works for perfect nesting
@@ -684,9 +684,9 @@ class DVector:
         if no_factors:
             trans_vector[factor_col] = 1
         # Use a simple replace and group for nested zoning
-        if trans_vector[
-            f"{normalise_column_name(target_zone.name)}_id"
-        ].nunique() == len(trans_vector):
+        if trans_vector[f"{normalise_column_name(target_zone.name)}_id"].nunique() == len(
+            trans_vector
+        ):
             if set(trans_vector[target_zone.column_name]).intersection(
                 target_zone.zone_ids
             ) != set(target_zone.zone_ids):
@@ -1149,13 +1149,31 @@ class DVector:
 
     @classmethod
     def concat_to_comp_zoning(cls, dvecs: dict[int, DVector], zone_system: str | ZoningSystem):
+        """
+        Concatenate Dvectors to a resulting DVector with composite zoning.
+
+        This is the equvalent of concatenating DataFrames from a dictionary, where
+        the dictionary keys become a new level of the columns.
+
+        Parameters
+        ----------
+        dvecs: dict[int, Dvector]
+            dict of ints to DVectors. Int is the zone for each DVector in the concat.
+        zone_system: str | ZoningSytem
+            The zoning system to add in the concat. If str this is generated on the fly
+            with zones simply being the keys of dvecs.
+        """
         if isinstance(zone_system, str):
             meta = ZoningSystemMetaData(name=zone_system)
             unique_zones = pd.Series(dvecs.keys(), name=f"zone_id")
             zone_system = ZoningSystem(
                 name=zone_system, unique_zones=unique_zones.to_frame(), metadata=meta
             )
-        new_data = pd.concat({zone: dvec.data for zone, dvec in dvecs.items()}, axis=1, names=[zone_system.column_name, dvecs[0].zoning_system.column_name])
+        new_data = pd.concat(
+            {zone: dvec.data for zone, dvec in dvecs.items()},
+            axis=1,
+            names=[zone_system.column_name, dvecs[0].zoning_system.column_name],
+        )
         return cls(
             import_data=new_data,
             zoning_system=[zone_system, dvecs[0].zoning_system],
@@ -1165,6 +1183,7 @@ class DVector:
     def composite_zoning(
         self, new_zoning: ZoningSystem | str, trans_vector: pd.DataFrame | None = None
     ):
+        """Composite zoning for DVector from a translation vector."""
         if trans_vector is None:
             trans_vector = self.zoning_system.translate(new_zoning)
         if isinstance(new_zoning, str):
@@ -1199,6 +1218,7 @@ class DVector:
         )
 
     def aggregate_comp_zones(self, zone_system: ZoningSystem):
+        """Aggregate a composite zoned DVector to one of its constituent zoning systems."""
         new_data = self.data.T.groupby(level=zone_system.column_name).sum().T
         return DVector(
             import_data=new_data, zoning_system=zone_system, segmentation=self.segmentation
@@ -1267,8 +1287,10 @@ class DVector:
 
         common = list(self.segmentation.overlap(other.segmentation))
 
-        if (agg_zone in other.zoning_system and agg_zone in self.zoning_system):
-            splitting_data = other.aggregate_comp_zones(agg_zone) / (other.aggregate(common).aggregate_comp_zones(agg_zone))
+        if agg_zone in other.zoning_system and agg_zone in self.zoning_system:
+            splitting_data = other.aggregate_comp_zones(agg_zone) / (
+                other.aggregate(common).aggregate_comp_zones(agg_zone)
+            )
             return self * splitting_data
 
         if other.zoning_system != self.zoning_system:
@@ -1469,9 +1491,11 @@ class DVector:
         comb = {val: dvec.data for val, dvec in in_dic.items()}
         new_data = pd.concat(comb)
         new_segmentation = in_segmentation.add_segment(new_seg)
-        new_data.index.names = list(map(lambda x: new_seg.name if x is None else x, new_data.index.names))
+        new_data.index.names = list(
+            map(lambda x: new_seg.name if x is None else x, new_data.index.names)
+        )
         new_data = new_data.reorder_levels(new_segmentation.naming_order).sort_index()
-        
+
         return cls(
             segmentation=new_segmentation, import_data=new_data, zoning_system=zoning_system
         )
@@ -2006,7 +2030,7 @@ class DVector:
         folder: PathLike,
         zoning: ZoningSystem | None = None,
         segmentation: Segmentation | None = None,
-        axis: int = 0
+        axis: int = 0,
     ):
         """
         Load all DVectors in a directory and concatenate them into a single DVector.
