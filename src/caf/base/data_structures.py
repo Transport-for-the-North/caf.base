@@ -1232,12 +1232,12 @@ class DVector:
 
         new_zoning = [validated_zoning, self.zoning_system]
         new_data.columns = new_data.columns.reorder_levels(
-            [zon.column_name for zon in validated_zoning]
+            [zon.column_name for zon in new_zoning]
         )
 
         return DVector(
             import_data=new_data,
-            zoning_system=validated_zoning,
+            zoning_system=new_zoning,
             segmentation=self.segmentation,
             cut_read=self._cut_read,
         )
@@ -2470,7 +2470,11 @@ class DVector:
         )
 
 
-@pydantic.dataclasses.dataclass
+class Config:
+    arbitrary_types_allowed = True
+
+
+@pydantic.dataclasses.dataclass(config=Config)
 class IpfTarget:
     """
     Dataclass to store targets to pass to IPF method of DVector.
