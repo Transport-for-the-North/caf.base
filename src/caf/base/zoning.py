@@ -19,6 +19,7 @@ import caf.toolkit as ctk
 import h5py
 import numpy as np
 import pandas as pd
+from pandas.errors import PerformanceWarning
 from typing_extensions import Self
 
 # Local Imports
@@ -28,8 +29,10 @@ pd.set_option("future.no_silent_downcasting", True)
 LOG = logging.getLogger(__name__)
 
 # This is temporary, and will be an environment variable
-ZONE_CACHE_HOME = Path(r"I:\Data\Zoning Systems\core_zoning")
-ZONE_TRANSLATION_CACHE = Path(r"I:\Data\Zone Translations\cache")
+ZONE_CACHE_HOME = Path(os.getenv("ZONE_CACHE_HOME", "I:/Data/Zoning Systems/core_zoning"))
+ZONE_TRANSLATION_CACHE = Path(
+    os.environ.get("ZONE_TRANSLATION_CACHE", "I:/Data/Zone Translations/cache")
+)
 
 
 class TranslationWarning(RuntimeWarning):
@@ -769,11 +772,14 @@ class ZoningSystem:
         out_path = Path(path)
         save_df = self._zones.reset_index()
         if mode.lower() == "hdf":
-            save_df.to_hdf(out_path, key=f"zoning_{self.name}", mode="a")
-            with h5py.File(out_path, "a") as h_file:
-                h_file.create_dataset(
-                    f"zoning_meta_{self.name}", data=self.metadata.to_yaml().encode("utf-8")
-                )
+
+            with warnings.catch_warnings():
+                warnings.simplefilter("ignore", category=PerformanceWarning)
+                save_df.to_hdf(out_path, key=f"zoning_{self.name}", mode="a")
+                with h5py.File(out_path, "a") as h_file:
+                    h_file.create_dataset(
+                        f"zoning_meta_{self.name}", data=self.metadata.to_yaml().encode("utf-8")
+                    )
         elif mode.lower() == "csv":
             out_path = out_path / self.name
             out_path.mkdir(exist_ok=True, parents=False)

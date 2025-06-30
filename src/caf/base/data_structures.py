@@ -536,7 +536,6 @@ class DVector:
         out_path = Path(out_path)
         if "." not in out_path.name:
             out_path = out_path.with_suffix(".dvec")
-
         self._data.to_hdf(out_path, key="data", mode="w", complevel=1)
         if self.zoning_system is not None:
             if isinstance(self.zoning_system, Sequence):
