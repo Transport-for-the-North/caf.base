@@ -537,9 +537,11 @@ class DVector:
         if "." not in out_path.name:
             out_path = out_path.with_suffix(".dvec")
 
-        self.data = self.data.apply(lambda col: pd.to_numeric(col, errors='coerce') if col.dtype == 'object' else col)
+        self.data = self.data.apply(
+            lambda col: pd.to_numeric(col, errors="coerce") if col.dtype == "object" else col
+        )
 
-        self._data.to_hdf(out_path, key="data", mode="w", complevel=1, format='fixed')
+        self._data.to_hdf(out_path, key="data", mode="w", complevel=1, format="fixed")
         if self.zoning_system is not None:
             if isinstance(self.zoning_system, Sequence):
                 for zone in self.zoning_system:

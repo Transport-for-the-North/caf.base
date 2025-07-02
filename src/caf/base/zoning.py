@@ -778,7 +778,8 @@ class ZoningSystem:
                 save_df.to_hdf(out_path, key=f"zoning_{self.name}", mode="a")
                 with h5py.File(out_path, "a") as h_file:
                     h_file.create_dataset(
-                        f"zoning_meta_{self.name}", data=self.metadata.to_yaml().encode("utf-8")
+                        f"zoning_meta_{self.name}",
+                        data=self.metadata.to_yaml().encode("utf-8"),
                     )
         elif mode.lower() == "csv":
             out_path = out_path / self.name
