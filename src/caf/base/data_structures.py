@@ -537,6 +537,8 @@ class DVector:
         if "." not in out_path.name:
             out_path = out_path.with_suffix(".dvec")
 
+        # Columns can be object type which causes errors - only observed errors in save method
+        # so applied here not in the validation section as it can take a few seconds to run.
         self.data = self.data.apply(
             lambda col: pd.to_numeric(col, errors="coerce") if col.dtype == "object" else col
         )
