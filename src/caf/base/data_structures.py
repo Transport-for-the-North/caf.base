@@ -537,11 +537,7 @@ class DVector:
         if "." not in out_path.name:
             out_path = out_path.with_suffix(".dvec")
 
-        cleaned_columns = pd.MultiIndex.from_tuples(
-        [tuple(np.int64(x) if pd.notna(x) else -1 for x in col) for col in self.data.columns],
-        names = self.data.columns.names
-        )
-        self.data.columns = cleaned_columns
+        self.data = self.data.apply(lambda col: pd.to_numeric(col, errors='coerce') if col.dtype == 'object' else col)
 
         self._data.to_hdf(out_path, key="data", mode="w", complevel=1, format='fixed')
         if self.zoning_system is not None:
