@@ -290,7 +290,7 @@ class Segmentation:
     # This currently isn't used and doesn't mean anything. In few places code
     # relating to time periods or time formats is included from normits_core but
     # never used.
-    _time_period_segment_name = "tp3"
+    _time_period_segment_name = "tp"
 
     def __init__(self, config: SegmentationInput):
         self.input = config
@@ -1168,7 +1168,7 @@ class Segmentation:
         missing_names = ", ".join(f"'{i}'" for i in missing.values())
         raise FileNotFoundError(
             f"missing {len(missing)} ({len(missing) / len(self):.0%})"
-            f" files: {missing_names}"
+            f' files from "{folder}": {missing_names}'
         )
 
 
