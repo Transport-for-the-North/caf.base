@@ -657,13 +657,11 @@ class Segmentation:
                 if key in new_segs:
                     subsets.update({key: val})
 
-        new_order = [i for i in self.naming_order if i in new_segs]
-
         conf = SegmentationInput(
             enum_segments=enum_segs,
             subsets=subsets,
             custom_segments=custom,
-            naming_order=new_order,
+            naming_order=new_segs,
         )
         return Segmentation(conf)
 

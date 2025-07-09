@@ -488,8 +488,6 @@ class DVector:
             temp = sorted_data.T
             temp.index = temp.index.map(lambda x: tuple(int(i) for i in x))
             sorted_data = temp.T
-        else:
-            sorted_data.columns = sorted_data.columns.astype(int)
 
         return sorted_data, seg
 
@@ -539,7 +537,7 @@ class DVector:
 
         # Columns can be object type which causes errors - only observed errors in save method
         # so applied here not in the validation section as it can take a few seconds to run.
-        self.data = self.data.apply(
+        self.fra = self.data.apply(
             lambda col: pd.to_numeric(col, errors="coerce") if col.dtype == "object" else col
         )
 
