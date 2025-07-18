@@ -196,6 +196,9 @@ class SegmentationSlice:
         params = ", ".join(f"{i}={self[i]}" for i in self.naming_order)
         return f"SegmentationSlice({params})"
 
+    def __contains__(self, item: str) -> bool:
+        return item in self.data
+
 
 class SegmentationInput(BaseConfig):
     """
@@ -1170,6 +1173,33 @@ class Segmentation:
             f"missing {len(missing)} ({len(missing) / len(self):.0%})"
             f' files from "{folder}": {missing_names}'
         )
+
+    def validate_slice(self, slice_: SegmentationSlice) -> None:
+        """Validate slice contains expected segments, and no extra.
+
+        Raises
+        ------
+        ValueError
+            If segments are missing, extra segments are found or
+            naming order is different.
+        """
+        missing = list(filter(lambda x: x not in slice_), self.seg_dict)
+        if len(missing) > 0:
+            raise ValueError(
+                f"{len(missing)} segments missing from slice: {', '.join(missing)}"
+            )
+
+        extra = list(filter(lambda x: x not in self.seg_dict), slice_.data)
+        if len(extra) > 0:
+            raise ValueError(
+                f"{len(extra)} segments in slice but not segmentation: {', '.join(extra)}"
+            )
+
+        if slice_.naming_order != self.naming_order:
+            raise ValueError(
+                "slice naming order is incorrect got "
+                f"{slice_.naming_order} but expected {self.naming_order}"
+            )
 
 
 # # # FUNCTIONS # # #

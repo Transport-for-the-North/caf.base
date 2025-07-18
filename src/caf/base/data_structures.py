@@ -29,7 +29,12 @@ from caf.toolkit import translation
 
 # Local Imports
 # pylint: disable=no-name-in-module,import-error
-from caf.base.segmentation import Segmentation, SegmentationError, SegmentationWarning
+from caf.base.segmentation import (
+    Segmentation,
+    SegmentationError,
+    SegmentationSlice,
+    SegmentationWarning,
+)
 from caf.base.segments import SegConverter, Segment, SegmentsSuper
 from caf.base.zoning import (
     BalancingZones,
@@ -2224,6 +2229,11 @@ class DVector:
             time_format=self.time_format,
             cut_read=self._cut_read,
         )
+
+    def get_slice(self, slice_: SegmentationSlice) -> pd.Series | float | int:
+        """Get a slice (row) of the DVector."""
+        self._segmentation.validate_slice(slice_)
+        return self._data.loc[slice_.as_tuple()]
 
 
 @dataclass
