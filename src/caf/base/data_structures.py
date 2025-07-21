@@ -2230,10 +2230,28 @@ class DVector:
             cut_read=self._cut_read,
         )
 
-    def get_slice(self, slice_: SegmentationSlice) -> pd.Series | float | int:
+    def get_slice(
+        self, slice_: SegmentationSlice, allow_closest: bool = False
+    ) -> pd.Series | float | int:
         """Get a slice (row) of the DVector."""
-        self._segmentation.validate_slice(slice_)
-        return self._data.loc[slice_.as_tuple()]
+        try:
+            self._segmentation.validate_slice(slice_)
+        except ValueError:
+            if not allow_closest:
+                raise
+        else:
+            return self._data.loc[slice_.as_tuple()]
+
+        # Check if all segments from slice are available
+        seg_names = set(slice_.data.keys())
+        if not seg_names <= set(self.segmentation.seg_dict.keys()):
+            raise ValueError("slice contains segments not found in DVector segmentation")
+        
+        mask = np.full(len(self.segmentation), True)
+        for nm, value in slice_.data.items():
+            mask = mask & (self._data.index.get_level_values(nm) == value)
+
+        return self._data[mask].sum()
 
 
 @dataclass

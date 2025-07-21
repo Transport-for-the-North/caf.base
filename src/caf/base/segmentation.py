@@ -199,6 +199,59 @@ class SegmentationSlice:
     def __contains__(self, item: str) -> bool:
         return item in self.data
 
+    def replace(self, current: str, new: str, value: int | None = None) -> "SegmentationSlice":
+        """Create a copy of slice with current segment replaced with new.
+
+        Parameters
+        ----------
+        current, new
+            Name of segments.
+        value
+            Value to set for new segment, if not provided
+            uses value of current segment. *Value of current
+            segment isn't always valid for new segment.*
+
+        Raises
+        ------
+        ValueError
+            If new segment is already in the slice
+            or current segment isn't.
+        """
+        if new in self._data:
+            raise ValueError(f"{new} segment already in slice")
+        if current not in self._data:
+            raise ValueError(f"{current} segment not in slice")
+
+        new_data = self._data.copy()
+        if value is None:
+            value = new_data.pop(current)
+        else:
+            new_data.pop(current)
+        new_data[new] = int(value)
+
+        new_naming = [new if i == current else i for i in self.naming_order]
+
+        return SegmentationSlice(new_data, new_naming)
+
+    def add(self, segment: str, value: int) -> "SegmentationSlice":
+        """Create a copy of slice with new segment added."""
+        if segment in self._data:
+            raise ValueError(f"{segment} segment already in slice")
+
+        data = self._data | {segment: value}
+        naming = self.naming_order + (segment,)
+        return SegmentationSlice(data, naming)
+
+    def remove(self, segment: str) -> "SegmentationSlice":
+        """Create a copy of slice with segment removed."""
+        if segment not in self._data:
+            raise ValueError(f"{segment} segment not in slice")
+
+        data = self._data.copy()
+        data.pop(segment)
+        naming = [i for i in self.naming_order if i != segment]
+        return SegmentationSlice(data, naming)
+
 
 class SegmentationInput(BaseConfig):
     """
@@ -339,6 +392,14 @@ class Segmentation:
     def seg_vals(self):
         """Return all segmentation values."""
         return [seg.values.keys() for seg in self.segments]
+
+    def get_segment_values(self, segment: str) -> list[int]:
+        """Get list of values for segment, checks for subsets."""
+        if segment in self.input.subsets:
+            return self.input.subsets[segment].copy()
+        if segment in self.seg_dict:
+            return self.seg_dict[segment].int_values
+        raise KeyError(f"{segment} segment not found in segmentation")
 
     def lookup_ind(self):
         """Produce an index from the lookups of the segments."""
