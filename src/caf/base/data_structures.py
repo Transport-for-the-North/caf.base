@@ -2246,7 +2246,7 @@ class DVector:
         seg_names = set(slice_.data.keys())
         if not seg_names <= set(self.segmentation.seg_dict.keys()):
             raise ValueError("slice contains segments not found in DVector segmentation")
-        
+
         mask = np.full(len(self.segmentation), True)
         for nm, value in slice_.data.items():
             mask = mask & (self._data.index.get_level_values(nm) == value)

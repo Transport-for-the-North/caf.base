@@ -1244,13 +1244,13 @@ class Segmentation:
             If segments are missing, extra segments are found or
             naming order is different.
         """
-        missing = list(filter(lambda x: x not in slice_), self.seg_dict)
+        missing = list(filter(lambda x: x not in slice_, self.seg_dict))
         if len(missing) > 0:
             raise ValueError(
                 f"{len(missing)} segments missing from slice: {', '.join(missing)}"
             )
 
-        extra = list(filter(lambda x: x not in self.seg_dict), slice_.data)
+        extra = list(filter(lambda x: x not in self.seg_dict, slice_.data))
         if len(extra) > 0:
             raise ValueError(
                 f"{len(extra)} segments in slice but not segmentation: {', '.join(extra)}"
