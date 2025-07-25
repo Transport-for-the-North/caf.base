@@ -1235,8 +1235,18 @@ class Segmentation:
             f' files from "{folder}": {missing_names}'
         )
 
-    def validate_slice(self, slice_: SegmentationSlice) -> None:
+    def validate_slice(
+        self, slice_: SegmentationSlice, fix_order: bool = False
+    ) -> SegmentationSlice:
         """Validate slice contains expected segments, and no extra.
+
+        Parameters
+        ----------
+        slice_
+            Segmentation slice for validation.
+        fix_order
+            If True will return a copy of the slice_ with fixed naming
+            order instead of raising an error, default is False.
 
         Raises
         ------
@@ -1257,10 +1267,14 @@ class Segmentation:
             )
 
         if slice_.naming_order != self.naming_order:
-            raise ValueError(
-                "slice naming order is incorrect got "
-                f"{slice_.naming_order} but expected {self.naming_order}"
-            )
+            if not fix_order:
+                raise ValueError(
+                    "slice naming order is incorrect got "
+                    f"{slice_.naming_order} but expected {self.naming_order}"
+                )
+            return SegmentationSlice(slice_.data, self.naming_order.copy())
+
+        return slice_
 
 
 # # # FUNCTIONS # # #
