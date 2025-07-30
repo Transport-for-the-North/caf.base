@@ -197,6 +197,7 @@ class SegmentationSlice:
         return f"SegmentationSlice({params})"
 
     def __contains__(self, item: str) -> bool:
+        """Check if segment is in slice."""
         return item in self.data
 
     def replace(self, current: str, new: str, value: int | None = None) -> "SegmentationSlice":
