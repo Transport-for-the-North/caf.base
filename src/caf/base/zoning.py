@@ -561,7 +561,7 @@ class ZoningSystem:
 
         return translation
 
-    def check_all_columns(self, input_columns: pd.Series):
+    def check_all_columns(self, input_columns: pd.Series) -> dict | None:
         """Check zoning_system columns and return a lookup if appropriate."""
         missing_internal_id: np.ndarray = ~np.isin(self.zone_ids, input_columns.values)
 
@@ -824,7 +824,6 @@ class ZoningSystem:
         in_path = Path(in_path)
         # If this file exists the zoning should be in the hdf and vice versa
         if mode.lower() == "hdf":
-            # zoning = pd.read_hdf(in_path, key="zoning", mode="r")
             with h5py.File(in_path, "r") as h_file:
                 # pylint: disable=no-member
                 zonings = [i for i in h_file.keys() if "zoning" in i]
