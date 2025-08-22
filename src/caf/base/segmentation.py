@@ -580,7 +580,9 @@ class Segmentation:
                     i for i in full.int_values if i not in other.input.subsets[name]
                 ]
             elif self.input.subsets[name] != other.input.subsets[name]:
-                missing_list = [i for i in self.input.subsets[name] if i not in other.input.subsets[name]]
+                missing_list = [
+                    i for i in self.input.subsets[name] if i not in other.input.subsets[name]
+                ]
                 if len(missing_list) > 0:
                     missing_other[name] = missing_list
         missing_self = {}
@@ -591,7 +593,9 @@ class Segmentation:
                     i for i in full.int_values if i not in self.input.subsets[name]
                 ]
             elif self.input.subsets[name] != other.input.subsets[name]:
-                missing_list = [i for i in other.input.subsets[name] if i not in self.input.subsets[name]]
+                missing_list = [
+                    i for i in other.input.subsets[name] if i not in self.input.subsets[name]
+                ]
                 if len(missing_list) > 0:
                     missing_self[name] = missing_list
         return missing_self, missing_other

@@ -1337,7 +1337,6 @@ class DVector:
 
         other_grouped = other.aggregate(common)
 
-
         if isinstance(self.zoning_system, ZoningSystem) & isinstance(
             other.zoning_system, ZoningSystem
         ):
@@ -1374,7 +1373,9 @@ class DVector:
                     translation=translation,
                     translation_from_col=agg_zone.column_name,
                     translation_to_col=self.zoning_system.column_name,
-                    translation_factors_col=self.zoning_system.translation_column_name(agg_zone),
+                    translation_factors_col=self.zoning_system.translation_column_name(
+                        agg_zone
+                    ),
                 ).T
                 splitting_dvec = DVector(
                     import_data=splitting_data,
@@ -1384,10 +1385,9 @@ class DVector:
                     val_col=other.val_col,
                     low_memory=other.low_memory,
                     cut_read=self._cut_read,
-        )
+                )
             else:
                 splitting_dvec = other / other_grouped
-
 
         # Put splitting factors into DVector to apply
         with warnings.catch_warnings():
@@ -2262,18 +2262,17 @@ class DVector:
         else:
             other_sum = other
         return math.isclose(self.sum(), other_sum, rel_tol=rel_tol, abs_tol=abs_tol)
-    
-    @classmethod
-    def concat_list(cls, dvecs: list[DVector],
-                    new_segmentation: Segmentation):
 
-        new_data = pd.concat(dvec.data.reorder_levels(new_segmentation.naming_order) for dvec in dvecs)
+    @classmethod
+    def concat_list(cls, dvecs: list[DVector], new_segmentation: Segmentation):
+
+        new_data = pd.concat(
+            dvec.data.reorder_levels(new_segmentation.naming_order) for dvec in dvecs
+        )
         zoning = dvecs[0].zoning_system
         del dvecs
-        return cls(import_data=new_data,
-                   zoning_system=zoning,
-                   segmentation=new_segmentation)
-    
+        return cls(import_data=new_data, zoning_system=zoning, segmentation=new_segmentation)
+
     def concat(self, other: DVector):
         """
         Analogous to pandas dataframe concat method.
