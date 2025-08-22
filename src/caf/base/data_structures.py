@@ -2265,7 +2265,7 @@ class DVector:
 
     @classmethod
     def concat_list(cls, dvecs: list[DVector], new_segmentation: Segmentation):
-
+        """Concatenate a list of DVectors."""
         new_data = pd.concat(
             dvec.data.reorder_levels(new_segmentation.naming_order) for dvec in dvecs
         )
