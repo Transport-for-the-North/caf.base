@@ -1325,7 +1325,9 @@ class DVector:
             splitting_data = other.aggregate_comp_zones(agg_zone) / (
                 other.aggregate(common).aggregate_comp_zones(agg_zone)
             )
-            return self * splitting_data
+            with warnings.catch_warnings():
+                warnings.simplefilter("ignore", category=SegmentationWarning)
+                return self * splitting_data
 
         if other.zoning_system != self.zoning_system:
             raise ValueError(
@@ -1388,8 +1390,9 @@ class DVector:
 
 
         # Put splitting factors into DVector to apply
-        
-        return self * splitting_dvec
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore", category=SegmentationWarning)
+            return self * splitting_dvec
 
     def add_segments(
         self,
@@ -1607,11 +1610,11 @@ class DVector:
         if isinstance(segment_values, int):
             new_seg = new_seg.remove_segment(segment_name)
         else:
-            new_seg = new_seg.update_subsets({segment_name: segment_values})
+            new_seg.input.subsets[segment_name] = segment_values
 
         return DVector(
             import_data=new_data,
-            segmentation=new_seg,
+            segmentation=new_seg.reinit(),
             zoning_system=self.zoning_system,
             time_format=self.time_format,
             val_col=self.val_col,
