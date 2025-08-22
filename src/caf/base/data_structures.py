@@ -474,7 +474,7 @@ class DVector:
         else:
             if set(sorted_data.columns) != set(self.zoning_system.zone_ids):
                 column_lookup = self._fix_zoning(sorted_data.columns, self.zoning_system)
-                if column_lookup is not False:
+                if column_lookup is not None:
                     sorted_data.rename(columns=column_lookup, inplace=True)
             sorted_data.columns.name = self.zoning_system.column_name
 
