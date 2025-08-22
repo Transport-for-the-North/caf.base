@@ -580,9 +580,9 @@ class Segmentation:
                     i for i in full.int_values if i not in other.input.subsets[name]
                 ]
             elif self.input.subsets[name] != other.input.subsets[name]:
-                missing_other[name] = [
-                    i for i in self.input.subsets[name] if i not in other.input.subsets[name]
-                ]
+                missing_list = [i for i in self.input.subsets[name] if i not in other.input.subsets[name]]
+                if len(missing_list) > 0:
+                    missing_other[name] = missing_list
         missing_self = {}
         for name in self_subsets:
             full = SegmentsSuper(name).get_segment()
@@ -591,9 +591,9 @@ class Segmentation:
                     i for i in full.int_values if i not in self.input.subsets[name]
                 ]
             elif self.input.subsets[name] != other.input.subsets[name]:
-                missing_self[name] = [
-                    i for i in other.input.subsets[name] if i not in self.input.subsets[name]
-                ]
+                missing_list = [i for i in other.input.subsets[name] if i not in self.input.subsets[name]]
+                if len(missing_list) > 0:
+                    missing_self[name] = missing_list
         return missing_self, missing_other
 
     def is_subset(self, other: Segmentation):
