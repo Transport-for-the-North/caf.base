@@ -8,7 +8,7 @@ values_aliases:
   1: hb
 
 lookup:
-- other_name: p
+  - other_name: p
     exclusions:
       0:
         - 11
