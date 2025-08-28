@@ -563,7 +563,7 @@ class ZoningSystem:
         missing_internal_id: np.ndarray = ~np.isin(self.zone_ids, input_columns.values)
 
         if np.sum(missing_internal_id) == 0:
-            return False
+            return None
 
         try:
             missing_internal_name: np.ndarray | float = ~np.isin(
@@ -583,7 +583,7 @@ class ZoningSystem:
             np.sum(missing_internal_id) < x
             for x in (np.sum(missing_internal_desc), np.sum(missing_internal_name))
         ):
-            return False
+            return None
 
         if np.sum(missing_internal_name) < np.sum(missing_internal_desc):
             return self.name_to_id
