@@ -3,7 +3,31 @@ alias: pa
 values:
   0: non-home-based
   1: home-based
-exclusions:
+values_aliases:
+  0: nhb
+  1: hb
+
+lookup:
+  - other_name: p
+    exclusions:
+      0:
+        - 11
+        - 12
+        - 13
+        - 14
+        - 15
+        - 16
+        - 18
+      1:
+        - 1
+        - 2
+        - 3
+        - 4
+        - 5
+        - 6
+        - 7
+        - 8
+
   - other_name: p
     exclusions:
       0:

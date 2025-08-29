@@ -29,7 +29,12 @@ from caf.toolkit import translation
 
 # Local Imports
 # pylint: disable=no-name-in-module,import-error
-from caf.base.segmentation import Segmentation, SegmentationError, SegmentationWarning
+from caf.base.segmentation import (
+    Segmentation,
+    SegmentationError,
+    SegmentationSlice,
+    SegmentationWarning,
+)
 from caf.base.segments import SegConverter, Segment, SegmentsSuper
 from caf.base.zoning import (
     BalancingZones,
@@ -2475,6 +2480,29 @@ class DVector:
             time_format=self.time_format,
             cut_read=self._cut_read,
         )
+
+    def get_slice(
+        self, slice_: SegmentationSlice, allow_closest: bool = False
+    ) -> pd.Series | float | int:
+        """Get a slice (row) of the DVector."""
+        try:
+            self._segmentation.validate_slice(slice_)
+        except ValueError:
+            if not allow_closest:
+                raise
+        else:
+            return self._data.loc[slice_.as_tuple()]
+
+        # Check if all segments from slice are available
+        seg_names = set(slice_.data.keys())
+        if not seg_names <= set(self.segmentation.seg_dict.keys()):
+            raise ValueError("slice contains segments not found in DVector segmentation")
+
+        mask = np.full(len(self.segmentation), True)
+        for nm, value in slice_.data.items():
+            mask = mask & (self._data.index.get_level_values(nm) == value)
+
+        return self._data[mask].sum()
 
 
 class _Config:

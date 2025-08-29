@@ -98,3 +98,73 @@ class TestSegmentsSuper:
 
     def test_get_subset(self, get_hb_purpose, expected_hb_purpose):
         assert get_hb_purpose == expected_hb_purpose
+
+
+##### Tests & Fixtures for `Segment` #####
+
+
+class TestSegment:
+    """Tests for the `Segment` class."""
+
+    @pytest.mark.parametrize(
+        ["segment", "alias"],
+        [
+            (segments.SegmentsSuper.DIRECTION, "pa"),
+            (segments.SegmentsSuper.ADULTS, "adults"),
+        ],
+    )
+    def test_get_alias(self, segment: segments.SegmentsSuper, alias: str) -> None:
+        """Test `get_alias` for segments with and without aliases."""
+        seg = segment.get_segment()
+        assert seg.get_alias() == alias
+
+    @pytest.mark.parametrize(
+        ["segment", "value", "alias"],
+        [
+            (segments.SegmentsSuper.DIRECTION, 0, "nhb"),
+            (segments.SegmentsSuper.GENDER_3, 1, "gt1"),
+            (segments.SegmentsSuper.ADULTS, 3, "adults3"),
+        ],
+    )
+    def test_get_value_alias(
+        self, segment: segments.SegmentsSuper, value: int, alias: str
+    ) -> None:
+        """Test `get_value_alias` for segments with and without aliases.
+
+        Ran for all combinations of segments with / without name alias
+        and with / without values aliases.
+        """
+        seg = segment.get_segment()
+        assert seg.get_value_alias(value) == alias
+
+    @pytest.mark.parametrize(
+        ["segment", "expected"],
+        [
+            (segments.SegmentsSuper.ADULTS, r"(?:\b|_)adults(\d+)(?=\b|_)"),
+            (segments.SegmentsSuper.GENDER_3, r"(?:\b|_)(?:gender_3|gt)(\d+)(?=\b|_)"),
+            (
+                segments.SegmentsSuper.DIRECTION,
+                r"(?:\b|_)(?:(?:direction|pa)(\d+)|(nhb|hb))(?=\b|_)",
+            ),
+        ],
+    )
+    def test_value_regex(self, segment: segments.SegmentsSuper, expected: str) -> None:
+        """Test `value_regex` returns the correct pattern text."""
+        seg = segment.get_segment()
+        assert seg.value_regex() == expected
+
+    @pytest.mark.parametrize(
+        ["segment", "text", "expected"],
+        [
+            (segments.SegmentsSuper.DIRECTION, "nhb_hb_pa1_direction0", [0, 1, 1, 0]),
+            (segments.SegmentsSuper.PURPOSE, "p1_testing_p7_p12_purpose15", [1, 7, 12]),
+            (segments.SegmentsSuper.ADULTS, "something_adults3_adults1", [3, 1]),
+        ],
+    )
+    def test_parse_values(
+        self, segment: segments.SegmentsSuper, text: str, expected: list[int]
+    ) -> None:
+        """Test `extract_values` for segments with / without aliases."""
+        seg = segment.get_segment()
+        values = seg.extract_values(text)
+        assert values == expected

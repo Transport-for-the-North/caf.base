@@ -12,6 +12,7 @@ add segmentations
 
 # Built-Ins
 import pathlib
+import random
 
 # Third Party
 import pandas as pd
@@ -26,11 +27,11 @@ from caf.base import segmentation
 # # # CLASSES # # #
 @pytest.fixture(scope="session", name="vanilla_seg")
 def fix_vanilla_segmentation():
-    input = segmentation.SegmentationInput(
+    input_ = segmentation.SegmentationInput(
         enum_segments=["ca", "m", "gender_3"],
         naming_order=["ca", "m", "gender_3"],
     )
-    return segmentation.Segmentation(input)
+    return segmentation.Segmentation(input_)
 
 
 @pytest.fixture(scope="session", name="expected_vanilla_ind")
@@ -44,11 +45,11 @@ def fix_exp_vanilla_ind():
 
 @pytest.fixture(scope="session", name="nam_ord_seg")
 def fix_nam_ord_seg():
-    input = segmentation.SegmentationInput(
+    input_ = segmentation.SegmentationInput(
         enum_segments=["ca", "m", "gender_3"],
         naming_order=["ca", "gender_3", "m"],
     )
-    return segmentation.Segmentation(input)
+    return segmentation.Segmentation(input_)
 
 
 @pytest.fixture(scope="session", name="exp_nam_ord")
@@ -125,11 +126,11 @@ def fix_add_exp():
 @pytest.fixture(scope="session", name="simple_segmentation")
 def fix_simple_segmentation():
     """Segmentation containing ca and mode only."""
-    input = segmentation.SegmentationInput(
+    input_ = segmentation.SegmentationInput(
         enum_segments=["ca", "m"],
         naming_order=["ca", "m"],
     )
-    return segmentation.Segmentation(input)
+    return segmentation.Segmentation(input_)
 
 
 class TestInd:
@@ -175,64 +176,23 @@ class TestSegmentation:
     @pytest.mark.parametrize(
         ["segment_params", "expected"],
         [
-            ({"ca": 1, "gender_3": 1, "m": 1}, "ca1_m1_gt1"),
-            ({"ca": 2, "gender_3": 10, "m": 13}, "ca2_m13_gt10"),
+            (segmentation.SegmentationSlice({"ca": 1, "m": 1, "gender_3": 1}), "ca1_m1_gt1"),
+            (
+                segmentation.SegmentationSlice({"ca": 2, "m": 2, "gender_3": 3}),
+                "ca2_m2_gt3",
+            ),
         ],
     )
     def test_generate_segment_name(
         self,
         vanilla_seg: segmentation.Segmentation,
-        segment_params: dict[str, int],
+        segment_params: segmentation.SegmentationSlice,
         expected: str,
     ):
         """Test `Segmentation.generate_segment_name` produces correct names."""
         name = vanilla_seg.generate_slice_name(segment_params)
 
         assert name == expected, "incorrect segment name generated"
-
-    @pytest.mark.parametrize("segment_params", [{"ca": 1}, {"gender_3": 1, "m": 2}, {}])
-    def test_generate_segment_name_missing(
-        self, vanilla_seg: segmentation.Segmentation, segment_params: dict[str, int]
-    ):
-        """Test `Segmentation.generate_segment_name` correctly raises KeyError.
-
-        KeyError should be raised when `segment_params` doesn't contain all required
-        segments.
-        """
-        error_msg = "missing segments when generating name:"
-        with pytest.raises(KeyError, match=error_msg):
-            vanilla_seg.generate_slice_name(segment_params)
-
-    @pytest.mark.parametrize(
-        ["segment_params", "expected"],
-        [
-            ({"ca": 1, "gender_3": 1, "m": 1}, (1, 1, 1)),
-            ({"ca": 2, "gender_3": 10, "m": 13}, (2, 13, 10)),
-        ],
-    )
-    def test_generate_segment_tuple(
-        self,
-        vanilla_seg: segmentation.Segmentation,
-        segment_params: dict[str, int],
-        expected: tuple[int, ...],
-    ):
-        """Test `Segmentation.generate_segment_tuple` produces correct names."""
-        name = vanilla_seg.generate_slice_tuple(segment_params)
-
-        assert name == expected, "incorrect segment tuple generated"
-
-    @pytest.mark.parametrize("segment_params", [{"ca": 1}, {"gender_3": 1, "m": 2}, {}])
-    def test_generate_segment_tuple_missing(
-        self, vanilla_seg: segmentation.Segmentation, segment_params: dict[str, int]
-    ):
-        """Test `Segmentation.generate_segment_tuple` correctly raises KeyError.
-
-        KeyError should be raised when `segment_params` doesn't contain all required
-        segments.
-        """
-        error_msg = "missing segments when generating tuple:"
-        with pytest.raises(KeyError, match=error_msg):
-            vanilla_seg.generate_slice_tuple(segment_params)
 
     def test_iter_slices(self, simple_segmentation: segmentation.Segmentation):
         """Test `Segmentation.iter_slices` produces correct dictionaries."""
@@ -248,11 +208,9 @@ class TestSegmentation:
             {"ca": 1, "m": 8}, {"ca": 2, "m": 8},
         ]
         # fmt: on
-        expected = sorted(expected, key=simple_segmentation.generate_slice_tuple)
-        answer = sorted(
-            list(simple_segmentation.iter_slices()),
-            key=simple_segmentation.generate_slice_tuple,
-        )
+        expected = [segmentation.SegmentationSlice(i) for i in expected]
+        expected = sorted(expected, key=lambda x: x.as_tuple())
+        answer = sorted(list(simple_segmentation.iter_slices()), key=lambda x: x.as_tuple())
 
         assert answer == expected, "incorrect segmentation parameters"
 
@@ -262,14 +220,17 @@ class TestSegmentation:
             (
                 {"ca": 1, "m": 2},
                 [
-                    {"ca": 1, "m": 2, "gender_3": 1},
-                    {"ca": 1, "m": 2, "gender_3": 2},
-                    {"ca": 1, "m": 2, "gender_3": 3},
+                    segmentation.SegmentationSlice({"ca": 1, "m": 2, "gender_3": 1}),
+                    segmentation.SegmentationSlice({"ca": 1, "m": 2, "gender_3": 2}),
+                    segmentation.SegmentationSlice({"ca": 1, "m": 2, "gender_3": 3}),
                 ],
             ),
             (
                 {"m": 1, "gender_3": 2},
-                [{"m": 1, "gender_3": 2, "ca": 1}, {"m": 1, "gender_3": 2, "ca": 2}],
+                [
+                    segmentation.SegmentationSlice({"ca": 1, "m": 1, "gender_3": 2}),
+                    segmentation.SegmentationSlice({"ca": 2, "m": 1, "gender_3": 2}),
+                ],
             ),
         ],
     )
@@ -277,7 +238,7 @@ class TestSegmentation:
         self,
         vanilla_seg: segmentation.Segmentation,
         params: dict[str, int],
-        expected: list[dict[str, int]],
+        expected: list[segmentation.SegmentationSlice],
     ) -> None:
         """Test getting a subset of segmentation slices matching given slice parameters."""
         answer = list(vanilla_seg.iter_slices(filter_=params))
@@ -288,13 +249,13 @@ class TestSegmentation:
         folder = tmp_path / "find_files"
         folder.mkdir()
 
-        template = "test_file_{segment_name}"
+        template = "test_file_{slice_name}"
 
         expected = []
         for params in vanilla_seg.iter_slices():
 
             name = vanilla_seg.generate_slice_name(params)
-            path = folder / f"{template.format(segment_name=name)}.csv"
+            path = folder / f"{template.format(slice_name=name)}.csv"
             path.touch()
             expected.append(path)
 
@@ -309,15 +270,15 @@ class TestSegmentation:
     @pytest.mark.parametrize(
         ["tuple_", "expected"],
         [
-            ((1, 2, 3), {"ca": 1, "m": 2, "gender_3": 3}),
-            ((2, 5, 1), {"ca": 2, "m": 5, "gender_3": 1}),
+            ((1, 2, 3), segmentation.SegmentationSlice({"ca": 1, "m": 2, "gender_3": 3})),
+            ((2, 5, 1), segmentation.SegmentationSlice({"ca": 2, "m": 5, "gender_3": 1})),
         ],
     )
     def test_convert_slice_tuple(
         self,
         vanilla_seg: segmentation.Segmentation,
         tuple_: tuple[int, ...],
-        expected: dict[str, int],
+        expected: segmentation.SegmentationSlice,
     ):
         """Test converting a slice tuple into a parameters dictionary."""
         answer = vanilla_seg.convert_slice_tuple(tuple_)
@@ -326,16 +287,138 @@ class TestSegmentation:
     @pytest.mark.parametrize(
         ["name", "expected"],
         [
-            ("ca1_m2_gt3", {"ca": 1, "m": 2, "gender_3": 3}),
-            ("ca2_m5_gt1", {"ca": 2, "m": 5, "gender_3": 1}),
+            ("ca1_m2_gt3", segmentation.SegmentationSlice({"ca": 1, "m": 2, "gender_3": 3})),
+            ("ca2_m5_gt1", segmentation.SegmentationSlice({"ca": 2, "m": 5, "gender_3": 1})),
         ],
     )
     def test_convert_slice_name(
         self,
         vanilla_seg: segmentation.Segmentation,
         name: str,
-        expected: dict[str, int],
+        expected: segmentation.SegmentationSlice,
     ):
         """Test converting a slice name into a parameters dictionary."""
         answer = vanilla_seg.convert_slice_name(name)
         assert answer == expected
+
+
+##### Fixtures and Tests for SegmentationSlice #####
+
+
+@pytest.fixture(name="slice_params")
+def fix_slice_params() -> tuple[list[str], dict[str, int], segmentation.SegmentationSlice]:
+    """Returns a slice with the naming order and parameters dict."""
+    max_values = [("p", 8), ("m", 6), ("ca", 2), ("gender_3", 3)]
+    names = [i[0] for i in max_values]
+    params = {i: random.randrange(1, j) for i, j in max_values}
+
+    slice_ = segmentation.SegmentationSlice(params, names)
+
+    return names, params, slice_
+
+
+@pytest.fixture(name="slice_")
+def fix_slice_(
+    slice_params: tuple[list[str], dict[str, int], segmentation.SegmentationSlice],
+) -> segmentation.SegmentationSlice:
+    """Returns a slice."""
+    return slice_params[2]
+
+
+class TestSegmentationSlice:
+    """Tests for `SegmentationSlice` class."""
+
+    @pytest.mark.parametrize("naming_order", [None, ["m", "ca"]])
+    def test_init(self, naming_order):
+        """Test initialising a `SegmentationSlice` class, with / without naming order."""
+        slice_params = {"ca": 1, "m": 2}
+        slice_ = segmentation.SegmentationSlice(slice_params, naming_order)
+
+        assert slice_.data == slice_params
+        if naming_order is None:
+            naming_order = list(slice_params.keys())
+
+        assert slice_.naming_order == tuple(naming_order)
+
+    def test_access_values(
+        self, slice_params: tuple[list[str], dict[str, int], segmentation.SegmentationSlice]
+    ):
+        """Test access slice values using `.get` and `slice_[x]`."""
+        _, params, slice_ = slice_params
+
+        for name, value in params.items():
+            assert slice_[name] == value
+            assert slice_.get(name) == value
+
+    def test_set_values(self, slice_: segmentation.SegmentationSlice):
+        """Test an error is raised when attempting to set a value with `slice_[x] = y`."""
+        msg = "'SegmentationSlice' object does not support item assignment"
+        with pytest.raises(TypeError, match=msg):
+            slice_["p"] = 5
+
+    def test_equals(
+        self, slice_params: tuple[list[str], dict[str, int], segmentation.SegmentationSlice]
+    ):
+        """Test two slices are equal."""
+        names, params, slice_ = slice_params
+        new_slice = segmentation.SegmentationSlice(params, names)
+        assert slice_ == new_slice
+
+    def test_not_equals(self, slice_: segmentation.SegmentationSlice):
+        """Test two slices are not equal."""
+        assert slice_ != segmentation.SegmentationSlice({"test": 15})
+
+    def test_hash(self, slice_: segmentation.SegmentationSlice):
+        """Test hash works on slice and produces an integer."""
+        assert isinstance(hash(slice_), int)
+
+    def test_equal_hash(
+        self, slice_params: tuple[list[str], dict[str, int], segmentation.SegmentationSlice]
+    ):
+        """Test the hash between two equal slices is the same."""
+        names, params, slice_ = slice_params
+        new_slice = segmentation.SegmentationSlice(params, names)
+        assert hash(slice_) == hash(new_slice)
+
+    def test_different_hash(
+        self, slice_params: tuple[list[str], dict[str, int], segmentation.SegmentationSlice]
+    ):
+        """Test hash, and equals, takes naming order into account."""
+        names, params, slice_ = slice_params
+        new_slice = segmentation.SegmentationSlice(params, names[::-1])
+        assert hash(slice_) != new_slice
+        assert slice_ != new_slice
+
+    def test_as_tuple(self):
+        """Test `SegmentationSlice.as_tuple`.."""
+        params = {"ca": 1, "m": 3, "gender_3": 2}
+        expected = (1, 3, 2)
+        slice_ = segmentation.SegmentationSlice(params)
+        assert slice_.as_tuple() == expected
+
+    def test_from_tuple(self):
+        """Test `SegmentationSlice.as_tuple` works as expected."""
+        params = {"ca": 1, "m": 3, "gender_3": 2}
+        tuple_ = (1, 3, 2)
+
+        slice_ = segmentation.SegmentationSlice.from_tuple(tuple_, list(params.keys()))
+
+        assert slice_.data == params
+        assert slice_.naming_order == tuple(params.keys())
+
+    def test_from_tuple_error(self):
+        """Test `from_tuple` returns error with length mismatch."""
+        msg = "slice tuple should contain 2 values but contains 3 values"
+        with pytest.raises(ValueError, match=msg):
+            segmentation.SegmentationSlice.from_tuple((1, 2, 3), ("a", "b"))
+
+    def test_generate_name(
+        self, slice_params: tuple[list[str], dict[str, int], segmentation.SegmentationSlice]
+    ):
+        """Test `generate_name` works when `segments` aren't given."""
+        names, params, slice_ = slice_params
+
+        aliases = {"gender_3": "gt"}
+        expected = "_".join(f"{aliases.get(i, i)}{params[i]}" for i in names)
+
+        assert expected == slice_.generate_name()
