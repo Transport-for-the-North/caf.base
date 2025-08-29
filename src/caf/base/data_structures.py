@@ -268,10 +268,14 @@ class DVector:
             The DVector data. This should usually be a dataframe or path to a
             dataframe, but there is also an option to read in and convert
             DVectors in the old format from NorMITs-demand.
-        zoning_system: Optional[ZoningSystem] = None
+        zoning_system: Optional[ZoningSystem | Sequence[ZoningSystem]] = None
             Instance of ZoningSystem. This must match import data. If this is
             given, import data must contain zone info in the column names, if
-            this is not given import data must contain only 1 column.
+            this is not given import data must contain only 1 column. If the
+            DVector contains multiple zoning systems (in the form of MultiIndexed
+            columns in the input data), a Sequence of ZoningSystems can be passed
+            here. Each level of the columns index will be validated against
+            ZoningSystems passed in.
         low_memory: bool = False
             Set to True for low_memory dunder_methods.
         _bypass_validation: bool = False
