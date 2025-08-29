@@ -174,9 +174,10 @@ class ZoningSystem:
 
         # Zone names and description columns are optional but should contain strings
         optional_columns = (self._name_column, self._desc_column)
-        for name in optional_columns:
-            if name in zones.columns:
-                zones.loc[:, name] = zones[name].astype(str)
+        # for name in optional_columns:
+        #     if name in zones.columns:
+        #         zones[name] = zones[name].convert_dtypes(infer_objects=False, convert_string=False)
+        #         zones.loc[:, name] = zones[name].astype(str)
 
         # Any other columns are assumed to be subset mask columns so should be boolean
         # Restrictive boolean conversion is used that expects "TRUE", "FALSE" strings
@@ -406,7 +407,7 @@ class ZoningSystem:
         sorted_other = other._zones.sort_index(axis=0, inplace=False).sort_index(
             axis=1, inplace=False
         )
-        if not sorted_self.equals(sorted_other):
+        if not sorted_self.index.equals(sorted_other.index):
             return False
 
         return True
@@ -551,16 +552,18 @@ class ZoningSystem:
                 )
                 translation[zone_system.column_name].replace(to_replace=replacer, inplace=True)
         else:
-            translation[zone_system.column_name].replace(to_replace=replacer, inplace=True)
+            translation[zone_system.column_name] = translation[
+                zone_system.column_name
+            ].replace(to_replace=replacer)
 
         return translation
 
-    def check_all_columns(self, input_columns: pd.Series):
+    def check_all_columns(self, input_columns: pd.Series) -> dict | None:
         """Check zoning_system columns and return a lookup if appropriate."""
         missing_internal_id: np.ndarray = ~np.isin(self.zone_ids, input_columns.values)
 
         if np.sum(missing_internal_id) == 0:
-            return False
+            return None
 
         try:
             missing_internal_name: np.ndarray | float = ~np.isin(
@@ -580,7 +583,7 @@ class ZoningSystem:
             np.sum(missing_internal_id) < x
             for x in (np.sum(missing_internal_desc), np.sum(missing_internal_name))
         ):
-            return False
+            return None
 
         if np.sum(missing_internal_name) < np.sum(missing_internal_desc):
             return self.name_to_id
@@ -766,10 +769,10 @@ class ZoningSystem:
         out_path = Path(path)
         save_df = self._zones.reset_index()
         if mode.lower() == "hdf":
-            save_df.to_hdf(out_path, key="zoning", mode="a")
+            save_df.to_hdf(out_path, key=f"zoning_{self.name}", mode="a")
             with h5py.File(out_path, "a") as h_file:
                 h_file.create_dataset(
-                    "zoning_meta", data=self.metadata.to_yaml().encode("utf-8")
+                    f"zoning_meta_{self.name}", data=self.metadata.to_yaml().encode("utf-8")
                 )
         elif mode.lower() == "csv":
             out_path = out_path / self.name
@@ -778,6 +781,20 @@ class ZoningSystem:
             self.metadata.save_yaml(out_path / "zoning_meta.yml")
         else:
             raise ValueError("Mode can only be 'hdf' or 'csv', not " f"{mode}.")
+
+    @classmethod
+    def zoning_from_df_col(cls, col: pd.Series):
+        """
+        Create a zoning system from the column of a df.
+
+        Parameters
+        ----------
+        col: pd.Series
+            The column from the dataframe to create a zoning system from.
+        """
+        meta = ZoningSystemMetaData(name=col.name)
+        unique_zones = pd.Series(col.unique(), name="zone_id")
+        return cls(name=col.name, unique_zones=unique_zones.to_frame(), metadata=meta)
 
     @classmethod
     def load(cls, in_path: PathLike, mode: str):
@@ -800,11 +817,32 @@ class ZoningSystem:
         in_path = Path(in_path)
         # If this file exists the zoning should be in the hdf and vice versa
         if mode.lower() == "hdf":
-            zoning = pd.read_hdf(in_path, key="zoning", mode="r")
             with h5py.File(in_path, "r") as h_file:
                 # pylint: disable=no-member
-                yam_load = h_file["zoning_meta"][()].decode("utf-8")
-                zoning_meta = ZoningSystemMetaData.from_yaml(yam_load)
+                zonings = [i for i in h_file.keys() if "zoning" in i]
+                metas = [i for i in zonings if "meta" in i]
+                zones = [i for i in zonings if "meta" not in i]
+                if len(metas) != len(zones):
+                    raise ImportError(
+                        "This Dvector has a different number of zoning metas to zoning "
+                        "objects."
+                    )
+                if len(metas) == 1:
+                    # This should load either old ("zoning") format, or new ("zoning_name") format
+                    yam_load = h_file[metas[0]][()].decode("utf-8")
+                    zoning_meta = ZoningSystemMetaData.from_yaml(yam_load)
+                    zoning = pd.read_hdf(in_path, key=zones[0], mode="r")
+                else:
+                    out = []
+                    zones.sort()
+                    metas.sort()
+                    for zon, meta in zip(zones, metas):
+                        yam_load = h_file[meta][()].decode("utf-8")
+                        meta = ZoningSystemMetaData.from_yaml(yam_load)
+                        zoning = pd.read_hdf(in_path, key=zon, mode="r")
+                        out.append(cls(name=meta.name, unique_zones=zoning, metadata=meta))
+                    return sorted(out, key=len)
+
         elif mode.lower() == "csv":
             zoning = pd.read_csv(in_path / "zoning.csv")
             zoning_meta = ZoningSystemMetaData.load_yaml(in_path / "zoning_meta.yml")
@@ -921,7 +959,7 @@ class ZoningSystem:
         # pylint: enable=import-outside-toplevel
         gdf = gpd.read_file(shapefile)[[name_col, "geometry"]]
         tfn_bound = gpd.read_file(tfn_bound)
-        inner = gdf.sjoin(tfn_bound, predicate="within")
+        inner = gdf.sjoin(tfn_bound.buffer(10), predicate="within")
         gdf["internal"] = False
         gdf.loc[inner.index, "internal"] = True
         gdf["external"] = ~gdf["internal"]

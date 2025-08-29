@@ -250,7 +250,8 @@ class Segment(BaseConfig):
             new_seg = SegmentsSuper(new_seg).get_segment()
         if isinstance(new_seg, SegmentsSuper):
             new_seg = new_seg.get_segment()
-        assert isinstance(new_seg, Segment)
+        if not isinstance(new_seg, Segment):
+            raise TypeError(f"invalid type for new_seg: {type(new_seg)}")
 
         new_name = new_seg.name
         name_1 = self.name
@@ -259,7 +260,7 @@ class Segment(BaseConfig):
             name_1, name_2 = name_2, name_1
         lookup = pd.read_csv(
             lookup_dir / f"{name_1}_to_{name_2}.csv", index_col=0, usecols=[0, 1]
-        ).squeeze()
+        )
         return new_seg, lookup
 
     def translate_exclusion(self, new_seg: str):
@@ -338,8 +339,12 @@ class SegmentsSuper(enum.Enum):
     """
 
     PURPOSE = "p"
+    PURPOSE_HB = "p_hb"
+    PURPOSE_NHB = "p_nhb"
     TIMEPERIOD = "tp"
     MODE = "m"
+    MODE_HB = "m_hb"
+    MODE_NHB = "m_nhb"
     GENDER = "g"
     SOC = "soc"
     SIC = "sic"
@@ -371,8 +376,10 @@ class SegmentsSuper(enum.Enum):
     STATUS_APS = "status_aps"
     NORCOM_0V1 = "norcom_0v1+"
     TOTAL = "total"
+    UNI = "uni"
     DIRECTION = "direction"
     DIRECTION_OD = "direction_od"
+    UC = "uc"
 
     @classmethod
     def values(cls):
