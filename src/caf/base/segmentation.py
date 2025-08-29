@@ -70,6 +70,7 @@ class SegmentationInput(BaseConfig):
     naming_order: list[str]
     custom_segments: list[Segment] = pydantic.Field(default_factory=list)
     subsets: dict[str, list[int]] = pydantic.Field(default_factory=dict)
+
     # pylint doesn't seem to understand pydantic default fields
     # pylint: disable=not-an-iterable,no-member
     @pydantic.model_validator(mode="after")
