@@ -8,10 +8,10 @@ enumeration from caf.base.segments. Both are used for building segmentations.
 from __future__ import annotations
 
 # Built-Ins
+import collections
 import collections.abc
 import copy
 import itertools
-import re
 import warnings
 from os import PathLike
 from pathlib import Path
@@ -25,11 +25,7 @@ import pydantic
 from caf.toolkit import BaseConfig
 
 # Local Imports
-# pylint: disable=import-error,wrong-import-position
-# Local imports here
 from caf.base.segments import Segment, SegmentsSuper
-
-# pylint: enable=import-error,wrong-import-position
 
 # # # CONSTANTS # # #
 
@@ -41,6 +37,221 @@ class SegmentationWarning(Warning):
 
 class SegmentationError(Exception):
     """Error for segmentation objects."""
+
+
+class SegmentationSlice:
+    """Single slice of a segmentation.
+
+    A slice is defined as a single value for each segment in the
+    segmentations.
+
+    Parameters
+    ----------
+    slice_params : dict[str, int]
+        Parameters for the slice, where keys are segment names and
+        values are the segment values for this slice e.g. {"p": 1, "m": 3}.
+    naming_order : collections.abc.Sequence[str] | None, optional
+        Optional naming order of the segments in this slice. If not
+        provided the order of the keys in `slice_params` will be used.
+    """
+
+    def __init__(
+        self,
+        slice_params: dict[str, int],
+        naming_order: collections.abc.Sequence[str] | None = None,
+    ):
+        """Initialize a SegmentationSlice object from parameters dict.
+
+        Raises
+        ------
+        ValueError
+            If the naming order does not match the slice parameters.
+        """
+        self._data = dict(slice_params)
+
+        if naming_order is None:
+            self._naming_order = tuple(slice_params.keys())
+        else:
+            self._naming_order = tuple(naming_order)
+
+            names = set(self._naming_order)
+            data = set(self._data.keys())
+            if names != data:
+                raise ValueError(
+                    "The naming order provided does not match the keys in the"
+                    f" slice parameters. Naming order: {self._naming_order},"
+                    f" slice_params: {self._data.keys()}"
+                )
+
+    def __getitem__(self, item: str) -> int:
+        """Get value of segment for slice."""
+        return self._data[item]
+
+    def get(self, item: str, default: int | None = None) -> int | None:
+        """Get value of segment for slice with default."""
+        return self._data.get(item, default)
+
+    @property
+    def naming_order(self) -> tuple[str, ...]:
+        """Return the naming order of the segments in this slice."""
+        return self._naming_order
+
+    @property
+    def data(self) -> dict[str, int]:
+        """Return the data of the slice as a dict."""
+        return self._data.copy()
+
+    def as_tuple(self) -> tuple[int, ...]:
+        """Generate segment tuple from parameters.
+
+        Returns
+        -------
+        tuple[int, ...]
+            Values of slice parameters, the order of the
+            parameters is defined by the `naming_order`.
+        """
+        return tuple(self._data[i] for i in self._naming_order)
+
+    @classmethod
+    def from_tuple(
+        cls, slice_tuple: tuple[int, ...], naming_order: collections.abc.Sequence[str]
+    ) -> "SegmentationSlice":
+        """Convert a segmentation slice tuple into parameters.
+
+        Parameters
+        ----------
+        slice_tuple : tuple[int, ...]
+            Tuple containing segment values for a single slice.
+
+        Raises
+        ------
+        ValueError
+            If the tuple given doesn't have the expected number of values.
+        """
+        if len(slice_tuple) != len(naming_order):
+            raise ValueError(
+                f"slice tuple should contain {len(naming_order)}"
+                f" values but contains {len(slice_tuple)} values"
+            )
+        return SegmentationSlice(dict(zip(naming_order, slice_tuple)))
+
+    def __hash__(self) -> int:
+        """Hash the naming order and values tuples."""
+        return hash(self.naming_order + self.as_tuple())
+
+    def __eq__(self, value) -> bool:
+        """Check equality of two SegmentationSlice objects."""
+        if not isinstance(value, SegmentationSlice):
+            return False
+        return (self.as_tuple() + self.naming_order) == (value.as_tuple() + value.naming_order)
+
+    def generate_name(self, segments: dict[str, Segment] | None = None) -> str:
+        """Generate name for a slice of the segmentation from parameters.
+
+        Parameters
+        ----------
+        segments
+            Dictionary of segments to use for generating the name.
+            If not provided, it will attempt to get segments from
+            `SegmentsSuper` and if that fails the full segment name
+            will be used.
+
+        Returns
+        -------
+        str
+            Name of slice in the form "{name}{value}_{name 2}{value 2}"
+            e.g. "p1_m3", where name is the segment alias if it has one.
+            For any segments with a value alias that will be used instead
+            of "{name}{value}". The order of the parameters is defined by
+            the `naming_order`.
+
+        See Also
+        --------
+        Segment.get_alias: to get the segment alias.
+        Segment.get_value_alias
+            to get the alias or "{name}{value}" for a specific segment value.
+        """
+        slice_parts = []
+        if segments is None:
+            segments = {}
+
+        for name in self.naming_order:
+            try:
+                segment = segments.get(name, SegmentsSuper(name).get_segment())
+            except ValueError as exc:
+                warnings.warn(
+                    f"Could not find segment {name} in segments or"
+                    f" SegmentsSuper: {exc}\nUsing full segment name instead.",
+                    RuntimeWarning,
+                )
+                slice_parts.append(f"{name}{self[name]}")
+                continue
+
+            slice_parts.append(segment.get_value_alias(self[name]))
+
+        return "_".join(slice_parts)
+
+    def __repr__(self):
+        """Get string representation of the slice."""
+        params = ", ".join(f"{i}={self[i]}" for i in self.naming_order)
+        return f"SegmentationSlice({params})"
+
+    def __contains__(self, item: str) -> bool:
+        """Check if segment is in slice."""
+        return item in self.data
+
+    def replace(self, current: str, new: str, value: int | None = None) -> "SegmentationSlice":
+        """Create a copy of slice with current segment replaced with new.
+
+        Parameters
+        ----------
+        current, new
+            Name of segments.
+        value
+            Value to set for new segment, if not provided
+            uses value of current segment. *Value of current
+            segment isn't always valid for new segment.*
+
+        Raises
+        ------
+        ValueError
+            If new segment is already in the slice
+            or current segment isn't.
+        """
+        if new in self._data:
+            raise ValueError(f"{new} segment already in slice")
+        if current not in self._data:
+            raise ValueError(f"{current} segment not in slice")
+
+        new_data = self._data.copy()
+        if value is None:
+            value = new_data.pop(current)
+        else:
+            new_data.pop(current)
+        new_data[new] = int(value)
+
+        new_naming = [new if i == current else i for i in self.naming_order]
+
+        return SegmentationSlice(new_data, new_naming)
+
+    def add(self, segment: str, value: int) -> "SegmentationSlice":
+        """Create a copy of slice with new segment added."""
+        if segment in self._data:
+            raise ValueError(f"{segment} segment already in slice")
+
+        data = self._data | {segment: value}
+        naming = self.naming_order + (segment,)
+        return SegmentationSlice(data, naming)
+
+    def remove(self, segment: str) -> "SegmentationSlice":
+        """Create a copy of slice with segment removed."""
+        if segment not in self._data:
+            raise ValueError(f"{segment} segment not in slice")
+
+        data = self._data.copy()
+        data.pop(segment)
+        naming = [i for i in self.naming_order if i != segment]
+        return SegmentationSlice(data, naming)
 
 
 class SegmentationInput(BaseConfig):
@@ -132,7 +343,7 @@ class Segmentation:
     # This currently isn't used and doesn't mean anything. In few places code
     # relating to time periods or time formats is included from normits_core but
     # never used.
-    _time_period_segment_name = "tp3"
+    _time_period_segment_name = "tp"
 
     def __init__(self, config: SegmentationInput):
         self.input = config
@@ -178,6 +389,14 @@ class Segmentation:
     def seg_vals(self):
         """Return all segmentation values."""
         return [seg.values.keys() for seg in self.segments]
+
+    def get_segment_values(self, segment: str) -> list[int]:
+        """Get list of values for segment, checks for subsets."""
+        if segment in self.input.subsets:
+            return self.input.subsets[segment].copy()
+        if segment in self.seg_dict:
+            return self.seg_dict[segment].int_values
+        raise KeyError(f"{segment} segment not found in segmentation")
 
     def lookup_ind(self):
         """Produce an index from the lookups of the segments."""
@@ -790,14 +1009,13 @@ class Segmentation:
                     out_seg.subsets.update({key: val})
         return Segmentation(out_seg)
 
-    def generate_slice_name(self, slice_params: dict[str, int]) -> str:
+    def generate_slice_name(self, slice_: SegmentationSlice) -> str:
         """Generate name for a slice of the segmentation from parameters.
 
         Parameters
         ----------
-        slice_params : dict[str, int]
-            Parameters to generate name from, this must contain a value
-            for all segments in the segmentation e.g. {"p": 1, "m": 3}.
+        slice_ : SegmentationSlice
+            Parameters to generate name from.
 
         Returns
         -------
@@ -806,32 +1024,13 @@ class Segmentation:
             "{name}{value}_{name 2}{value 2}" e.g. "p1_m3", where name
             is the segment alias if it has one. The order of the
             parameters is defined by the segmentation `naming_order`.
-
-        Raises
-        ------
-        KeyError
-            If any segments aren't provided in `slice_params`.
         """
-        slice_parts = []
-        missing = []
+        return slice_.generate_name(self.seg_dict)
 
-        for name in self.naming_order:
-            segment = self.get_segment(name)
-            try:
-                value = slice_params[name]
-            except KeyError:
-                missing.append(name)
-                continue
-
-            slice_parts.append(f"{segment.get_alias()}{value}")
-
-        if len(missing) > 0:
-            raise KeyError(f"missing segments when generating name: {', '.join(missing)}")
-
-        return "_".join(slice_parts)
-
-    def iter_slices(self, filter_: dict[str, int] | None = None) -> Iterator[dict[str, int]]:
-        """Iterate through parameters for all segmentation slcies.
+    def iter_slices(
+        self, filter_: dict[str, int] | None = None
+    ) -> Iterator[SegmentationSlice]:
+        """Iterate through parameters for all segmentation slices.
 
         Parameters
         ----------
@@ -842,10 +1041,10 @@ class Segmentation:
 
         Yields
         ------
-        dict[str, int]
+        SegmentationSlice
             Parameters for an individual slice.
         """
-        slices = self.ind().to_frame(index=False)
+        slices: pd.DataFrame = self.ind().to_frame(index=False)
 
         if filter_ is not None:
             if not set(filter_) <= set(self.names):
@@ -867,45 +1066,10 @@ class Segmentation:
 
         params: NamedTuple
         for params in slices.itertuples(index=False):
-            yield params._asdict()
+            yield SegmentationSlice(params._asdict())
 
-    def generate_slice_tuple(self, slice_params: dict[str, int]) -> tuple[int, ...]:
-        """Generate segment tuple from parameters.
-
-        Parameters
-        ----------
-        slice_params : dict[str, int]
-            Parameters to generate tuple from, this must contain a value
-            for all segments in the segmentation e.g. {"p": 1, "m": 3}.
-
-        Returns
-        -------
-        tuple[int, ...]
-            Values of slice parameters, the order of the
-            parameters is defined by the segmentation `naming_order`.
-
-        Raises
-        ------
-        KeyError
-            If any segments aren't provided in `slice_params`.
-        """
-        slice_parts = []
-        missing = []
-
-        for name in self.naming_order:
-            try:
-                slice_parts.append(slice_params[name])
-            except KeyError:
-                missing.append(name)
-                continue
-
-        if len(missing) > 0:
-            raise KeyError(f"missing segments when generating tuple: {', '.join(missing)}")
-
-        return tuple(slice_parts)
-
-    def convert_slice_tuple(self, slice_tuple: tuple[int, ...]) -> dict[str, int]:
-        """Convert a segmentation slice tuple into parameters.
+    def convert_slice_tuple(self, slice_tuple: tuple[int, ...]) -> SegmentationSlice:
+        """Convert a segmentation slice tuple into SegmentationSlice.
 
         Parameters
         ----------
@@ -914,23 +1078,21 @@ class Segmentation:
 
         Returns
         -------
-        dict[str, int]
-            Slice parameters with names of segment (key) and
-            value for that segment.
+        SegmentationSlice
+            Slice parameters.
 
         Raises
         ------
         ValueError
             If the tuple given doesn't have the expected number of values.
-        """
-        if len(slice_tuple) != len(self.naming_order):
-            raise ValueError(
-                f"slice tuple should contain {len(self.naming_order)}"
-                f" values but contains {len(slice_tuple)} values"
-            )
-        return dict(zip(self.naming_order, slice_tuple))
 
-    def convert_slice_name(self, name: str) -> dict[str, int]:
+        See Also
+        --------
+        SegmentationSlice.from_tuple : Method to convert a tuple into a SegmentationSlice.
+        """
+        return SegmentationSlice.from_tuple(slice_tuple, self.naming_order)
+
+    def convert_slice_name(self, name: str) -> SegmentationSlice:
         """Convert segmentation slice name into parameters.
 
         Parameters
@@ -940,8 +1102,8 @@ class Segmentation:
 
         Returns
         -------
-        dict[str, int]
-            Parameters for the slice e.g. {"p": 1, "m": 3}.
+        SegmentationSlice
+            Parameters for the slice.
 
         Raises
         ------
@@ -955,7 +1117,7 @@ class Segmentation:
 
         for nm in self.naming_order:
             segment = self.get_segment(nm)
-            matched = re.findall(rf"(?:\b|_){segment.get_alias()}(\d+)(?:\b|_)", name)
+            matched = segment.extract_values(name)
 
             if len(matched) == 0:
                 if segment.alias is not None:
@@ -966,27 +1128,32 @@ class Segmentation:
             if len(matched) > 1:
                 raise ValueError(f"found multiple values for {nm} segment in '{name}'")
 
-            params[nm] = int(matched[0])
+            params[nm] = matched[0]
 
         if len(missing) > 0:
             raise KeyError(
                 f"missing segments when generating params from name: {', '.join(missing)}"
             )
 
-        return params
+        return SegmentationSlice(params)
 
     def find_files(
         self, folder: Path, template: str, suffixes: collections.abc.Sequence[str]
-    ) -> dict[tuple[int, ...], Path]:
+    ) -> dict[SegmentationSlice, Path]:
         """Find files split by segmentation in given `folder`.
+
+        Checks if files exist with the generated filename and if
+        any are missing performs more in-depth search to find them.
+        In-depth search finds all files in `folder` and checks
+        if the filename contains all required segment parameters.
 
         Parameters
         ----------
         folder : Path
             Folder to search within, doesn't look in sub-folders.
         template : str
-            Template for filenames, will be formatted with the segment
-            name so should contain "{segment_name}". File extension shouldn't
+            Template for filenames, will be formatted with the slice
+            name so should contain "{slice_name}". File extension shouldn't
             be included e.g "test" instead of "test.csv".
         suffixes : collections.abc.Sequence[str]
             File extensions (suffixes) to search for, will find the first
@@ -994,37 +1161,124 @@ class Segmentation:
 
         Returns
         -------
-        dict[tuple[int, ...], Path]
+        dict[SegmentationSlice, Path]
             Files found for each slice (value), with the
-            slice parameters tuple (key).
+            slice parameters (key).
 
         Raises
         ------
         FileNotFoundError
             If a file cannot be found for all possible segments.
+        FileExistsError
+            If multiple files are found for the same slice when performing
+            more in-depth search.
+
+        Warns
+        -----
+        RuntimeWarning
+            If any additional unexpected files are found during the
+            in-depth search.
         """
-        missing = []
+        missing = {}
         filepaths = {}
         for params in self.iter_slices():
             name = self.generate_slice_name(params)
-            filename = template.format(segment_name=name)
+            filename = template.format(slice_name=name)
 
             try:
                 path = ctk.io.find_file_with_name(folder, filename, suffixes)
             except FileNotFoundError:
-                missing.append(filename)
+                missing[params] = filename
                 continue
 
-            filepaths[self.generate_slice_tuple(params)] = path
+            filepaths[params] = path
 
+        if len(missing) == 0:
+            return filepaths
+        warnings.warn(
+            f"Found {len(filepaths)} ({len(filepaths) / len(self):.0%}) files,"
+            f" {len(missing)} missing, with initial search. Performing in-depth search.",
+            RuntimeWarning,
+        )
+
+        # Find any other files in the folder and attempt to parse the name to see
+        # if they match the missing slices
+        for path in folder.iterdir():
+            if not path.is_file():
+                continue
+            if "".join(path.suffixes) not in suffixes:
+                continue
+            if path in filepaths.values():
+                continue
+
+            try:
+                slice_ = self.convert_slice_name(path.stem)
+            except (ValueError, KeyError) as exc:
+                warnings.warn(
+                    f"Found unexpected file while searching: {path}\n{exc}", RuntimeWarning
+                )
+                continue
+
+            if slice_ in filepaths:
+                raise FileExistsError(
+                    f"found multiple files for {slice_}: '{path.name}' and '{filepaths[slice_]}'"
+                )
+
+            if slice_ in missing:
+                filepaths[slice_] = path
+                missing.pop(slice_)
+            else:
+                warnings.warn(f"Found unexpected file while searching: {path}", RuntimeWarning)
+
+        if len(missing) == 0:
+            return filepaths
+
+        missing_names = ", ".join(f"'{i}'" for i in missing.values())
+        raise FileNotFoundError(
+            f"missing {len(missing)} ({len(missing) / len(self):.0%})"
+            f' files from "{folder}": {missing_names}'
+        )
+
+    def validate_slice(
+        self, slice_: SegmentationSlice, fix_order: bool = False
+    ) -> SegmentationSlice:
+        """Validate slice contains expected segments, and no extra.
+
+        Parameters
+        ----------
+        slice_
+            Segmentation slice for validation.
+        fix_order
+            If True will return a copy of the slice_ with fixed naming
+            order instead of raising an error, default is False.
+
+        Raises
+        ------
+        ValueError
+            If segments are missing, extra segments are found or
+            naming order is different.
+        """
+        missing = list(filter(lambda x: x not in slice_, self.seg_dict))
         if len(missing) > 0:
-            missing_names = ", ".join(f"'{i}'" for i in missing)
-            raise FileNotFoundError(
-                f"missing {len(missing)} ({len(missing) / len(self):.0%})"
-                f" files: {missing_names}"
+            raise ValueError(
+                f"{len(missing)} segments missing from slice: {', '.join(missing)}"
             )
 
-        return filepaths
+        extra = list(filter(lambda x: x not in self.seg_dict, slice_.data))
+        if len(extra) > 0:
+            raise ValueError(
+                f"{len(extra)} segments in slice but not segmentation: {', '.join(extra)}"
+            )
+
+        if slice_.naming_order != self.naming_order:
+            if not fix_order:
+                raise ValueError(
+                    "slice naming order is incorrect got "
+                    f"{slice_.naming_order} but expected {self.naming_order}"
+                )
+            return SegmentationSlice(slice_.data, self.naming_order.copy())
+
+        return slice_
 
 
 # # # FUNCTIONS # # #

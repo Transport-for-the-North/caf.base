@@ -18,11 +18,7 @@ import pandas as pd
 import pytest
 
 # Local Imports
-# pylint: disable=import-error,wrong-import-position
-# Local imports here
 from caf.base import segmentation, zoning
-
-# pylint: enable=import-error,wrong-import-position
 
 
 # # # CONSTANTS # # #

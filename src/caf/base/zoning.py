@@ -698,7 +698,7 @@ class ZoningSystem:
         return ZoningSystem(
             name=self.name,
             unique_zones=self._zones.copy().reset_index(),
-            metadata=self.metadata.copy(),
+            metadata=self.metadata.model_copy(),
         )
 
     def translate(
