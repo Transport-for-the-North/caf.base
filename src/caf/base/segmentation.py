@@ -70,7 +70,8 @@ class SegmentationInput(BaseConfig):
     naming_order: list[str]
     custom_segments: list[Segment] = pydantic.Field(default_factory=list)
     subsets: dict[str, list[int]] = pydantic.Field(default_factory=dict)
-
+    # pylint doesn't seem to understand pydantic default fields
+    # pylint: disable=not-an-iterable,no-member
     @pydantic.model_validator(mode="after")
     def no_copied_names(self):
         """Validate the custom_segments do not clash with existing segments."""
@@ -109,6 +110,8 @@ class SegmentationInput(BaseConfig):
                     f"{seg} is not a valid segment  " ", and so can't be a subset value."
                 )
         return self
+
+    # pylint: enable=not-an-iterable,no-member
 
 
 class Segmentation:
