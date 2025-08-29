@@ -72,8 +72,7 @@ class SegmentationInput(BaseConfig):
     subsets: dict[str, list[int]] = pydantic.Field(default_factory=dict)
 
     @pydantic.model_validator(mode="after")
-    @classmethod
-    def no_copied_names(cls, values):
+    def no_copied_names(self, values):
         """Validate the custom_segments do not clash with existing segments."""
         if "custom_segments" not in values:
             return values
@@ -92,8 +91,7 @@ class SegmentationInput(BaseConfig):
         return values
 
     @pydantic.model_validator(mode="after")
-    @classmethod
-    def names_match_segments(cls, values):
+    def names_match_segments(self, values):
         """Validate that naming order names match segment names."""
         v = values.naming_order
         seg_names = [i.value for i in values.enum_segments]
@@ -106,8 +104,7 @@ class SegmentationInput(BaseConfig):
         return values
 
     @pydantic.model_validator(mode="after")
-    @classmethod
-    def enums(cls, values):
+    def enums(self, values):
         """Validate the subsets match segments."""
         if len(values.subsets) == 0:
             return values
