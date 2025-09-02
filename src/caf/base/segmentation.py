@@ -559,10 +559,14 @@ class Segmentation:
                     SegmentationWarning,
                 )
                 # Define the read subset in the generated config
-                if len(conf.subsets) > 0:
-                    conf.subsets.update({name: list(read_level)})
+                if name in conf.enum_segments:
+                    if len(conf.subsets) > 0:
+                        conf.subsets.update({name: list(read_level)})
+                    else:
+                        conf.subsets = {name: list(read_level)}
                 else:
-                    conf.subsets = {name: list(read_level)}
+                    raise SegmentationError(f"{name} segment does not match "
+                                            f"the data.")
             # Not a subset so doesn't match completely
             else:
                 raise ValueError(
