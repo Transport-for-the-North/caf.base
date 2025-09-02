@@ -276,9 +276,8 @@ class SegmentationInput(BaseConfig):
         The naming order of the segments. This primarily affects the index
         order of the multi-index formed from the segmentation.
     """
-
-    enum_segments: list[SegmentsSuper]
     naming_order: list[str]
+    enum_segments: list[SegmentsSuper] = pydantic.Field(default_factory=list)
     custom_segments: list[Segment] = pydantic.Field(default_factory=list)
     subsets: dict[str, list[int]] = pydantic.Field(default_factory=dict)
 

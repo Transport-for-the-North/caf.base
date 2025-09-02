@@ -339,13 +339,8 @@ class SegmentsSuper(enum.Enum):
     """
 
     PURPOSE = "p"
-    PURPOSE_HB = "p_hb"
-    PURPOSE_NHB = "p_nhb"
     TIMEPERIOD = "tp"
-    TIMEPERIOD_RETURN = "tp_return"
     MODE = "m"
-    MODE_HB = "m_hb"
-    MODE_NHB = "m_nhb"
     GENDER = "g"
     SOC = "soc"
     SIC = "sic"
