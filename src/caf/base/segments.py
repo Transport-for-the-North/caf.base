@@ -260,7 +260,7 @@ class Segment(BaseConfig):
             name_1, name_2 = name_2, name_1
         lookup = pd.read_csv(
             lookup_dir / f"{name_1}_to_{name_2}.csv", index_col=0, usecols=[0, 1]
-        )
+        ).squeeze()
         return new_seg, lookup
 
     def translate_exclusion(self, new_seg: str):
