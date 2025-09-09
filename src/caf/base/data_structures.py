@@ -542,20 +542,19 @@ class DVector:
         if "." not in out_path.name:
             out_path = out_path.with_suffix(".dvec")
 
-        # Columns can be object type which causes errors - only observed errors in save method
-        # so applied here not in the validation section as it can take a few seconds to run.
-        self.data = self.data.apply(
+        if self.zoning_system is not None:
+            # Columns can be object type which causes errors - only observed errors in save method
+            # so applied here not in the validation section as it can take a few seconds to run.
+            self.data = self.data.apply(
             lambda col: pd.to_numeric(col, errors="coerce") if col.dtype == "object" else col
         )
-
-        self._data.to_hdf(out_path, key="data", mode="w", complevel=1, format="fixed")
-        if self.zoning_system is not None:
             if isinstance(self.zoning_system, Sequence):
                 for zone in self.zoning_system:
                     zone.save(out_path, mode="hdf")
             else:
                 self.zoning_system.save(out_path, "hdf")
         self.segmentation.save(out_path, "hdf")
+        self._data.to_hdf(out_path, key="data", mode="w", complevel=1, format="fixed")
 
     @classmethod
     def load(cls, in_path: PathLike, cut_read: bool = False):
