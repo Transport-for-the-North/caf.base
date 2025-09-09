@@ -2529,6 +2529,50 @@ class DVector:
 
         return self._data[mask].sum()
 
+    from typing import Dict
+
+    def rename_segment(self, mapping: Dict[str, str]) -> cb.DVector:
+        """
+        Rename segments in both the segmentation definition and the associated data.
+
+        Parameters
+        ----------
+        mapping : dict[str, str]
+            A dictionary mapping old segment names (keys) to new segment names (values).
+
+        Returns
+        -------
+        cb.DVector
+
+        """
+        segmentation_ = self.segmentation
+        custom_segment = [seg.name for seg in segmentation_.input.custom_segments]
+        enum_segment = [seg.value for seg in segmentation_.input.enum_segments]
+
+        dvec_data = self.data.copy()
+        dvec_data.index = dvec_data.index.set_names(mapping)
+
+        subsets = {}
+        for old, new in mapping.items():
+            if old in custom_segment:
+                seg = segmentation_.get_segment(old)
+                subsets[new] = list(seg.values.keys())
+                segmentation_ = segmentation_.add_segment(new, subsets)
+
+            if old in enum_segment:
+                seg = segmentation_.get_segment(old).copy()
+                seg.name = new
+                segmentation_ = segmentation_.add_segment(seg, subsets)
+
+            segmentation_ = segmentation_.remove_segment(old)
+
+        return cb.DVector(
+            segmentation=segmentation_,
+            import_data=dvec_data,
+            zoning_system=dvec.zoning_system
+        )
+
+
 
 class _Config:
     """Config for pydantic."""
