@@ -276,6 +276,7 @@ class SegmentationInput(BaseConfig):
         The naming order of the segments. This primarily affects the index
         order of the multi-index formed from the segmentation.
     """
+
     naming_order: list[str]
     enum_segments: list[SegmentsSuper] = pydantic.Field(default_factory=list)
     custom_segments: list[Segment] = pydantic.Field(default_factory=list)
@@ -565,8 +566,7 @@ class Segmentation:
                     else:
                         conf.subsets = {name: list(read_level)}
                 else:
-                    raise SegmentationError(f"{name} segment does not match "
-                                            f"the data.")
+                    raise SegmentationError(f"{name} segment does not match " f"the data.")
             # Not a subset so doesn't match completely
             else:
                 raise ValueError(
