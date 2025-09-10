@@ -560,7 +560,7 @@ class Segmentation:
                     SegmentationWarning,
                 )
                 # Define the read subset in the generated config
-                if name in conf.enum_segments:
+                if name in [seg.value for seg in conf.enum_segments]:
                     if len(conf.subsets) > 0:
                         conf.subsets.update({name: list(read_level)})
                     else:
