@@ -2536,7 +2536,7 @@ class DVector:
 
     from typing import Dict
 
-    def rename_segment(self, mapping: Dict[str, str]) -> cb.DVector:
+    def rename_segment(self, mapping: Dict[str, str]) -> DVector:
         """
         Rename segments in both the segmentation definition and the associated data.
 
@@ -2571,10 +2571,10 @@ class DVector:
 
             segmentation_ = segmentation_.remove_segment(old)
 
-        return cb.DVector(
+        return DVector(
             segmentation=segmentation_,
             import_data=dvec_data,
-            zoning_system=dvec.zoning_system
+            zoning_system=self.zoning_system
         )
 
 
