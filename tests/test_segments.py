@@ -99,6 +99,16 @@ class TestSegmentsSuper:
     def test_get_subset(self, get_hb_purpose, expected_hb_purpose):
         assert get_hb_purpose == expected_hb_purpose
 
+    @pytest.mark.parametrize("name, expected", [
+        ("p", segments.SegmentsSuper.PURPOSE),
+        ("UserClass ", segments.SegmentsSuper.USERCLASS),
+        ("Age   11 ", segments.SegmentsSuper.AGE_11),
+
+    ])
+    def test_valid_init(self, name: str, expected: segments.SegmentsSuper):
+        """Test getting segment from valid strings."""
+        assert segments.SegmentsSuper(name) == expected
+
 
 ##### Tests & Fixtures for `Segment` #####
 
