@@ -5,7 +5,7 @@
 import enum
 import re
 from pathlib import Path
-from typing import Optional
+from typing import Optional, Self
 
 # Third Party
 import pandas as pd
@@ -409,6 +409,19 @@ class SegmentsSuper(enum.Enum):
             if seg is not None:
                 seg.values = {i: j for i, j in seg.values.items() if i in subset}
         return seg
+
+    @classmethod
+    def _missing_(cls, value) -> Self:
+        """Normalise value and compare to segments."""
+        original = value
+        value = str(value).strip().lower()
+        value = re.sub(r"\s+", "_", value)
+
+        for i in cls:
+            if i.value == value:
+                return i
+
+        raise ValueError(f"invalid SegmentsSuper: {original!r}")
 
 
 class SegConverter(enum.Enum):
