@@ -123,6 +123,8 @@ add-ignore = [
 addopts = "--cov=caf.base --cov-report=xml --doctest-modules -n auto"
 doctest_optionflags = "NORMALIZE_WHITESPACE"
 pythonpath = "src"
+# Test coverage fails with src before tests
+testpaths = ["tests", "src"]
 
 [tool.coverage.run]
 omit = ["*/_version.py"]
