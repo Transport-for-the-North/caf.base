@@ -111,6 +111,10 @@ class Segment(BaseConfig):
         """Return integer values of segment."""
         return list(self.values.keys())
 
+    @property
+    def val_to_int(self):
+        return {val: int_val for int_val, val in self.values.items()}
+
     def __len__(self):
         """Return length of segment."""
         return len(self.values)

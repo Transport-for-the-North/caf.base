@@ -15,7 +15,7 @@ import itertools
 import warnings
 from os import PathLike
 from pathlib import Path
-from typing import Iterator, Literal, NamedTuple, Optional, Union
+from typing import Iterator, Literal, NamedTuple, Optional
 
 # Third Party
 import caf.toolkit as ctk
@@ -478,11 +478,11 @@ class Segmentation:
     @classmethod
     def validate_segmentation(
         cls,
-        source: Union[Path, pd.DataFrame],
+        source: pd.DataFrame,
         segmentation: Segmentation,
         escalate_warning: bool = False,
         cut_read: bool = False,
-    ) -> tuple[Segmentation, bool]:
+    ) -> tuple[Segmentation, bool, pd.DataFrame]:
         """
         Validate a segmentation from either a path to a csv, or a dataframe.
 
@@ -504,14 +504,11 @@ class Segmentation:
 
         Returns
         -------
-        Segmentation class
+        Segmentation class, bool of whether data needs be cut, and source data.
         """
         if escalate_warning:
             warnings.filterwarnings("error", category=SegmentationWarning)
-        if isinstance(source, Path):
-            df = pd.read_csv(source)
-        else:
-            df = source
+        df = source.copy()
         naming_order = segmentation.naming_order
         conf = copy.deepcopy(segmentation.input)
         if df.index.names == naming_order:
@@ -536,7 +533,7 @@ class Segmentation:
 
         # Perfect match, return segmentation with no more checks
         if read_index.equals(built_index):
-            return segmentation, False
+            return segmentation, False, df
         if not cut_read:
             if len(read_index) > len(built_index):
                 raise IndexError(
@@ -551,6 +548,17 @@ class Segmentation:
             read_level = set(read_index.get_level_values(name))
             # This level matches, check the next one
             if read_level == built_level:
+                continue
+            built_values = segmentation.get_segment(name).values
+            if read_level == set(built_values.values()):
+                # assumes values are unique to the level
+                warnings.warn(
+                    f"Level {name} of the import data's index contains "
+                    f"string values rather than ints. Renaming.",
+                    SegmentationWarning,
+                )
+                df = df.rename({j: i for i, j in built_values.items()})
+                read_index = df.index
                 continue
             # The input segmentation should have had subsets defined. warn user but allow
             if read_level.issubset(built_level):
@@ -578,12 +586,12 @@ class Segmentation:
         built_segmentation = cls(conf)
         built_index = built_segmentation.ind()
         if read_index.equals(built_index):
-            return built_segmentation, False
+            return built_segmentation, False, df
         # Still doesn't match, this is probably an exclusion error. User should check that
         # proper exclusions are defined in SegmentsSuper.
         if built_index.equals(built_index.intersection(read_index)):
             if cut_read:
-                return built_segmentation, False
+                return built_segmentation, False, df
             raise SegmentationError(
                 "Read data contains rows not in the generated segmentation. "
                 "If you want this data to simply be cut to match, set 'cut_read=True'"
@@ -594,7 +602,7 @@ class Segmentation:
                 "be defined but isn't. The data will be expanded to the expected segmenation, and "
                 "infilled with zeroes."
             )
-            return built_segmentation, True
+            return built_segmentation, True, df
         raise ValueError(
             "The read in segmentation does not match the given parameters. The segment names"
             " are correct, but segment values don't match. This could be due to an incompatibility"

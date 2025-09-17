@@ -430,7 +430,7 @@ class DVector:
 
         This requires the dataframe to be in wide format.
         """
-        seg, expand_to_read = Segmentation.validate_segmentation(
+        seg, expand_to_read, import_data = Segmentation.validate_segmentation(
             source=import_data, segmentation=self.segmentation, cut_read=self._cut_read
         )
 
