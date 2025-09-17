@@ -177,7 +177,9 @@ class SegmentationSlice:
 
         for name in self.naming_order:
             try:
-                segment = segments.get(name, SegmentsSuper(name).get_segment())
+                segment = segments.get(name)
+                if segment is None:
+                    segment = SegmentsSuper(name).get_segment()
             except ValueError as exc:
                 warnings.warn(
                     f"Could not find segment {name} in segments or"
