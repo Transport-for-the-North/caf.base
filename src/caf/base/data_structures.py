@@ -448,7 +448,7 @@ class DVector:
                 seg.ind(), axis="index", method=None
             ).sort_index()
             cut_sum = sorted_data.values.sum()
-            warnings.warn(f"{full_sum - cut_sum} dropped on seg validation.")
+            warnings.warn(f"{full_sum - cut_sum} dropped on seg validation.", stacklevel=2)
 
         if self.zoning_system is None:
             if isinstance(sorted_data, pd.DataFrame):

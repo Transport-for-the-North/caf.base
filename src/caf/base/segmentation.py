@@ -560,6 +560,7 @@ class Segmentation:
                     f"Read in level {name} is a subset of the segment. If this was not"
                     f" expected check the input segmentation.",
                     SegmentationWarning,
+                    stacklevel=2,
                 )
                 # Define the read subset in the generated config
                 if len(conf.subsets) > 0:
