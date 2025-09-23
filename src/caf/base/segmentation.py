@@ -177,7 +177,9 @@ class SegmentationSlice:
 
         for name in self.naming_order:
             try:
-                segment = segments.get(name, SegmentsSuper(name).get_segment())
+                segment = segments.get(name)
+                if segment is None:
+                    segment = SegmentsSuper(name).get_segment()
             except ValueError as exc:
                 warnings.warn(
                     f"Could not find segment {name} in segments or"
@@ -558,6 +560,7 @@ class Segmentation:
                     f"Read in level {name} is a subset of the segment. If this was not"
                     f" expected check the input segmentation.",
                     SegmentationWarning,
+                    stacklevel=2,
                 )
                 # Define the read subset in the generated config
                 if len(conf.subsets) > 0:
