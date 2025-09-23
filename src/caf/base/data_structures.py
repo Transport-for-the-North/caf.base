@@ -2595,11 +2595,8 @@ class DVector:
             segmentation_ = segmentation_.remove_segment(old)
 
         return DVector(
-            segmentation=segmentation_,
-            import_data=dvec_data,
-            zoning_system=self.zoning_system
+            segmentation=segmentation_, import_data=dvec_data, zoning_system=self.zoning_system
         )
-
 
 
 class _Config:
