@@ -2283,15 +2283,15 @@ class DVector:
         Concatenate a list of DVectors.
 
         This should be to combine dvectors containing subsets of a segment.
-        
+
         Parameters
         ----------
         dvecs: list[DVector]
-            A list of DVectors to concatenate. These must have the same zoning_system and contain 
+            A list of DVectors to concatenate. These must have the same zoning_system and contain
             the same segments (although segment order can be different).
         new_segmentation: Segmentation
             The segmentation of the returned DVector. This must match input dvecs.
-        
+
         Returns
         -------
         DVector
@@ -2302,7 +2302,7 @@ class DVector:
                 raise ZoningError("Not all dvectors have the same zoning.")
             if set(dvec.segmentation.names) != set(new_segmentation.names):
                 raise SegmentationError("Not all dvectors contain the same segments.")
-        
+
         new_data = pd.concat(
             dvec.data.reorder_levels(new_segmentation.naming_order) for dvec in dvecs
         )

@@ -41,6 +41,7 @@ class TranslationWarning(RuntimeWarning):
 class TranslationError(Exception):
     """Error related to zone zone_translation."""
 
+
 class ZoningError(Exception):
     """Error related to zoning."""
 
