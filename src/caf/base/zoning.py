@@ -28,7 +28,6 @@ from caf.base.segmentation import Segmentation, SegmentationInput
 pd.set_option("future.no_silent_downcasting", True)
 LOG = logging.getLogger(__name__)
 
-# This is temporary, and will be an environment variable
 ZONE_CACHE_HOME = Path(os.getenv("ZONE_CACHE_HOME", "I:/Data/Zoning Systems/core_zoning"))
 ZONE_TRANSLATION_CACHE = Path(
     os.environ.get("ZONE_TRANSLATION_CACHE", "I:/Data/Zone Translations/cache")
@@ -41,6 +40,9 @@ class TranslationWarning(RuntimeWarning):
 
 class TranslationError(Exception):
     """Error related to zone zone_translation."""
+
+class ZoningError(Exception):
+    """Error related to zoning."""
 
 
 # TODO(MB) Can be switched to StrEnum when support from Python 3.10 isn't required

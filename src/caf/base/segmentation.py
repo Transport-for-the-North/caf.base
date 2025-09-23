@@ -848,7 +848,8 @@ class Segmentation:
 
         Parameters
         ----------
-        new_segs: The new segmentation. All must be in the current segmentation.
+        new_segs: The new segmentation. All must be in the current segmentation. The order these are 
+        given in determine the naming order of the returned Segmentation.
         """
         custom = None
         subsets = None

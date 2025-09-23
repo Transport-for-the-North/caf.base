@@ -39,6 +39,7 @@ from caf.base.segments import SegConverter, Segment, SegmentsSuper
 from caf.base.zoning import (
     BalancingZones,
     TranslationError,
+    ZoningError,
     TranslationWeighting,
     ZoningSystem,
     ZoningSystemMetaData,
@@ -2278,11 +2279,33 @@ class DVector:
 
     @classmethod
     def concat_list(cls, dvecs: list[DVector], new_segmentation: Segmentation):
-        """Concatenate a list of DVectors."""
+        """
+        Concatenate a list of DVectors.
+
+        This should be to combine dvectors containing subsets of a segment.
+        
+        Parameters
+        ----------
+        dvecs: list[DVector]
+            A list of DVectors to concatenate. These must have the same zoning_system and contain 
+            the same segments (although segment order can be different).
+        new_segmentation: Segmentation
+            The segmentation of the returned DVector. This must match input dvecs.
+        
+        Returns
+        -------
+        DVector
+        """
+        zoning = dvecs[0].zoning_system
+        for dvec in dvecs[1:]:
+            if dvec.zoning_system != zoning:
+                raise ZoningError("Not all dvectors have the same zoning.")
+            if set(dvec.segmentation.names) != set(new_segmentation.names):
+                raise SegmentationError("Not all dvectors contain the same segments.")
+        
         new_data = pd.concat(
             dvec.data.reorder_levels(new_segmentation.naming_order) for dvec in dvecs
         )
-        zoning = dvecs[0].zoning_system
         del dvecs
         return cls(import_data=new_data, zoning_system=zoning, segmentation=new_segmentation)
 
