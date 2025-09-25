@@ -1,4 +1,5 @@
 """Package description."""
+
 # ruff noqa:F401
 from caf.base import data_structures, segmentation, segments, zoning
 from caf.base.data_structures import DVector

@@ -39,8 +39,8 @@ from caf.base.segments import SegConverter, Segment, SegmentsSuper
 from caf.base.zoning import (
     BalancingZones,
     TranslationError,
-    ZoningError,
     TranslationWeighting,
+    ZoningError,
     ZoningSystem,
     ZoningSystemMetaData,
     normalise_column_name,
@@ -2557,6 +2557,7 @@ class DVector:
 
         return self._data[mask].sum()
 
+    # Built-Ins
     from typing import Dict
 
     def rename_segment(self, mapping: Dict[str, str]) -> DVector:
