@@ -40,6 +40,7 @@ from caf.base.zoning import (
     BalancingZones,
     TranslationError,
     TranslationWeighting,
+    ZoningError,
     ZoningSystem,
     ZoningSystemMetaData,
     normalise_column_name,
@@ -483,7 +484,7 @@ class DVector:
         else:
             if set(sorted_data.columns) != set(self.zoning_system.zone_ids):
                 column_lookup = self._fix_zoning(sorted_data.columns, self.zoning_system)
-                if column_lookup is not False:
+                if column_lookup is not None:
                     sorted_data.rename(columns=column_lookup, inplace=True)
             sorted_data.columns.name = self.zoning_system.column_name
 
@@ -495,8 +496,6 @@ class DVector:
             temp = sorted_data.T
             temp.index = temp.index.map(lambda x: tuple(int(i) for i in x))
             sorted_data = temp.T
-        else:
-            sorted_data.columns = sorted_data.columns.astype(int)
 
         return sorted_data, seg
 
@@ -544,13 +543,23 @@ class DVector:
         if "." not in out_path.name:
             out_path = out_path.with_suffix(".dvec")
 
-        self._data.to_hdf(out_path, key="data", mode="w", complevel=1)
         if self.zoning_system is not None:
+            # Columns can be object type which causes errors - only observed errors in save method
+            # so applied here not in the validation section as it can take a few seconds to run.
+            self.data = self.data.apply(
+                lambda col: (
+                    pd.to_numeric(col, errors="coerce") if col.dtype == "object" else col
+                )
+            )
+            self._data.to_hdf(out_path, key="data", mode="w", complevel=1, format="fixed")
             if isinstance(self.zoning_system, Sequence):
                 for zone in self.zoning_system:
                     zone.save(out_path, mode="hdf")
             else:
                 self.zoning_system.save(out_path, "hdf")
+        else:
+            self._data.to_hdf(out_path, key="data", mode="w", complevel=1, format="fixed")
+
         self.segmentation.save(out_path, "hdf")
 
     @classmethod
@@ -1330,7 +1339,9 @@ class DVector:
             splitting_data = other.aggregate_comp_zones(agg_zone) / (
                 other.aggregate(common).aggregate_comp_zones(agg_zone)
             )
-            return self * splitting_data
+            with warnings.catch_warnings():
+                warnings.simplefilter("ignore", category=SegmentationWarning)
+                return self * splitting_data
 
         if other.zoning_system != self.zoning_system:
             raise ValueError(
@@ -1338,9 +1349,7 @@ class DVector:
                 "of the same zoning as 'self'."
             )
 
-        other_grouped_data = other.data.groupby(level=common).sum()
-
-        splitting_data = other.data / other_grouped_data
+        other_grouped = other.aggregate(common)
 
         if isinstance(self.zoning_system, ZoningSystem) & isinstance(
             other.zoning_system, ZoningSystem
@@ -1348,49 +1357,56 @@ class DVector:
             # mypy
             assert isinstance(self.zoning_system, ZoningSystem)
             assert isinstance(other.zoning_system, ZoningSystem)
-            translation = self.zoning_system.translate(agg_zone)
-            if not (
-                translation[self.zoning_system.translation_column_name(agg_zone)] == 1
-            ).all():
-                raise TranslationError(
-                    "Current zoning must nest perfectly within agg_zone, "
-                    "i.e. all factors should be 1. The retrieved zone_translation "
-                    "has non-one factors. If this should not be the case "
-                    "double check the zone_translation."
+            if agg_zone != other.zoning_system:
+                translation = self.zoning_system.translate(agg_zone)
+                if not (
+                    translation[self.zoning_system.translation_column_name(agg_zone)] == 1
+                ).all():
+                    raise TranslationError(
+                        "Current zoning must nest perfectly within agg_zone, "
+                        "i.e. all factors should be 1. The retrieved zone_translation "
+                        "has non-one factors. If this should not be the case "
+                        "double check the zone_translation."
+                    )
+                translation_dict = translation.set_index(self.zoning_system.column_name)[
+                    agg_zone.column_name
+                ].to_dict()
+                translated_grouped = (
+                    other_grouped.datadata.rename(columns=translation_dict)
+                    .groupby(level=0, axis=1)
+                    .sum()
                 )
-            translation_dict = translation.set_index(self.zoning_system.column_name)[
-                agg_zone.column_name
-            ].to_dict()
-            translated_grouped = (
-                other_grouped_data.rename(columns=translation_dict)
-                .groupby(level=0, axis=1)
-                .sum()
-            )
-            translated_ungrouped = (
-                other.data.rename(columns=translation_dict).groupby(level=0, axis=1).sum()
-            )
-            # factors at common segmentation and agg zoning
-            translated = translated_ungrouped / translated_grouped
-            # Translate zoning back to DVec zoning to apply to DVector
-            splitting_data = ctk.translation.pandas_vector_zone_translation(
-                vector=translated.T,
-                translation=translation,
-                translation_from_col=agg_zone.column_name,
-                translation_to_col=self.zoning_system.column_name,
-                translation_factors_col=self.zoning_system.translation_column_name(agg_zone),
-            ).T
+                translated_ungrouped = (
+                    other.data.rename(columns=translation_dict).groupby(level=0, axis=1).sum()
+                )
+                # factors at common segmentation and agg zoning
+                translated = translated_ungrouped / translated_grouped
+                # Translate zoning back to DVec zoning to apply to DVector
+                splitting_data = ctk.translation.pandas_vector_zone_translation(
+                    vector=translated.T,
+                    translation=translation,
+                    translation_from_col=agg_zone.column_name,
+                    translation_to_col=self.zoning_system.column_name,
+                    translation_factors_col=self.zoning_system.translation_column_name(
+                        agg_zone
+                    ),
+                ).T
+                splitting_dvec = DVector(
+                    import_data=splitting_data,
+                    segmentation=other.segmentation,
+                    zoning_system=other.zoning_system,
+                    time_format=other.time_format,
+                    val_col=other.val_col,
+                    low_memory=other.low_memory,
+                    cut_read=self._cut_read,
+                )
+            else:
+                splitting_dvec = other / other_grouped
 
         # Put splitting factors into DVector to apply
-        splitting_dvec = DVector(
-            import_data=splitting_data,
-            segmentation=other.segmentation,
-            zoning_system=other.zoning_system,
-            time_format=other.time_format,
-            val_col=other.val_col,
-            low_memory=other.low_memory,
-            cut_read=self._cut_read,
-        )
-        return self * splitting_dvec
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore", category=SegmentationWarning)
+            return self * splitting_dvec
 
     def add_segments(
         self,
@@ -1608,11 +1624,11 @@ class DVector:
         if isinstance(segment_values, int):
             new_seg = new_seg.remove_segment(segment_name)
         else:
-            new_seg = new_seg.update_subsets({segment_name: segment_values})
+            new_seg.input.subsets[segment_name] = segment_values
 
         return DVector(
             import_data=new_data,
-            segmentation=new_seg,
+            segmentation=new_seg.reinit(),
             zoning_system=self.zoning_system,
             time_format=self.time_format,
             val_col=self.val_col,
@@ -1768,6 +1784,8 @@ class DVector:
                     trans_vector=target.zone_translation,
                     _bypass_validation=True,
                 )
+            if target.data.zoning_system is None:
+                check = check.remove_zoning()
             if target.segment_translations is not None:
                 for seg in target.data.segmentation - self.segmentation:
                     seg = seg.name
@@ -1972,12 +1990,14 @@ class DVector:
                         trans_vector=target.zone_translation,
                         _bypass_validation=bypass,
                     )
+                if target.data.zoning_system is None:
+                    agg = agg.remove_zoning()
                 factor = target.data.__truediv__(agg, _bypass_validation=bypass)
                 factor.fillna(0)
                 if (factor.data.values == np.inf).any():
                     factor.fill(np.inf, 0)
 
-                if target.zoning_diff:
+                if (target.zoning_diff is not None) & (target.data.zoning_system is not None):
                     factor = factor.translate_zoning(
                         self.zoning_system,
                         trans_vector=target.zone_translation,
@@ -2257,6 +2277,38 @@ class DVector:
             other_sum = other
         return math.isclose(self.sum(), other_sum, rel_tol=rel_tol, abs_tol=abs_tol)
 
+    @classmethod
+    def concat_list(cls, dvecs: list[DVector], new_segmentation: Segmentation):
+        """
+        Concatenate a list of DVectors.
+
+        This should be to combine dvectors containing subsets of a segment.
+
+        Parameters
+        ----------
+        dvecs: list[DVector]
+            A list of DVectors to concatenate. These must have the same zoning_system and contain
+            the same segments (although segment order can be different).
+        new_segmentation: Segmentation
+            The segmentation of the returned DVector. This must match input dvecs.
+
+        Returns
+        -------
+        DVector
+        """
+        zoning = dvecs[0].zoning_system
+        for dvec in dvecs[1:]:
+            if dvec.zoning_system != zoning:
+                raise ZoningError("Not all dvectors have the same zoning.")
+            if set(dvec.segmentation.names) != set(new_segmentation.names):
+                raise SegmentationError("Not all dvectors contain the same segments.")
+
+        new_data = pd.concat(
+            dvec.data.reorder_levels(new_segmentation.naming_order) for dvec in dvecs
+        )
+        del dvecs
+        return cls(import_data=new_data, zoning_system=zoning, segmentation=new_segmentation)
+
     def concat(self, other: DVector):
         """
         Analogous to pandas dataframe concat method.
@@ -2403,8 +2455,9 @@ class DVector:
             raise TypeError("Self and other must both have single zone systems.")
         if balancing_zones is None:
             # Zone agnostic, just making sure DVectors matched along common segments
-            factor = other.data.sum(axis=1) / self.data.sum(axis=1)
-            balanced = self.data * factor
+            factor = other.remove_zoning() / self.remove_zoning()
+            balanced = self * factor
+            return balanced
         elif isinstance(balancing_zones, ZoningSystem):
             factors = self._balance_zones_internal(
                 self.data, self.zoning_system, other.data, other.zoning_system, balancing_zones
@@ -2503,6 +2556,48 @@ class DVector:
             mask = mask & (self._data.index.get_level_values(nm) == value)
 
         return self._data[mask].sum()
+
+    # Built-Ins
+    from typing import Dict
+
+    def rename_segment(self, mapping: Dict[str, str]) -> DVector:
+        """
+        Rename segments in both the segmentation definition and the associated data.
+
+        Parameters
+        ----------
+        mapping : dict[str, str]
+            A dictionary mapping old segment names (keys) to new segment names (values).
+
+        Returns
+        -------
+        cb.DVector
+
+        """
+        segmentation_ = self.segmentation
+        custom_segment = [seg.name for seg in segmentation_.input.custom_segments]
+        enum_segment = [seg.value for seg in segmentation_.input.enum_segments]
+
+        dvec_data = self.data.copy()
+        dvec_data.index = dvec_data.index.set_names(mapping)
+
+        subsets = {}
+        for old, new in mapping.items():
+            if old in custom_segment:
+                seg = segmentation_.get_segment(old)
+                subsets[new] = list(seg.values.keys())
+                segmentation_ = segmentation_.add_segment(new, subsets)
+
+            if old in enum_segment:
+                seg = segmentation_.get_segment(old).copy()
+                seg.name = new
+                segmentation_ = segmentation_.add_segment(seg, subsets)
+
+            segmentation_ = segmentation_.remove_segment(old)
+
+        return DVector(
+            segmentation=segmentation_, import_data=dvec_data, zoning_system=self.zoning_system
+        )
 
 
 class _Config:

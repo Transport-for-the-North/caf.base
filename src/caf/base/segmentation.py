@@ -279,8 +279,8 @@ class SegmentationInput(BaseConfig):
         order of the multi-index formed from the segmentation.
     """
 
-    enum_segments: list[SegmentsSuper]
     naming_order: list[str]
+    enum_segments: list[SegmentsSuper] = pydantic.Field(default_factory=list)
     custom_segments: list[Segment] = pydantic.Field(default_factory=list)
     subsets: dict[str, list[int]] = pydantic.Field(default_factory=dict)
 
@@ -563,10 +563,13 @@ class Segmentation:
                     stacklevel=2,
                 )
                 # Define the read subset in the generated config
-                if len(conf.subsets) > 0:
-                    conf.subsets.update({name: list(read_level)})
+                if name in [seg.value for seg in conf.enum_segments]:
+                    if len(conf.subsets) > 0:
+                        conf.subsets.update({name: list(read_level)})
+                    else:
+                        conf.subsets = {name: list(read_level)}
                 else:
-                    conf.subsets = {name: list(read_level)}
+                    raise SegmentationError(f"{name} segment does not match " f"the data.")
             # Not a subset so doesn't match completely
             else:
                 raise ValueError(
@@ -798,9 +801,11 @@ class Segmentation:
                     i for i in full.int_values if i not in other.input.subsets[name]
                 ]
             elif self.input.subsets[name] != other.input.subsets[name]:
-                missing_other[name] = [
+                missing_list = [
                     i for i in self.input.subsets[name] if i not in other.input.subsets[name]
                 ]
+                if len(missing_list) > 0:
+                    missing_other[name] = missing_list
         missing_self = {}
         for name in self_subsets:
             full = SegmentsSuper(name).get_segment()
@@ -809,9 +814,11 @@ class Segmentation:
                     i for i in full.int_values if i not in self.input.subsets[name]
                 ]
             elif self.input.subsets[name] != other.input.subsets[name]:
-                missing_self[name] = [
+                missing_list = [
                     i for i in other.input.subsets[name] if i not in self.input.subsets[name]
                 ]
+                if len(missing_list) > 0:
+                    missing_self[name] = missing_list
         return missing_self, missing_other
 
     def is_subset(self, other: Segmentation):
@@ -844,7 +851,8 @@ class Segmentation:
 
         Parameters
         ----------
-        new_segs: The new segmentation. All must be in the current segmentation.
+        new_segs: The new segmentation. All must be in the current segmentation. The order these are
+        given in determine the naming order of the returned Segmentation.
         """
         custom = None
         subsets = None
@@ -875,13 +883,11 @@ class Segmentation:
                 if key in new_segs:
                     subsets.update({key: val})
 
-        new_order = [i for i in self.naming_order if i in new_segs]
-
         conf = SegmentationInput(
             enum_segments=enum_segs,
             subsets=subsets,
             custom_segments=custom,
-            naming_order=new_order,
+            naming_order=new_segs,
         )
         return Segmentation(conf)
 
