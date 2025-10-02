@@ -131,5 +131,9 @@ dmypy.json
 # Pyre type checker
 .pyre/
 
-# VS Code settings
-.vscode
+# VS Code
+.vscode/
+
+# Data Files (avoid accidentally uploading data)
+*.xlsx
+

@@ -4,56 +4,35 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "caf.base"
-dynamic = ["version"]
-description = "Core classes and definitions for CAF family of tools."
+dynamic = ["version", "dependencies", "optional-dependencies"]
+description = "Collection of core classes and definitions used in the Common Analytical Framework."
 readme = "README.md"
-license = {"file"= "LICENSE"}
+license = { "file" = "LICENSE" }
 requires-python = ">=3.11"
-authors = [
-    { name = "Transport for the North" },
-]
+authors = [{ name = "Transport for the North" }]
 classifiers = [
     "Programming Language :: Python :: 3 :: Only",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
     "Programming Language :: Python :: 3.13",
 ]
-dependencies = [
-    "numpy>=1.24.3",
-    "pandas>=2.2" ,
-    "caf.toolkit>=0.9.0",
-    "h5py>=3.9.0",
-    "pydantic>=2.7",
-    "scipy>=1.11.3",
-    "strictyaml>=1.7.3",
-    "tables>=3.9.1",
-]
-
-[project.optional-dependencies]
-lint = [
-    "black>=22.6.0",
-    "mypy>=1.0.0, <2.0.0",
-    "mypy_extensions>=1.0.0, <2.0.0",
-    "pydocstyle>=6.1.1",
-    "pydocstyle[toml]",
-    "pylint>=2.14.5",
-]
-
-test = [
-    "pytest>=7.4.0, <9.0.0",
-    "pytest-cov>= 4.1.0, < 7.0.0",
-    "pytest-xdist>=3.3.1, <4.0.0",
-    "tox>=3.24.3, <4.0.0",
-]
-
-edit_install = [
-    "versioningit>= 2.2.0, < 4.0.0"
-]
 
 [project.urls]
-"Bug Tracker" = "https://github.com/Transport-for-the-North/caf.toolkit/issues"
-Homepage = "https://github.com/Transport-for-the-North/caf.toolkit"
-Source = "https://github.com/Transport-for-the-North/caf.toolkit"
+"Bug Tracker" = "https://github.com/transport-for-the-north/caf.base/issues"
+Homepage = "https://github.com/transport-for-the-north/caf.base"
+Source = "https://github.com/transport-for-the-north/caf.base"
+
+[tool.setuptools.dynamic]
+dependencies = { "file" = "requirements.txt" }
+
+[tool.setuptools.dynamic.optional-dependencies]
+dev = { "file" = "requirements_dev.txt" }
+docs = { "file" = "docs/requirements.txt" }
+
+# Dynamic versioning for editable installs
+[tool.setuptools.cmdclass]
+build_py = "versioningit.cmdclass.build_py"
+sdist = "versioningit.cmdclass.sdist"
 
 # Packaging options
 [tool.setuptools.packages.find]
@@ -106,17 +85,11 @@ namespace_packages = true
 ignore_missing_imports = true
 allow_redefinition = true
 
-#[[tool.mypy.overrides]]
-#module = [
-#  "caf.base._version",
-#]
-#ignore_errors = true
-
 [tool.pydocstyle]
 convention = "numpy"
 match = '(?!_test)(?!test_)(?!__init__).*\.py'
 add-ignore = [
-    "D202",    # Temporary compatibility with black
+    "D202", # Temporary compatibility with black
 ]
 
 [tool.pytest.ini_options]
@@ -127,6 +100,7 @@ pythonpath = "src"
 testpaths = ["tests", "src"]
 
 [tool.coverage.run]
+include_namespace_packages = true
 omit = ["*/_version.py"]
 
 # Versioning
