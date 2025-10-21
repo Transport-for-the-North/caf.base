@@ -99,6 +99,25 @@ class TestSegmentsSuper:
     def test_get_subset(self, get_hb_purpose, expected_hb_purpose):
         assert get_hb_purpose == expected_hb_purpose
 
+    @pytest.mark.parametrize(
+        "name, expected",
+        [
+            ("p", segments.SegmentsSuper.PURPOSE),
+            ("UserClass ", segments.SegmentsSuper.USERCLASS),
+            ("Age   11 ", segments.SegmentsSuper.AGE_11),
+        ],
+    )
+    def test_valid_init(self, name: str, expected: segments.SegmentsSuper):
+        """Test getting segment from valid strings."""
+        assert segments.SegmentsSuper(name) == expected
+
+    @pytest.mark.parametrize("name", ["non-existent segment"])
+    def test_invalid_init(self, name: str):
+        """Test getting ValueError from invalid strings."""
+        msg = f"invalid SegmentsSuper: {name!r}"
+        with pytest.raises(ValueError, match=msg):
+            segments.SegmentsSuper(name)
+
 
 ##### Tests & Fixtures for `Segment` #####
 

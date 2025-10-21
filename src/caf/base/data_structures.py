@@ -40,6 +40,7 @@ from caf.base.zoning import (
     BalancingZones,
     TranslationError,
     TranslationWeighting,
+    ZoningError,
     ZoningSystem,
     ZoningSystemMetaData,
     normalise_column_name,
@@ -448,7 +449,7 @@ class DVector:
                 seg.ind(), axis="index", method=None
             ).sort_index()
             cut_sum = sorted_data.values.sum()
-            warnings.warn(f"{full_sum - cut_sum} dropped on seg validation.")
+            warnings.warn(f"{full_sum - cut_sum} dropped on seg validation.", stacklevel=2)
 
         if self.zoning_system is None:
             if isinstance(sorted_data, pd.DataFrame):
@@ -2278,11 +2279,33 @@ class DVector:
 
     @classmethod
     def concat_list(cls, dvecs: list[DVector], new_segmentation: Segmentation):
-        """Concatenate a list of DVectors."""
+        """
+        Concatenate a list of DVectors.
+
+        This should be to combine dvectors containing subsets of a segment.
+
+        Parameters
+        ----------
+        dvecs: list[DVector]
+            A list of DVectors to concatenate. These must have the same zoning_system and contain
+            the same segments (although segment order can be different).
+        new_segmentation: Segmentation
+            The segmentation of the returned DVector. This must match input dvecs.
+
+        Returns
+        -------
+        DVector
+        """
+        zoning = dvecs[0].zoning_system
+        for dvec in dvecs[1:]:
+            if dvec.zoning_system != zoning:
+                raise ZoningError("Not all dvectors have the same zoning.")
+            if set(dvec.segmentation.names) != set(new_segmentation.names):
+                raise SegmentationError("Not all dvectors contain the same segments.")
+
         new_data = pd.concat(
             dvec.data.reorder_levels(new_segmentation.naming_order) for dvec in dvecs
         )
-        zoning = dvecs[0].zoning_system
         del dvecs
         return cls(import_data=new_data, zoning_system=zoning, segmentation=new_segmentation)
 
@@ -2533,6 +2556,48 @@ class DVector:
             mask = mask & (self._data.index.get_level_values(nm) == value)
 
         return self._data[mask].sum()
+
+    # Built-Ins
+    from typing import Dict
+
+    def rename_segment(self, mapping: Dict[str, str]) -> DVector:
+        """
+        Rename segments in both the segmentation definition and the associated data.
+
+        Parameters
+        ----------
+        mapping : dict[str, str]
+            A dictionary mapping old segment names (keys) to new segment names (values).
+
+        Returns
+        -------
+        cb.DVector
+
+        """
+        segmentation_ = self.segmentation
+        custom_segment = [seg.name for seg in segmentation_.input.custom_segments]
+        enum_segment = [seg.value for seg in segmentation_.input.enum_segments]
+
+        dvec_data = self.data.copy()
+        dvec_data.index = dvec_data.index.set_names(mapping)
+
+        subsets = {}
+        for old, new in mapping.items():
+            if old in custom_segment:
+                seg = segmentation_.get_segment(old)
+                subsets[new] = list(seg.values.keys())
+                segmentation_ = segmentation_.add_segment(new, subsets)
+
+            if old in enum_segment:
+                seg = segmentation_.get_segment(old).copy()
+                seg.name = new
+                segmentation_ = segmentation_.add_segment(seg, subsets)
+
+            segmentation_ = segmentation_.remove_segment(old)
+
+        return DVector(
+            segmentation=segmentation_, import_data=dvec_data, zoning_system=self.zoning_system
+        )
 
 
 class _Config:

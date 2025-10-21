@@ -177,7 +177,9 @@ class SegmentationSlice:
 
         for name in self.naming_order:
             try:
-                segment = segments.get(name, SegmentsSuper(name).get_segment())
+                segment = segments.get(name)
+                if segment is None:
+                    segment = SegmentsSuper(name).get_segment()
             except ValueError as exc:
                 warnings.warn(
                     f"Could not find segment {name} in segments or"
@@ -566,6 +568,7 @@ class Segmentation:
                     f"Read in level {name} is a subset of the segment. If this was not"
                     f" expected check the input segmentation.",
                     SegmentationWarning,
+                    stacklevel=2,
                 )
                 # Define the read subset in the generated config
                 if name in [seg.value for seg in conf.enum_segments]:
@@ -856,7 +859,8 @@ class Segmentation:
 
         Parameters
         ----------
-        new_segs: The new segmentation. All must be in the current segmentation.
+        new_segs: The new segmentation. All must be in the current segmentation. The order these are
+        given in determine the naming order of the returned Segmentation.
         """
         custom = None
         subsets = None
