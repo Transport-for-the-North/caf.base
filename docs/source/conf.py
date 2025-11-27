@@ -22,7 +22,7 @@ sys.path.insert(0, str(source.absolute()))
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#project-information
 
 project = "CAF.base"
-copyright = "2024, Transport for the North"
+copyright = "2025, Transport for the North"
 author = "Transport for the North"
 
 # Local Imports
