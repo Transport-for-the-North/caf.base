@@ -1,4 +1,4 @@
-"""Package description."""
+"""Core classes and definitions used in the Common Analytical Framework."""
 
 # ruff noqa:F401
 from caf.base import data_structures, segmentation, segments, zoning
