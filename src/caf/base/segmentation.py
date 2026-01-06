@@ -254,6 +254,11 @@ class SegmentationSlice:
         data.pop(segment)
         naming = [i for i in self.naming_order if i != segment]
         return SegmentationSlice(data, naming)
+    
+    def aggregate(self, segments: list[Segment]):
+        params = {seg: val for seg, val in self.data.items() if seg in segments}
+        naming_order = [name for name in self.naming_order if name in segments]
+        return SegmentationSlice(params, naming_order)
 
 
 class SegmentationInput(BaseConfig):
@@ -1285,7 +1290,7 @@ class Segmentation:
                 f"{len(extra)} segments in slice but not segmentation: {', '.join(extra)}"
             )
 
-        if slice_.naming_order != self.naming_order:
+        if list(slice_.naming_order) != list(self.naming_order):
             if not fix_order:
                 raise ValueError(
                     "slice naming order is incorrect got "
