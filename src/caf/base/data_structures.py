@@ -563,7 +563,7 @@ class DVector:
         self.segmentation.save(out_path, "hdf")
 
     @classmethod
-    def load(cls, in_path: PathLike, cut_read: bool = False):
+    def load(cls, in_path: PathLike, cut_read: bool = False) -> Self:
         """
         Load the DVector.
 
@@ -972,6 +972,7 @@ class DVector:
                         out.data.stack(level=out.data.columns.names, future_stack=True),
                         other.data.stack(level=other.data.columns.names, future_stack=True),
                     ).unstack(level=out.data.columns.names)
+                    prod = prod[prod.columns.intersection(out.data.columns)]
 
                     zoning = self.zoning_system
 
@@ -1556,6 +1557,13 @@ class DVector:
         return cls(
             segmentation=new_segmentation, import_data=new_data, zoning_system=zoning_system
         )
+    
+    def reorder_levels(self, new_order: list[str]):
+        new_seg = self.segmentation.copy()
+        new_seg.naming_order = new_order
+        new_data = self.data.copy()
+        new_data.reorder_levels(new_order)
+        return DVector(new_seg, new_data, self.zoning_system)
 
     def select_zone(self, zone_id: int | Sequence[int]) -> DVector:
         """
