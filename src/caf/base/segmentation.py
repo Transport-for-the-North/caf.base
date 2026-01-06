@@ -255,7 +255,19 @@ class SegmentationSlice:
         naming = [i for i in self.naming_order if i != segment]
         return SegmentationSlice(data, naming)
 
-    def aggregate(self, segments: list[Segment]):
+    def aggregate(self, segments: list[Segment]) -> "SegmentationSlice":
+        """
+        Aggregate slice to only include the segments asked for.
+
+        Parameters
+        ----------
+        segments: list[Segment]
+            The segments which will be aggregated to. These must be contained in self.
+        
+        Returns
+        -------
+        SegmentationSlice containing the passed in segments.
+        """
         params = {seg: val for seg, val in self.data.items() if seg in segments}
         naming_order = [name for name in self.naming_order if name in segments]
         return SegmentationSlice(params, naming_order)

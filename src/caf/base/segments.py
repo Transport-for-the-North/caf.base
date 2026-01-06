@@ -114,7 +114,8 @@ class Segment(BaseConfig):
         return list(self.values.keys())
 
     @property
-    def val_to_int(self):
+    def val_to_int(self) -> dict[str, int]:
+        """Return a dict of string to integer values of segment."""
         return {val: int_val for int_val, val in self.values.items()}
 
     def __len__(self):
