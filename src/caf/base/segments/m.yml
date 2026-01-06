@@ -3,8 +3,8 @@ name: m
 values:
   1: Walk
   2: Cycle
-  3: Car driver
-  4: Car passenger
+  3: Car driver + passenger
+  4: Van driver + passenger
   5: Bus / Coach
   6: Rail / underground
   7: Tram
