@@ -21,13 +21,13 @@ from pathlib import Path
 from typing import Callable, Literal, Optional, Sequence, Union
 
 # Third Party
-import caf.toolkit as ctk
 import numpy as np
 import pandas as pd
 import pydantic
-from caf.toolkit import translation
 
 # Local Imports
+import caf.toolkit as ctk
+
 # pylint: disable=no-name-in-module,import-error
 from caf.base.segmentation import (
     Segmentation,
@@ -45,6 +45,7 @@ from caf.base.zoning import (
     ZoningSystemMetaData,
     normalise_column_name,
 )
+from caf.toolkit import translation
 
 # pylint: enable=no-name-in-module,import-error
 
@@ -1557,7 +1558,7 @@ class DVector:
         return cls(
             segmentation=new_segmentation, import_data=new_data, zoning_system=zoning_system
         )
-    
+
     def reorder_levels(self, new_order: list[str]):
         new_seg = self.segmentation.copy()
         new_seg.naming_order = new_order

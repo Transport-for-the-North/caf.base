@@ -18,14 +18,14 @@ from pathlib import Path
 from typing import Iterator, Literal, NamedTuple, Optional
 
 # Third Party
-import caf.toolkit as ctk
 import h5py
 import pandas as pd
 import pydantic
-from caf.toolkit import BaseConfig
 
 # Local Imports
+import caf.toolkit as ctk
 from caf.base.segments import Segment, SegmentsSuper
+from caf.toolkit import BaseConfig
 
 # # # CONSTANTS # # #
 
@@ -254,7 +254,7 @@ class SegmentationSlice:
         data.pop(segment)
         naming = [i for i in self.naming_order if i != segment]
         return SegmentationSlice(data, naming)
-    
+
     def aggregate(self, segments: list[Segment]):
         params = {seg: val for seg, val in self.data.items() if seg in segments}
         naming_order = [name for name in self.naming_order if name in segments]

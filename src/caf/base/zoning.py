@@ -15,7 +15,6 @@ from pathlib import Path
 from typing import Any, Literal, Optional, Union
 
 # Third Party
-import caf.toolkit as ctk
 import h5py
 import numpy as np
 import pandas as pd
@@ -23,6 +22,7 @@ from pandas.errors import PerformanceWarning
 from typing_extensions import Self
 
 # Local Imports
+import caf.toolkit as ctk
 from caf.base.segmentation import Segmentation, SegmentationInput
 
 pd.set_option("future.no_silent_downcasting", True)
@@ -432,7 +432,7 @@ class ZoningSystem:
         """Generate spatial zone_translation using `caf.space`, if available."""
         try:
             # pylint: disable=import-outside-toplevel
-            # Third Party
+            # Local Imports
             import caf.space as cs
 
             # pylint: enable=import-outside-toplevel
