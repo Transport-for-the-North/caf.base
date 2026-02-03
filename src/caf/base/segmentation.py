@@ -263,13 +263,16 @@ class SegmentationSlice:
         ----------
         segments: list[Segment]
             The segments which will be aggregated to. These must be contained in self.
-        
+
         Returns
         -------
         SegmentationSlice containing the passed in segments.
         """
         params = {seg: val for seg, val in self.data.items() if seg in segments}
-        naming_order = [name for name in self.naming_order if name in segments]
+        try:
+            naming_order = [segment.name for segment in segments]
+        except AttributeError:
+            naming_order = segments
         return SegmentationSlice(params, naming_order)
 
 
