@@ -1303,6 +1303,16 @@ class DVector:
             _bypass_validation=_bypass_validation,
             cut_read=self._cut_read,
         )
+    
+    def remove_segment(self, seg: str | Segment) -> "DVector":
+        """Remove a segment from self."""
+        segments = self.segmentation.naming_order
+        if isinstance(seg, Segment):
+            seg = seg.name
+        if seg not in segments:
+            raise ValueError("Segment is not in segmentation so cannot be removed.")
+        segments.remove(seg)
+        return self.aggregate(segments)
 
     def split_by_other(self, other: DVector, agg_zone: ZoningSystem | None = None):
         """
