@@ -35,9 +35,7 @@ class Exclusion:
 
     def build_index(self):
         """Return an index formed of the exclusions."""
-        frame = pd.DataFrame.from_dict(self.exclusions, orient="index").stack().reset_index()
-        frame[0] = frame[0].astype(int)
-        frame.drop("level_1", axis=1, inplace=True)
+        frame = pd.Series(self.exclusions).explode().reset_index()
         return pd.MultiIndex.from_frame(frame, names=["dummy", self.other_name])
 
 
