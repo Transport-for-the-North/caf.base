@@ -397,7 +397,7 @@ class Segmentation:
         """Iterate through seg_dict."""
         return self.seg_dict.__iter__()
     
-    def __conatins__(self, segment: Segment | str):
+    def __contains__(self, segment: Segment | str):
         if isinstance(segment, str):
             if segment in self.names:
                 return True
