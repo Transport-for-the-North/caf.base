@@ -2703,8 +2703,8 @@ class IpfTarget:
                 agg_2 = agg_2.remove_zoning()
 
         if len(common_segs) == 0:
-            agg_1 = float(agg_1.data.sum())
-            agg_2 = float(agg_2.data.sum())
+            agg_1 = agg_1.data.sum()
+            agg_2 = agg_2.data.sum()
         else:
             agg_1 = agg_1.aggregate(list(common_segs))
             agg_2 = agg_2.aggregate(list(common_segs))
