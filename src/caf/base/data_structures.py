@@ -21,13 +21,13 @@ from pathlib import Path
 from typing import Callable, Literal, Optional, Sequence, Union
 
 # Third Party
-import caf.toolkit as ctk
 import numpy as np
 import pandas as pd
 import pydantic
-from caf.toolkit import translation
 
 # Local Imports
+import caf.toolkit as ctk
+
 # pylint: disable=no-name-in-module,import-error
 from caf.base.segmentation import (
     Segmentation,
@@ -45,6 +45,7 @@ from caf.base.zoning import (
     ZoningSystemMetaData,
     normalise_column_name,
 )
+from caf.toolkit import translation
 
 # pylint: enable=no-name-in-module,import-error
 
@@ -431,7 +432,7 @@ class DVector:
 
         This requires the dataframe to be in wide format.
         """
-        seg, expand_to_read = Segmentation.validate_segmentation(
+        seg, expand_to_read, import_data = Segmentation.validate_segmentation(
             source=import_data, segmentation=self.segmentation, cut_read=self._cut_read
         )
 
@@ -563,7 +564,7 @@ class DVector:
         self.segmentation.save(out_path, "hdf")
 
     @classmethod
-    def load(cls, in_path: PathLike, cut_read: bool = False):
+    def load(cls, in_path: PathLike, cut_read: bool = False) -> Self:
         """
         Load the DVector.
 
@@ -972,6 +973,7 @@ class DVector:
                         out.data.stack(level=out.data.columns.names, future_stack=True),
                         other.data.stack(level=other.data.columns.names, future_stack=True),
                     ).unstack(level=out.data.columns.names)
+                    prod = prod[prod.columns.intersection(out.data.columns)]
 
                     zoning = self.zoning_system
 
@@ -1301,6 +1303,16 @@ class DVector:
             _bypass_validation=_bypass_validation,
             cut_read=self._cut_read,
         )
+    
+    def remove_segment(self, seg: str | Segment) -> "DVector":
+        """Remove a segment from self."""
+        segments = self.segmentation.naming_order
+        if isinstance(seg, Segment):
+            seg = seg.name
+        if seg not in segments:
+            raise ValueError("Segment is not in segmentation so cannot be removed.")
+        segments.remove(seg)
+        return self.aggregate(segments)
 
     def split_by_other(self, other: DVector, agg_zone: ZoningSystem | None = None):
         """
@@ -1556,6 +1568,13 @@ class DVector:
         return cls(
             segmentation=new_segmentation, import_data=new_data, zoning_system=zoning_system
         )
+
+    def reorder_levels(self, new_order: list[str]):
+        new_seg = self.segmentation.copy()
+        new_seg.naming_order = new_order
+        new_data = self.data.copy()
+        new_data.reorder_levels(new_order)
+        return DVector(new_seg, new_data, self.zoning_system)
 
     def select_zone(self, zone_id: int | Sequence[int]) -> DVector:
         """

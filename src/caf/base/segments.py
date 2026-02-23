@@ -10,8 +10,10 @@ from typing import Optional, Self
 # Third Party
 import pandas as pd
 import pydantic
-from caf.toolkit import BaseConfig
 from pydantic import ConfigDict, dataclasses
+
+# Local Imports
+from caf.toolkit import BaseConfig
 
 
 # # # CLASSES # # #
@@ -33,9 +35,7 @@ class Exclusion:
 
     def build_index(self):
         """Return an index formed of the exclusions."""
-        frame = pd.DataFrame.from_dict(self.exclusions, orient="index").stack().reset_index()
-        frame[0] = frame[0].astype(int)
-        frame.drop("level_1", axis=1, inplace=True)
+        frame = pd.Series(self.exclusions).explode().reset_index()
         return pd.MultiIndex.from_frame(frame, names=["dummy", self.other_name])
 
 
@@ -110,6 +110,11 @@ class Segment(BaseConfig):
     def int_values(self) -> list:
         """Return integer values of segment."""
         return list(self.values.keys())
+
+    @property
+    def val_to_int(self) -> dict[str, int]:
+        """Return a dict of string to integer values of segment."""
+        return {val: int_val for int_val, val in self.values.items()}
 
     def __len__(self):
         """Return length of segment."""
