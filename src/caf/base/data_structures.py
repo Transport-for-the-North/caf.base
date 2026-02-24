@@ -1876,14 +1876,12 @@ class DVector:
                             "the first target. It is possible later targets also don't match."
                         )
                 elif target.data.index.name in [zone.column_name for zone in self_zoning]:
-                    check_series = self.data.sum().groupby(target.data.index.name).sum()
-                    if target.data.index.intersection(check_series.index) == target.data.index:
-                        if  not np.allclose(target.data, check_series.loc[target.data.index], rtol=rel_tol):
-                            raise ValueError(
-                                "Input target DVectors do not have consistent "
-                                f"sums, so ipf will fail target at position {position} doesn't match "
-                                "the first target. It is possible later targets also don't match."
-                            )
+                    if not math.isclose(self.sum(), target.data.sum(), rel_tol=rel_tol):
+                        raise ValueError(
+                            "Input target DVectors do not have consistent "
+                            f"sums, so ipf will fail target at position {position} doesn't match "
+                            "the first target. It is possible later targets also don't match."
+                        )
                 else:
                     ZoningError("Zoning systems do not match.")
             subsets = target.data.segmentation.input.subsets
@@ -2618,10 +2616,7 @@ class DVector:
 
         return self._data[mask].sum()
 
-    # Built-Ins
-    from typing import Dict
-
-    def rename_segment(self, mapping: Dict[str, str]) -> DVector:
+    def rename_segment(self, mapping: dict[str, str]) -> DVector:
         """
         Rename segments in both the segmentation definition and the associated data.
 
