@@ -986,6 +986,16 @@ class DVector:
                     "To multiply them, one must be translated "
                     "to match the other."
                 )
+        elif isinstance(other.zoning_system, Sequence):
+            if self.zoning_system in other.zoning_system:
+                prod = df_method(self.data, other.aggregate_comp_zones(self.zoning_system).data)
+                zoning = self.zoning_system
+            else:
+                raise NotImplementedError(
+                "The two DVectors have different zonings. "
+                "To multiply them, one must be translated "
+                "to match the other."
+            )
         # Different zonings raise an error rather than trying to translate
         else:
             raise NotImplementedError(
@@ -1850,7 +1860,32 @@ class DVector:
         Input targets, with zone translations added in if relevant.
         """
         target_sum = 0.0
+        if isinstance(self.zoning_system, ZoningSystem):
+            self_zoning: Sequence[ZoningSystem] | None = [self.zoning_system]
+        elif isinstance(self.zoning_system, Sequence):
+            self_zoning = self.zoning_system
+        else:
+            self_zoning = None
         for position, target in enumerate(targets):
+            if isinstance(target.data, pd.Series):
+                if self_zoning is None:
+                    if not math.isclose(self.sum(), target.data.sum(), rel_tol=rel_tol):
+                        raise ValueError(
+                            "Input target DVectors do not have consistent "
+                            f"sums, so ipf will fail target at position {position} doesn't match "
+                            "the first target. It is possible later targets also don't match."
+                        )
+                elif target.data.index.name in [zone.column_name for zone in self_zoning]:
+                    check_series = self.data.sum().groupby(target.data.index.name).sum()
+                    if target.data.index.intersection(check_series.index) == target.data.index:
+                        if  not np.allclose(target.data, check_series.loc[target.data.index], rtol=rel_tol):
+                            raise ValueError(
+                                "Input target DVectors do not have consistent "
+                                f"sums, so ipf will fail target at position {position} doesn't match "
+                                "the first target. It is possible later targets also don't match."
+                            )
+                else:
+                    ZoningError("Zoning systems do not match.")
             subsets = target.data.segmentation.input.subsets
             if len(subsets) > 0:
                 for comp_target in targets:
@@ -1918,41 +1953,48 @@ class DVector:
 
             # Check zoning systems are compatible.
             if self.zoning_system != target.data.zoning_system:
-                target.zoning_diff = True
-                if isinstance(target.data.zoning_system, ZoningSystem) and isinstance(
-                    self.zoning_system, ZoningSystem
-                ):
-                    if target.zone_translation is None:
-                        try:
-                            if cache_path is not None:
-                                target.zone_translation = self.zoning_system.translate(
-                                    target.data.zoning_system, cache_path=cache_path
+                if isinstance(self.zoning_system, Sequence):
+                    if target.data.zoning_system not in self.zoning_system:
+                        if target.data.zoning_system is None:
+                            target.zoning_diff = True
+                        else:
+                            raise ZoningError("Target not contained in self.")
+                else:
+                    target.zoning_diff = True
+                    if isinstance(target.data.zoning_system, ZoningSystem) and isinstance(
+                        self.zoning_system, ZoningSystem
+                    ):
+                        if target.zone_translation is None:
+                            try:
+                                if cache_path is not None:
+                                    target.zone_translation = self.zoning_system.translate(
+                                        target.data.zoning_system, cache_path=cache_path
+                                    )
+                                else:
+                                    target.zone_translation = self.zoning_system.translate(
+                                        target.data.zoning_system
+                                    )
+                            except TranslationError:
+                                raise TranslationError(
+                                    "No zone_translation was found for "
+                                    f"{self.zoning_system} to {target.data.zoning_system}."
                                 )
-                            else:
-                                target.zone_translation = self.zoning_system.translate(
+                        nested = (
+                            target.zone_translation[
+                                self.zoning_system.translation_column_name(
                                     target.data.zoning_system
                                 )
-                        except TranslationError:
+                            ]
+                            == 1
+                        ).all()
+                        if not nested:
                             raise TranslationError(
-                                "No zone_translation was found for "
-                                f"{self.zoning_system} to {target.data.zoning_system}."
+                                "For IPF any targets must either be at the same zoning "
+                                "system as the seed DVector, or be at a zoning system "
+                                "which the seed nests perfectly within. The zone_translation "
+                                "found contains non-one factors, which implies the "
+                                "zoning system doesn't nest, so IPF can't be performed."
                             )
-                    nested = (
-                        target.zone_translation[
-                            self.zoning_system.translation_column_name(
-                                target.data.zoning_system
-                            )
-                        ]
-                        == 1
-                    ).all()
-                    if not nested:
-                        raise TranslationError(
-                            "For IPF any targets must either be at the same zoning "
-                            "system as the seed DVector, or be at a zoning system "
-                            "which the seed nests perfectly within. The zone_translation "
-                            "found contains non-one factors, which implies the "
-                            "zoning system doesn't nest, so IPF can't be performed."
-                        )
         return targets
 
     def ipf(
@@ -2648,7 +2690,7 @@ class IpfTarget:
         As with zoning, these must be strict aggregations from seed to target segment.
     """
 
-    data: DVector
+    data: DVector | pd.Series
     zoning_diff: bool | None = None
     zone_translation: pd.DataFrame | None = None
     segment_translations: dict[str, str] | None = (
