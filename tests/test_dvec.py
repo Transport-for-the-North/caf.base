@@ -14,6 +14,7 @@ aggregate
 translate
 
 """
+
 # Built-Ins
 from math import isclose
 
@@ -86,14 +87,18 @@ def fix_no_zone_2(basic_segmentation_2):
 @pytest.fixture(name="basic_dvec_1", scope="session")
 def fix_basic_dvec_1(min_zoning, basic_segmentation_1, dvec_data_1):
     return data_structures.DVector(
-        segmentation=basic_segmentation_1, zoning_system=min_zoning, import_data=dvec_data_1
+        segmentation=basic_segmentation_1,
+        zoning_system=min_zoning,
+        import_data=dvec_data_1,
     )
 
 
 @pytest.fixture(name="basic_dvec_2", scope="session")
 def fix_basic_dvec_2(min_zoning, basic_segmentation_2, dvec_data_2):
     return data_structures.DVector(
-        segmentation=basic_segmentation_2, zoning_system=min_zoning, import_data=dvec_data_2
+        segmentation=basic_segmentation_2,
+        zoning_system=min_zoning,
+        import_data=dvec_data_2,
     )
 
 
@@ -101,7 +106,9 @@ def fix_basic_dvec_2(min_zoning, basic_segmentation_2, dvec_data_2):
 
 
 @pytest.fixture(name="comp_zoned_dvec", scope="session")
-def fix_comp_dvec(min_zoning, min_zoning_2, test_trans, basic_segmentation_1, dvec_data_1):
+def fix_comp_dvec(
+    min_zoning, min_zoning_2, test_trans, basic_segmentation_1, dvec_data_1
+):
     data = dvec_data_1.mul(
         test_trans.set_index(["zone_1_id", "zone_2_id"])["zone_1_to_zone_2"], axis=1
     )
@@ -141,7 +148,9 @@ class TestDvec:
         test = basic_dvec_1.composite_zoning(min_zoning_2, test_trans)
         assert test == comp_zoned_dvec
 
-    @pytest.mark.parametrize("dvec", ["basic_dvec_1", "basic_dvec_2", "comp_zoned_dvec"])
+    @pytest.mark.parametrize(
+        "dvec", ["basic_dvec_1", "basic_dvec_2", "comp_zoned_dvec"]
+    )
     @pytest.mark.parametrize("subset", [None, [1, 2, 3]])
     @pytest.mark.parametrize("method", ["split", "duplicate"])
     def test_add_segments(self, dvec, subset, method, request):
@@ -181,7 +190,8 @@ class TestDvec:
         ],
     )
     @pytest.mark.parametrize(
-        "dvec_2_str", ["basic_dvec_1", "basic_dvec_2", "no_zone_dvec_1", "no_zone_dvec_2"]
+        "dvec_2_str",
+        ["basic_dvec_1", "basic_dvec_2", "no_zone_dvec_1", "no_zone_dvec_2"],
     )
     def test_add(self, dvec_1_str, dvec_2_str, request):
         dvec_1 = request.getfixturevalue(dvec_1_str)
@@ -210,7 +220,8 @@ class TestDvec:
         ],
     )
     @pytest.mark.parametrize(
-        "dvec_2_str", ["basic_dvec_1", "basic_dvec_2", "no_zone_dvec_1", "no_zone_dvec_2"]
+        "dvec_2_str",
+        ["basic_dvec_1", "basic_dvec_2", "no_zone_dvec_1", "no_zone_dvec_2"],
     )
     def test_sub(self, dvec_1_str, dvec_2_str, request):
         dvec_1 = request.getfixturevalue(dvec_1_str)
@@ -239,7 +250,8 @@ class TestDvec:
         ],
     )
     @pytest.mark.parametrize(
-        "dvec_2_str", ["basic_dvec_1", "basic_dvec_2", "no_zone_dvec_1", "no_zone_dvec_2"]
+        "dvec_2_str",
+        ["basic_dvec_1", "basic_dvec_2", "no_zone_dvec_1", "no_zone_dvec_2"],
     )
     def test_mul(self, dvec_1_str, dvec_2_str, request):
         dvec_1 = request.getfixturevalue(dvec_1_str)
@@ -268,7 +280,8 @@ class TestDvec:
         ],
     )
     @pytest.mark.parametrize(
-        "dvec_2_str", ["basic_dvec_1", "basic_dvec_2", "no_zone_dvec_1", "no_zone_dvec_2"]
+        "dvec_2_str",
+        ["basic_dvec_1", "basic_dvec_2", "no_zone_dvec_1", "no_zone_dvec_2"],
     )
     def test_div(self, dvec_1_str, dvec_2_str, request):
         dvec_1 = request.getfixturevalue(dvec_1_str)
@@ -286,11 +299,10 @@ class TestDvec:
             )
         assert added_dvec.data.sort_index().equals(added_df.sort_index())
 
-    def test_trans(self, basic_dvec_1, test_trans, min_zoning_2, expected_trans, main_dir):
+    def test_trans(
+        self, basic_dvec_1, test_trans, min_zoning_2, expected_trans, main_dir
+    ):
         translation = basic_dvec_1.translate_zoning(min_zoning_2, cache_path=main_dir)
-        back_trans = translation.translate_zoning(
-            basic_dvec_1.zoning_system, cache_path=main_dir
-        )
         assert translation == expected_trans
 
     def test_agg(self, basic_dvec_1):

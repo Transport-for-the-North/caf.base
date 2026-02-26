@@ -2,6 +2,7 @@
 """
 Example tests cases for implicit operations for Segmentation levels
 """
+
 from __future__ import annotations
 
 # Built-Ins
@@ -24,7 +25,7 @@ class InputAndResults:
     expect_fail: bool = False
 
 
-@dataclasses.dataclass
+@dataclasses.dataclassr
 class Segment:
     """Example segment class
 
@@ -125,73 +126,6 @@ def simple_subset() -> InputAndResults:
         df1=df,
         df2=df1,
         expect_fail=True,
-    )
-
-
-def non_product_segmentations():
-    # At Tfn, g segment cannot be defined with anything other than soc 4
-    df = pd.DataFrame(
-        [
-            {"g": 1, "soc": 4},
-            {"g": 2, "soc": 1},
-            {"g": 3, "soc": 1},
-            {"g": 2, "soc": 2},
-            {"g": 3, "soc": 2},
-            {"g": 2, "soc": 3},
-            {"g": 3, "soc": 3},
-            {"g": 2, "soc": 4},
-            {"g": 3, "soc": 4},
-        ]
-    )
-
-    # If we merge with anything that contains JUST soc or g, there's no problem
-
-    # But if we merge on something that contains both, there's a potential issue
-    # df2 and 3 below are fine to combine with, they follow the TfN rules
-
-    df2 = pd.DataFrame(
-        [
-            {"g": 1, "soc": 4},
-            {"g": 2, "soc": 4},
-            {"g": 3, "soc": 4},
-        ]
-    )
-
-    df3 = pd.DataFrame(
-        [
-            {"g": 2, "soc": 3},
-            {"g": 3, "soc": 3},
-        ]
-    )
-
-    # TODO: What do we do if a new segment comes along that doesn't follow this rule?
-    #  TfN might update it's segments, or another person might have different rules.
-    #  See DF4 for an example
-    #  .
-    #  Really, we'd want this to throw an error, as they are incompatible
-    #  But how would we detect this?
-    #  .
-    #  Individually, the soc and gender segments are valid - they only contain valid numbers.
-    #    They are also both the same SOC and GENDER segments
-    #      There's nothing fundamentally different about them. Thy contain the same values.
-    #      We could give it a different name, but the difference then is just semantics
-    #      We would be ignoring the relationship that makes it unique
-    #      There's no way of saying "In this segmentation, G1 only uses Soc4"
-    #  .
-    #  We could do an outer merge and check for NA values. This wouldn't work when only those two segments are being used.
-    #  An exhaustive check (of every row) every time would be too expensive, especially for large segments.
-
-    df4 = pd.DataFrame(
-        [
-            {"g": 1, "soc": 1},
-            {"g": 1, "soc": 2},
-            {"g": 1, "soc": 3},
-            {"g": 1, "soc": 4},
-            {"g": 2, "soc": 1},
-            {"g": 2, "soc": 2},
-            {"g": 2, "soc": 3},
-            {"g": 2, "soc": 4},
-        ]
     )
 
 

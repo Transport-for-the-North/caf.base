@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 """Tests for the `ZoningSystem` class."""
+
 # Built-Ins
 import dataclasses
 import string
@@ -44,7 +45,11 @@ def fix_zoning_data() -> ZoningData:
     return ZoningData(
         name="test_zoning",
         data=zones,
-        subsets={"internal": [0, 1, 2, 3, 4], "external": [5, 6, 7, 8, 9], "north": [0, 1, 2]},
+        subsets={
+            "internal": [0, 1, 2, 3, 4],
+            "external": [5, 6, 7, 8, 9],
+            "north": [0, 1, 2],
+        },
     )
 
 
@@ -123,7 +128,9 @@ class TestZoning:
         "columns", [["zone_id"], ["zone_id", "zone_name", "descriptions"]]
     )
     @pytest.mark.parametrize("subset", [True, False])
-    def test_init(self, zoning_data: ZoningData, columns: list[str], subset: bool) -> None:
+    def test_init(
+        self, zoning_data: ZoningData, columns: list[str], subset: bool
+    ) -> None:
         """Test initialising `ZoningSystem` with / without subsets."""
         all_columns = columns.copy()
         if subset:
@@ -150,9 +157,9 @@ class TestZoning:
         assert_frame_equal(data, system.zones_data)
 
         if subset:
-            assert sorted(system.subset_columns) == sorted(
-                zoning_data.subsets
-            ), "incorrect subsets"
+            assert sorted(system.subset_columns) == sorted(zoning_data.subsets), (
+                "incorrect subsets"
+            )
 
         if "zone_name" in columns:
             assert_series_equal(data["zone_name"], system.zone_names())
@@ -214,7 +221,8 @@ class TestZoning:
             }
         )
         with pytest.raises(
-            ValueError, match=r"2 subset columns found which don't contain boolean values:"
+            ValueError,
+            match=r"2 subset columns found which don't contain boolean values:",
         ):
             ZoningSystem(name=meta.name, unique_zones=data, metadata=meta)
 
@@ -225,7 +233,9 @@ class TestZoning:
 
         for name, values in data.subsets.items():
             subset = system.get_subset(name)
-            assert_array_equal(np.array(values), subset, f"incorrect values for subset {name}")
+            assert_array_equal(
+                np.array(values), subset, f"incorrect values for subset {name}"
+            )
 
             subset = system.get_inverse_subset(name)
             assert_array_equal(
@@ -244,7 +254,9 @@ class TestZoning:
         with pytest.raises(TypeError):
             system.get_subset(name)
 
-    def test_old_to_new_zoning(self, old_zoning_dir: Path, zoning_data: ZoningData) -> None:
+    def test_old_to_new_zoning(
+        self, old_zoning_dir: Path, zoning_data: ZoningData
+    ) -> None:
         """Test `old_to_new_zoning` method can load in old format and output new."""
         new_dir = old_zoning_dir / "new"
         new_dir.mkdir(exist_ok=True)

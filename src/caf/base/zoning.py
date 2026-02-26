@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 """Holds the ZoningSystem Class which stores all information on different zoning systems."""
+
 # Allow class self hinting
 from __future__ import annotations
 
@@ -28,7 +29,9 @@ from caf.base.segmentation import Segmentation, SegmentationInput
 pd.set_option("future.no_silent_downcasting", True)
 LOG = logging.getLogger(__name__)
 
-ZONE_CACHE_HOME = Path(os.getenv("ZONE_CACHE_HOME", "I:/Data/Zoning Systems/core_zoning"))
+ZONE_CACHE_HOME = Path(
+    os.getenv("ZONE_CACHE_HOME", "I:/Data/Zoning Systems/core_zoning")
+)
 ZONE_TRANSLATION_CACHE = Path(
     os.environ.get("ZONE_TRANSLATION_CACHE", "I:/Data/Zone Translations/cache")
 )
@@ -217,7 +220,9 @@ class ZoningSystem:
             # Check if column contains strings "TRUE" and "FALSE"
             column = column.astype(str).str.strip().str.upper()
             if np.isin(column.unique(), ("TRUE", "FALSE")).all():
-                zones[name] = column.replace({"TRUE": True, "FALSE": False}).astype(bool)
+                zones[name] = column.replace({"TRUE": True, "FALSE": False}).astype(
+                    bool
+                )
                 subset_column.append(name)
                 continue
 
@@ -256,7 +261,9 @@ class ZoningSystem:
     @property
     def name_to_id(self) -> dict:
         """Return a lookup dict of zone name to zone id."""
-        return self.zone_names().reset_index().set_index("zone_name").to_dict()["zone_id"]
+        return (
+            self.zone_names().reset_index().set_index("zone_name").to_dict()["zone_id"]
+        )
 
     @property
     def id_to_name(self) -> dict:
@@ -453,7 +460,9 @@ class ZoningSystem:
             shapefile=other.metadata.shapefile_path,
             id_col=other.metadata.shapefile_id_col,
         )
-        conf = cs.ZoningTranslationInputs(zone_1=zone_1, zone_2=zone_2, cache_path=cache_path)
+        conf = cs.ZoningTranslationInputs(
+            zone_1=zone_1, zone_2=zone_2, cache_path=cache_path
+        )
         trans = cs.ZoneTranslation(conf).spatial_translation()
         # #76 fix return type in caf.space
         trans[trans.columns[:2]] = trans[trans.columns[:2]].astype(str)
@@ -507,7 +516,9 @@ class ZoningSystem:
                 "input weighting. For a different weighting make your own."
             )
             try:
-                trans = self._generate_spatial_translation(other, cache_path=trans_cache)
+                trans = self._generate_spatial_translation(
+                    other, cache_path=trans_cache
+                )
             except ImportError as exc:
                 raise TranslationError(
                     f"A zone_translation from {self.name} to {other.name}"
@@ -556,7 +567,9 @@ class ZoningSystem:
                     f"so that will be used. {np.sum(missing_rep)} missing for name, and "
                     f"{np.sum(missing_id)} missing for id."
                 )
-                translation[zone_system.column_name].replace(to_replace=replacer, inplace=True)
+                translation[zone_system.column_name].replace(
+                    to_replace=replacer, inplace=True
+                )
         else:
             translation[zone_system.column_name] = translation[
                 zone_system.column_name
@@ -650,7 +663,8 @@ class ZoningSystem:
             if np.sum(missing_internal_id) > 0:
                 try:
                     missing_internal_name: np.ndarray | float = ~np.isin(
-                        zone_system.zone_names(), translation[zone_system.column_name].values
+                        zone_system.zone_names(),
+                        translation[zone_system.column_name].values,
                     )
                 except KeyError:
                     missing_internal_name = np.inf
@@ -743,7 +757,8 @@ class ZoningSystem:
         """
         if not isinstance(other, ZoningSystem):
             raise ValueError(
-                f"other is not the correct type. Expected ZoningSystem, got " f"{type(other)}"
+                f"other is not the correct type. Expected ZoningSystem, got "
+                f"{type(other)}"
             )
 
         if isinstance(weighting, str):
@@ -775,7 +790,6 @@ class ZoningSystem:
         out_path = Path(path)
         save_df = self._zones.reset_index()
         if mode.lower() == "hdf":
-
             with warnings.catch_warnings():
                 warnings.simplefilter("ignore", category=PerformanceWarning)
                 save_df.to_hdf(out_path, key=f"zoning_{self.name}", mode="a")
@@ -790,7 +804,7 @@ class ZoningSystem:
             save_df.to_csv(out_path / "zoning.csv", index=False)
             self.metadata.save_yaml(out_path / "zoning_meta.yml")
         else:
-            raise ValueError("Mode can only be 'hdf' or 'csv', not " f"{mode}.")
+            raise ValueError(f"Mode can only be 'hdf' or 'csv', not {mode}.")
 
     @classmethod
     def zoning_from_df_col(cls, col: pd.Series):
@@ -850,14 +864,16 @@ class ZoningSystem:
                         yam_load = h_file[meta][()].decode("utf-8")
                         meta = ZoningSystemMetaData.from_yaml(yam_load)
                         zoning = pd.read_hdf(in_path, key=zon, mode="r")
-                        out.append(cls(name=meta.name, unique_zones=zoning, metadata=meta))
+                        out.append(
+                            cls(name=meta.name, unique_zones=zoning, metadata=meta)
+                        )
                     return sorted(out, key=len)
 
         elif mode.lower() == "csv":
             zoning = pd.read_csv(in_path / "zoning.csv")
             zoning_meta = ZoningSystemMetaData.load_yaml(in_path / "zoning_meta.yml")
         else:
-            raise ValueError("Mode can only be 'hdf' or 'csv', not " f"{mode}.")
+            raise ValueError(f"Mode can only be 'hdf' or 'csv', not {mode}.")
 
         return cls(name=zoning_meta.name, unique_zones=zoning, metadata=zoning_meta)
 
@@ -965,7 +981,9 @@ class ZoningSystem:
             # Third Party
             import geopandas as gpd
         except ImportError as exc:
-            raise ImportError("Geopandas must be installed to use this method.") from exc
+            raise ImportError(
+                "Geopandas must be installed to use this method."
+            ) from exc
         # pylint: enable=import-outside-toplevel
         gdf = gpd.read_file(shapefile)[[name_col, "geometry"]]
         tfn_bound = gpd.read_file(tfn_bound)
@@ -1025,7 +1043,9 @@ class BalancingZones:
 
         # Validate inputs
         if not isinstance(segmentation, Segmentation):
-            raise ValueError(f"segmentation should be Segmentation not {type(segmentation)}")
+            raise ValueError(
+                f"segmentation should be Segmentation not {type(segmentation)}"
+            )
 
         if not isinstance(default_zoning, ZoningSystem):
             raise ValueError(

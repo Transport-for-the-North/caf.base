@@ -10,6 +10,7 @@ Other updates made by:
 File purpose:
 
 """
+
 # Built-Ins
 from pathlib import Path
 
@@ -44,12 +45,16 @@ def fix_min_zoning():
     data = {"zone_id": [1, 2, 3, 4, 5], "zone_name": ["a", "b", "c", "d", "e"]}
     name = "zone_1"
     meta = zoning.ZoningSystemMetaData(name=name)
-    return zoning.ZoningSystem(name=name, unique_zones=pd.DataFrame(data), metadata=meta)
+    return zoning.ZoningSystem(
+        name=name, unique_zones=pd.DataFrame(data), metadata=meta
+    )
 
 
 @pytest.fixture(name="seg_1", scope="session")
 def fixture_seg_1():
-    return segmentation.Segment(name="test seg 1", values={1: "A", 2: "B", 3: "C", 4: "D"})
+    return segmentation.Segment(
+        name="test seg 1", values={1: "A", 2: "B", 3: "C", 4: "D"}
+    )
 
 
 @pytest.fixture(name="seg_2", scope="session")
@@ -59,7 +64,9 @@ def fixture_seg_2():
 
 @pytest.fixture(name="seg_3", scope="session")
 def fixture_seg_3():
-    return segmentation.Segment(name="test seg 3", values={1: "E", 2: "F", 3: "G", 4: "H"})
+    return segmentation.Segment(
+        name="test seg 3", values={1: "E", 2: "F", 3: "G", 4: "H"}
+    )
 
 
 @pytest.fixture(name="seg_4", scope="session")
@@ -123,7 +130,9 @@ def fix_min_zoning_2():
     data = {"zone_id": [1, 2, 3, 4], "zone_name": ["w", "x", "y", "z"]}
     name = "zone_2"
     meta = zoning.ZoningSystemMetaData(name=name)
-    return zoning.ZoningSystem(name=name, unique_zones=pd.DataFrame(data), metadata=meta)
+    return zoning.ZoningSystem(
+        name=name, unique_zones=pd.DataFrame(data), metadata=meta
+    )
 
 
 # # # CLASSES # # #

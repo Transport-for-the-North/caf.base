@@ -176,7 +176,10 @@ class TestSegmentation:
     @pytest.mark.parametrize(
         ["segment_params", "expected"],
         [
-            (segmentation.SegmentationSlice({"ca": 1, "m": 1, "gender_3": 1}), "ca1_m1_gt1"),
+            (
+                segmentation.SegmentationSlice({"ca": 1, "m": 1, "gender_3": 1}),
+                "ca1_m1_gt1",
+            ),
             (
                 segmentation.SegmentationSlice({"ca": 2, "m": 2, "gender_3": 3}),
                 "ca2_m2_gt3",
@@ -210,7 +213,9 @@ class TestSegmentation:
         # fmt: on
         expected = [segmentation.SegmentationSlice(i) for i in expected]
         expected = sorted(expected, key=lambda x: x.as_tuple())
-        answer = sorted(list(simple_segmentation.iter_slices()), key=lambda x: x.as_tuple())
+        answer = sorted(
+            list(simple_segmentation.iter_slices()), key=lambda x: x.as_tuple()
+        )
 
         assert answer == expected, "incorrect segmentation parameters"
 
@@ -244,7 +249,9 @@ class TestSegmentation:
         answer = list(vanilla_seg.iter_slices(filter_=params))
         assert answer == expected
 
-    def test_find_files(self, vanilla_seg: segmentation.Segmentation, tmp_path: pathlib.Path):
+    def test_find_files(
+        self, vanilla_seg: segmentation.Segmentation, tmp_path: pathlib.Path
+    ):
         """Test `Segmentation.find_files` finds correct files."""
         folder = tmp_path / "find_files"
         folder.mkdir()
@@ -253,7 +260,6 @@ class TestSegmentation:
 
         expected = []
         for params in vanilla_seg.iter_slices():
-
             name = vanilla_seg.generate_slice_name(params)
             path = folder / f"{template.format(slice_name=name)}.csv"
             path.touch()
@@ -270,8 +276,14 @@ class TestSegmentation:
     @pytest.mark.parametrize(
         ["tuple_", "expected"],
         [
-            ((1, 2, 3), segmentation.SegmentationSlice({"ca": 1, "m": 2, "gender_3": 3})),
-            ((2, 5, 1), segmentation.SegmentationSlice({"ca": 2, "m": 5, "gender_3": 1})),
+            (
+                (1, 2, 3),
+                segmentation.SegmentationSlice({"ca": 1, "m": 2, "gender_3": 3}),
+            ),
+            (
+                (2, 5, 1),
+                segmentation.SegmentationSlice({"ca": 2, "m": 5, "gender_3": 1}),
+            ),
         ],
     )
     def test_convert_slice_tuple(
@@ -287,8 +299,14 @@ class TestSegmentation:
     @pytest.mark.parametrize(
         ["name", "expected"],
         [
-            ("ca1_m2_gt3", segmentation.SegmentationSlice({"ca": 1, "m": 2, "gender_3": 3})),
-            ("ca2_m5_gt1", segmentation.SegmentationSlice({"ca": 2, "m": 5, "gender_3": 1})),
+            (
+                "ca1_m2_gt3",
+                segmentation.SegmentationSlice({"ca": 1, "m": 2, "gender_3": 3}),
+            ),
+            (
+                "ca2_m5_gt1",
+                segmentation.SegmentationSlice({"ca": 2, "m": 5, "gender_3": 1}),
+            ),
         ],
     )
     def test_convert_slice_name(
@@ -306,7 +324,9 @@ class TestSegmentation:
 
 
 @pytest.fixture(name="slice_params")
-def fix_slice_params() -> tuple[list[str], dict[str, int], segmentation.SegmentationSlice]:
+def fix_slice_params() -> tuple[
+    list[str], dict[str, int], segmentation.SegmentationSlice
+]:
     """Returns a slice with the naming order and parameters dict."""
     max_values = [("p", 8), ("m", 6), ("ca", 2), ("gender_3", 3)]
     names = [i[0] for i in max_values]
@@ -341,7 +361,8 @@ class TestSegmentationSlice:
         assert slice_.naming_order == tuple(naming_order)
 
     def test_access_values(
-        self, slice_params: tuple[list[str], dict[str, int], segmentation.SegmentationSlice]
+        self,
+        slice_params: tuple[list[str], dict[str, int], segmentation.SegmentationSlice],
     ):
         """Test access slice values using `.get` and `slice_[x]`."""
         _, params, slice_ = slice_params
@@ -357,7 +378,8 @@ class TestSegmentationSlice:
             slice_["p"] = 5
 
     def test_equals(
-        self, slice_params: tuple[list[str], dict[str, int], segmentation.SegmentationSlice]
+        self,
+        slice_params: tuple[list[str], dict[str, int], segmentation.SegmentationSlice],
     ):
         """Test two slices are equal."""
         names, params, slice_ = slice_params
@@ -373,7 +395,8 @@ class TestSegmentationSlice:
         assert isinstance(hash(slice_), int)
 
     def test_equal_hash(
-        self, slice_params: tuple[list[str], dict[str, int], segmentation.SegmentationSlice]
+        self,
+        slice_params: tuple[list[str], dict[str, int], segmentation.SegmentationSlice],
     ):
         """Test the hash between two equal slices is the same."""
         names, params, slice_ = slice_params
@@ -381,7 +404,8 @@ class TestSegmentationSlice:
         assert hash(slice_) == hash(new_slice)
 
     def test_different_hash(
-        self, slice_params: tuple[list[str], dict[str, int], segmentation.SegmentationSlice]
+        self,
+        slice_params: tuple[list[str], dict[str, int], segmentation.SegmentationSlice],
     ):
         """Test hash, and equals, takes naming order into account."""
         names, params, slice_ = slice_params
@@ -413,7 +437,8 @@ class TestSegmentationSlice:
             segmentation.SegmentationSlice.from_tuple((1, 2, 3), ("a", "b"))
 
     def test_generate_name(
-        self, slice_params: tuple[list[str], dict[str, int], segmentation.SegmentationSlice]
+        self,
+        slice_params: tuple[list[str], dict[str, int], segmentation.SegmentationSlice],
     ):
         """Test `generate_name` works when `segments` aren't given."""
         names, params, slice_ = slice_params
