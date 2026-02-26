@@ -1078,7 +1078,7 @@ class DVector:
             cut_read=self._cut_read,
         )
 
-    def __mul__(
+    def mul(
         self, other, _bypass_validation: bool = False, how: Literal["inner", "outer"] = "inner"
     ):
         """Multiply dunder method for DVector."""
@@ -1089,8 +1089,11 @@ class DVector:
             _bypass_validation=_bypass_validation,
             how=how,
         )
+    
+    def __mul__(self, other):
+        return self.mul(other)
 
-    def __add__(
+    def add(
         self, other, _bypass_validation: bool = False, how: Literal["inner", "outer"] = "inner"
     ):
         """Add dunder method for DVector."""
@@ -1101,8 +1104,11 @@ class DVector:
             _bypass_validation=_bypass_validation,
             how=how,
         )
+    
+    def __add__(self, other):
+        return self.add(other)
 
-    def __sub__(
+    def sub(
         self, other, _bypass_validation: bool = False, how: Literal["inner", "outer"] = "inner"
     ):
         """Subtract dunder method for DVector."""
@@ -1113,8 +1119,11 @@ class DVector:
             _bypass_validation=_bypass_validation,
             how=how,
         )
+    
+    def __sub__(self, other):
+        return self.sub(other)
 
-    def __truediv__(
+    def truediv(
         self, other, _bypass_validation: bool = False, how: Literal["inner", "outer"] = "inner"
     ):
         """Division dunder method for DVector."""
@@ -1125,6 +1134,9 @@ class DVector:
             _bypass_validation=_bypass_validation,
             how=how,
         )
+    
+    def __truediv__(self, other):
+        return self.truediv(other)
 
     def __eq__(self, other):
         """Equals dunder for DVector."""
