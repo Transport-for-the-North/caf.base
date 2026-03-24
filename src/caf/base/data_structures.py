@@ -489,7 +489,7 @@ class DVector:
                 lev = sorted_data.columns.get_level_values(sys.column_name)
                 if set(lev) != set(sys.zone_ids):
                     column_lookup = self._fix_zoning(lev, sys)
-                    if column_lookup is not False:
+                    if column_lookup is not None:
                         sorted_data.rename(
                             columns=column_lookup, level=lev.name, inplace=True
                         )
@@ -1910,8 +1910,9 @@ class DVector:
                     trans_vector=target.zone_translation,
                     _bypass_validation=True,
                 )
-            if target.data.zoning_system is None:
-                check = check.remove_zoning()
+            if isinstance(target.data, DVector):
+                if target.data.zoning_system is None:
+                    check = check.remove_zoning()
             if target.segment_translations is not None:
                 for seg in target.data.segmentation - self.segmentation:
                     seg = seg.name
@@ -1924,11 +1925,14 @@ class DVector:
                         )
                     else:
                         raise ValueError("No translation defined for this segment.")
-            diff = (
-                check.aggregate(
-                    target.data.segmentation, _bypass_validation=True
-                ).__sub__(target.data, _bypass_validation=True)
-            ) ** 2
+            if isinstance(target.data, pd.Series):
+                diff = (check.data.T.groupby(level=target.data.index.name).sum().sum(axis=1) - target.data) ** 2
+            else:
+                diff = (
+                    check.aggregate(
+                        target.data.segmentation, _bypass_validation=True
+                    ).sub(target.data, _bypass_validation=True)
+                ) ** 2
             mse += diff.sum() / len(target.data)
         return mse**0.5
 
@@ -1983,6 +1987,7 @@ class DVector:
                         )
                 else:
                     ZoningError("Zoning systems do not match.")
+                continue
             subsets = target.data.segmentation.input.subsets
             if len(subsets) > 0:
                 for comp_target in targets:
@@ -2131,7 +2136,7 @@ class DVector:
         DVector matched to targets, rmse achieved.
         """
         # check DVectors compatible
-        targets = self.validate_ipf_targets(targets, cache_path=zone_trans_cache)
+        # targets = self.validate_ipf_targets(targets, cache_path=zone_trans_cache)
         new_dvec = self.copy()
         prev_rmse = np.inf
         rmse = np.inf
@@ -2141,6 +2146,13 @@ class DVector:
                 if i > 0:
                     bypass = True
                 inner = new_dvec.copy()
+                if isinstance(target.data, pd.Series):
+                    agg = inner.data.sum()
+                    if target.data.index.name in agg.index.names:
+                        agg = agg.groupby(level=target.data.index.name).sum()
+                    factor = target.data / agg
+                    new_dvec = inner.mul(factor, _bypass_validation=bypass, how='outer')
+                    continue
                 if target.segment_translations is not None:
                     for targ_seg, seed_seg in target.segment_translations.items():
                         inner = inner.translate_segment(
@@ -2159,7 +2171,7 @@ class DVector:
                     )
                 if target.data.zoning_system is None:
                     agg = agg.remove_zoning()
-                factor = target.data.__truediv__(agg, _bypass_validation=bypass)
+                factor = target.data.truediv(agg, _bypass_validation=bypass, how='outer')
                 factor.fillna(0)
                 if (factor.data.values == np.inf).any():
                     factor.fill(np.inf, 0)
@@ -2181,7 +2193,7 @@ class DVector:
                             reverse=True,
                             _bypass_validation=bypass,
                         )
-                new_dvec = new_dvec.__mul__(
+                new_dvec = new_dvec.mul(
                     factor, _bypass_validation=bypass, how="outer"
                 )
 
@@ -2826,8 +2838,9 @@ class IpfTarget:
     @classmethod
     def singly_zoned(cls, values):
         """Validate that dvecs are singly zoned."""
-        if isinstance(values.data.zoning_system, Sequence):
-            raise TypeError("IPFTargets cannot currently be multizoned.")
+        if isinstance(values.data, DVector):
+            if isinstance(values.data.zoning_system, Sequence):
+                raise TypeError("IPFTargets cannot currently be multizoned.")
         return values
 
     @staticmethod
