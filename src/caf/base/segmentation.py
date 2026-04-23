@@ -59,7 +59,7 @@ class SegmentationSlice:
     def __init__(
         self,
         slice_params: dict[str, int],
-        naming_order: collections.abc.Sequence[str] | None = None,
+        naming_order: collections.abc.Sequence[str] | Segmentation | None = None,
     ):
         """Initialize a SegmentationSlice object from parameters dict.
 
@@ -260,7 +260,7 @@ class SegmentationSlice:
         naming = [i for i in self.naming_order if i != segment]
         return SegmentationSlice(data, naming)
 
-    def aggregate(self, segments: list[Segment]) -> "SegmentationSlice":
+    def aggregate(self, segments: list[Segment] | Segmentation | list[str]) -> "SegmentationSlice":
         """
         Aggregate slice to only include the segments asked for.
 
@@ -274,11 +274,9 @@ class SegmentationSlice:
         SegmentationSlice containing the passed in segments.
         """
         params = {seg: val for seg, val in self.data.items() if seg in segments}
-        try:
-            naming_order = [segment.name for segment in segments]
-        except AttributeError:
-            naming_order = segments
-        return SegmentationSlice(params, naming_order)
+        if isinstance(segments, list[Segment]):
+            segments = [segment.name for segment in segments]
+        return SegmentationSlice(params, segments)
 
 
 class SegmentationInput(BaseConfig):
@@ -396,7 +394,8 @@ class Segmentation:
     @property
     def seg_dict(self):
         """Access segments in dict form."""
-        return {seg.name: seg for seg in self.segments}
+        unordered_dict = {seg.name: seg for seg in self.segments}
+        return {name: unordered_dict[name] for name in self.naming_order}
 
     def get_segment(self, seg_name: str) -> Segment:
         """Get a segment based on its name."""
