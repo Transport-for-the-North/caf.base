@@ -1,0 +1,22 @@
+# Segment config written on 2026-04-14 at 10:15
+name: norms_uc
+values:
+  1: HBEBCA_Int
+  2: HBEBNCA_Int
+  3: NHBEBCA_Int
+  4: NHBEBNCA_Int
+  5: HBWCA_Int
+  6: HBWNCA_Int
+  7: HBOCA_Int
+  8: HBONCA_Int
+  9: NHBOCA_Int
+  10: NHBONCA_Int
+  11: EBCA_Ext_FM
+  12: EBCA_Ext_TO
+  13: EBNCA_Ext
+  14: HBWCA_Ext_FM
+  15: HBWCA_Ext_TO
+  16: HBWNCA_Ext
+  17: OCA_Ext_FM
+  18: OCA_Ext_TO
+  19: ONCA_Ext

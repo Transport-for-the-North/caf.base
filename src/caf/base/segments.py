@@ -385,6 +385,8 @@ class SegmentsSuper(enum.Enum):
     DIRECTION = "direction"
     DIRECTION_OD = "direction_od"
     UC = "uc"
+    NORMS_UC_PA = "norms_uc_pa"
+    NORMS_UC_OD = "norms_uc_od"
 
     @classmethod
     def values(cls):

@@ -1,0 +1,55 @@
+# Segment config written on 2026-04-14 at 10:15
+name: norms_uc
+values:
+  1: HBEBCA_Int_FM
+  2: HBEBCA_Int_TO
+  3: HBEBNCA_Int_FM
+  4: HBEBNCA_Int_TO
+  5: NHBEBCA_Int
+  6: NHBEBNCA_Int
+  7: HBWCA_Int_FM
+  8: HBWCA_Int_TO
+  9: HBWNCA_Int_FM
+  10: HBWNCA_Int_TO
+  11: HBOCA_Int_FM
+  12: HBOCA_Int_TO
+  13: HBONCA_Int_FM
+  14: HBONCA_Int_TO
+  15: NHBOCA_Int
+  16: NHBONCA_Int
+  17: EBCA_Ext_FM
+  18: EBCA_Ext_TO
+  19: EBNCA_Ext
+  20: HBWCA_Ext_FM
+  21: HBWCA_Ext_TO
+  22: HBWNCA_Ext
+  23: OCA_Ext_FM
+  24: OCA_Ext_TO
+  25: ONCA_Ext
+
+values_aliases:
+  1: HBEBCA_Int_FM
+  2: HBEBCA_Int_TO
+  3: HBEBNCA_Int_FM
+  4: HBEBNCA_Int_TO
+  5: NHBEBCA_Int
+  6: NHBEBNCA_Int
+  7: HBWCA_Int_FM
+  8: HBWCA_Int_TO
+  9: HBWNCA_Int_FM
+  10: HBWNCA_Int_TO
+  11: HBOCA_Int_FM
+  12: HBOCA_Int_TO
+  13: HBONCA_Int_FM
+  14: HBONCA_Int_TO
+  15: NHBOCA_Int
+  16: NHBONCA_Int
+  17: EBCA_Ext_FM
+  18: EBCA_Ext_TO
+  19: EBNCA_Ext
+  20: HBWCA_Ext_FM
+  21: HBWCA_Ext_TO
+  22: HBWNCA_Ext
+  23: OCA_Ext_FM
+  24: OCA_Ext_TO
+  25: ONCA_Ext
