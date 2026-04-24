@@ -448,22 +448,30 @@ class ZoningSystem:
                 "caf.space is not installed in this environment. "
                 "A zone_translation cannot be generated."
             ) from exc
-        if isinstance(self.metadata.shapefile_path, Path) and isinstance(self.metadata.shapefile_id_col, str):
+        if isinstance(self.metadata.shapefile_path, Path) and isinstance(
+            self.metadata.shapefile_id_col, str
+        ):
             zone_1 = cs.TransZoneSystemInfo(
                 name=self.name,
                 shapefile=self.metadata.shapefile_path,
                 id_col=self.metadata.shapefile_id_col,
             )
         else:
-            raise AttributeError(f"Shapefile for {self.name} must have shapefile path and id_col data.")
-        if isinstance(other.metadata.shapefile_path, Path) and isinstance(other.metadata.shapefile_id_col, str):
+            raise AttributeError(
+                f"Shapefile for {self.name} must have shapefile path and id_col data."
+            )
+        if isinstance(other.metadata.shapefile_path, Path) and isinstance(
+            other.metadata.shapefile_id_col, str
+        ):
             zone_2 = cs.TransZoneSystemInfo(
                 name=other.name,
                 shapefile=other.metadata.shapefile_path,
                 id_col=other.metadata.shapefile_id_col,
             )
         else:
-            raise AttributeError(f"Shapefile for {other.name} must have shapefile path and id_col data.")
+            raise AttributeError(
+                f"Shapefile for {other.name} must have shapefile path and id_col data."
+            )
 
         conf = cs.ZoningTranslationInputs(
             zone_1=zone_1, zone_2=zone_2, cache_path=cache_path
@@ -773,10 +781,12 @@ class ZoningSystem:
             other, weighting, trans_cache=Path(cache_path)
         )
 
-        translation = ctk.translation.ZoneCorrespondence(translation_df,
-                                                         self.column_name,
-                                                         other.column_name,
-                                                         self.translation_column_name(other))
+        translation = ctk.translation.ZoneCorrespondence(
+            translation_df,
+            self.column_name,
+            other.column_name,
+            self.translation_column_name(other),
+        )
 
         return translation
 
