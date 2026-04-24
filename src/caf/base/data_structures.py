@@ -572,7 +572,7 @@ class DVector:
         self.segmentation.save(out_path, "hdf")
 
     @classmethod
-    def load(cls, in_path: PathLike, cut_read: bool = False) -> Self:
+    def load(cls, in_path: PathLike, cut_read: bool = False) -> DVector:
         """
         Load the DVector.
 
@@ -701,6 +701,10 @@ class DVector:
                 )
         else:
             trans_vector = target_zone.validate_translation_data(new_zoning, trans_vector)
+            trans_vector = ctk.translation.ZoneCorrespondence(trans_vector,
+                                                              target_zone.column_name,
+                                                              new_zoning.column_name,
+                                                              target_zone.translation_column_name(new_zoning))
         factor_col = target_zone.translation_column_name(new_zoning)
         # factors equal one to propagate perfectly
         # This only works for perfect nesting
@@ -747,9 +751,6 @@ class DVector:
         translated = translation.pandas_vector_zone_translation(
             transposed,
             trans_vector,
-            translation_from_col=target_zone.column_name,
-            translation_to_col=new_zoning.column_name,
-            translation_factors_col=factor_col,
             check_totals=check_totals,
         )
         translated = translated.transpose()
@@ -814,16 +815,20 @@ class DVector:
             trans = self.zoning_system.translate(agg_zoning)
         else:
             trans = self.zoning_system.validate_translation_data(agg_zoning, trans)
+            trans = ctk.translation.ZoneCorrespondence(trans,
+                                                       self.zoning_system.column_name,
+                                                       agg_zoning.column_name,
+                                                       self.zoning_system.translation_column_name(agg_zoning))
         # not nested
-        if trans[f"{self.zoning_system.name}_id"].nunique() < len(trans):
+        if trans.vector[f"{self.zoning_system.name}_id"].nunique() < len(trans.vector):
             raise TranslationError(
                 "split_by_agg_zoning only works when the current zone system "
                 "nests perfectly within the agg zone system, i.e. each zone in "
                 "the current zone system corresponds to only 1 zone in the agg "
                 "zone system."
             )
-        for zone in trans[agg_zoning.column_name].unique():
-            zones = trans[trans[agg_zoning.column_name] == zone][
+        for zone in trans.vector[agg_zoning.column_name].unique():
+            zones = trans.vector[trans.vector[agg_zoning.column_name] == zone][
                 self.zoning_system.column_name
             ]
             zones = self.data.columns.intersection(zones)
@@ -1279,18 +1284,15 @@ class DVector:
             validated_zoning = new_zoning
         if trans_vector is None:
             trans_vector = self.zoning_system.translate(validated_zoning)
-        if set(trans_vector.index.names) != {
-            self.zoning_system.column_name,
-            validated_zoning.column_name,
-        }:
-            try:
-                trans_vector = trans_vector.set_index(
-                    [self.zoning_system.column_name, validated_zoning.column_name]
-                )
-            except Exception as exc:
-                raise ValueError("required zones not found in trans vector.") from exc
+        elif isinstance(trans_vector, pd.DataFrame):
+            trans_vector = ctk.translation.ZoneCorrespondence(
+                trans_vector,
+                self.zoning_system.column_name,
+                validated_zoning.column_name,
+                self.zoning_system.translation_column_name(validated_zoning)
+            )
         new_data = self.data.mul(
-            trans_vector[self.zoning_system.translation_column_name(validated_zoning)],
+            trans_vector.vector[self.zoning_system.translation_column_name(validated_zoning)],
             axis=1,
         )
 
@@ -1419,7 +1421,7 @@ class DVector:
             if agg_zone != other.zoning_system:
                 translation = self.zoning_system.translate(agg_zone)
                 if not (
-                    translation[self.zoning_system.translation_column_name(agg_zone)] == 1
+                    translation.vector[self.zoning_system.translation_column_name(agg_zone)] == 1
                 ).all():
                     raise TranslationError(
                         "Current zoning must nest perfectly within agg_zone, "
@@ -1427,29 +1429,25 @@ class DVector:
                         "has non-one factors. If this should not be the case "
                         "double check the zone_translation."
                     )
-                translation_dict = translation.set_index(self.zoning_system.column_name)[
+                translation_dict = translation.vector.set_index(self.zoning_system.column_name)[
                     agg_zone.column_name
                 ].to_dict()
-                translated_grouped = (
-                    other_grouped.datadata.rename(columns=translation_dict)
+                translated_grouped: pd.DataFrame = (
+                    other_grouped.data.rename(columns=translation_dict)
                     .groupby(level=0, axis=1)
                     .sum()
                 )
-                translated_ungrouped = (
+                translated_ungrouped: pd.DataFrame = (
                     other.data.rename(columns=translation_dict).groupby(level=0, axis=1).sum()
                 )
                 # factors at common segmentation and agg zoning
-                translated = translated_ungrouped / translated_grouped
+                translated: pd.DataFrame = translated_ungrouped / translated_grouped
                 # Translate zoning back to DVec zoning to apply to DVector
                 splitting_data = ctk.translation.pandas_vector_zone_translation(
                     vector=translated.T,
-                    translation=translation,
-                    translation_from_col=agg_zone.column_name,
-                    translation_to_col=self.zoning_system.column_name,
-                    translation_factors_col=self.zoning_system.translation_column_name(
-                        agg_zone
-                    ),
-                ).T
+                    zone_correspondence=translation,
+                    ).T
+                
                 splitting_dvec = DVector(
                     import_data=splitting_data,
                     segmentation=other.segmentation,
@@ -2040,7 +2038,7 @@ class DVector:
                                     f"{self.zoning_system} to {target.data.zoning_system}."
                                 )
                         nested = (
-                            target.zone_translation[
+                            target.zone_translation.vector[
                                 self.zoning_system.translation_column_name(
                                     target.data.zoning_system
                                 )
@@ -2256,6 +2254,8 @@ class DVector:
                 except:
                     continue
                 if zoning is None:
+                    if isinstance(dvec.zoning_system, Sequence):
+                        raise TypeError("This method only works for singly zoned DVectors.")
                     zoning = dvec.zoning_system
                 else:
                     if dvec.zoning_system != zoning:
@@ -2673,7 +2673,7 @@ class DVector:
         )
 
     def balance_protect_subset(
-        self, other: DVector, target_zone: ZoningSystem, protected_subset: dict[str, int]
+        self, other: DVector, target_zone: ZoningSystem, protected_subset: dict[str, list[int]]
     ):
         protected = self.filter_segment_values(protected_subset).data.sum()
         non_protected = self.data.sum() - protected

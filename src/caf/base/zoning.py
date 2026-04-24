@@ -448,18 +448,23 @@ class ZoningSystem:
                 "caf.space is not installed in this environment. "
                 "A zone_translation cannot be generated."
             ) from exc
+        if isinstance(self.metadata.shapefile_path, Path) and isinstance(self.metadata.shapefile_id_col, str):
+            zone_1 = cs.TransZoneSystemInfo(
+                name=self.name,
+                shapefile=self.metadata.shapefile_path,
+                id_col=self.metadata.shapefile_id_col,
+            )
+        else:
+            raise AttributeError(f"Shapefile for {self.name} must have shapefile path and id_col data.")
+        if isinstance(other.metadata.shapefile_path, Path) and isinstance(other.metadata.shapefile_id_col, str):
+            zone_2 = cs.TransZoneSystemInfo(
+                name=other.name,
+                shapefile=other.metadata.shapefile_path,
+                id_col=other.metadata.shapefile_id_col,
+            )
+        else:
+            raise AttributeError(f"Shapefile for {other.name} must have shapefile path and id_col data.")
 
-        zone_1 = cs.TransZoneSystemInfo(
-            name=self.name,
-            shapefile=self.metadata.shapefile_path,
-            id_col=self.metadata.shapefile_id_col,
-        )
-
-        zone_2 = cs.TransZoneSystemInfo(
-            name=other.name,
-            shapefile=other.metadata.shapefile_path,
-            id_col=other.metadata.shapefile_id_col,
-        )
         conf = cs.ZoningTranslationInputs(
             zone_1=zone_1, zone_2=zone_2, cache_path=cache_path
         )
@@ -723,7 +728,7 @@ class ZoningSystem:
         other: ZoningSystem,
         cache_path: PathLike = ZONE_TRANSLATION_CACHE,
         weighting: TranslationWeighting | str = TranslationWeighting.SPATIAL,
-    ) -> pd.DataFrame:
+    ) -> ctk.translation.ZoneCorrespondence:
         """
         Find, or generates, the zone_translation data from `self` to `other`.
 
@@ -768,7 +773,12 @@ class ZoningSystem:
             other, weighting, trans_cache=Path(cache_path)
         )
 
-        return translation_df
+        translation = ctk.translation.ZoneCorrespondence(translation_df,
+                                                         self.column_name,
+                                                         other.column_name,
+                                                         self.translation_column_name(other))
+
+        return translation
 
     @staticmethod
     def trans_df_to_dict(trans_df, from_col, to_col, factor_col):
@@ -1006,7 +1016,7 @@ class ZoningSystem:
 class ZoningSystemMetaData(ctk.BaseConfig):
     """Class to store metadata relating to zoning systems in normits_demand."""
 
-    name: Optional[str]
+    name: str
     shapefile_id_col: Optional[str] = None
     shapefile_path: Optional[Path] = None
     extra_columns: Optional[list[str]] = None
@@ -1159,7 +1169,7 @@ class BalancingZones:
         segmentation = Segmentation(conf.seg_conf)
         default_zoning = ZoningSystem.get_zoning(conf.zon_conf.name)
         segment_zoning = {}
-        for name, _ in conf.seg_zon:
+        for name in conf.seg_zon:
             segment_zoning[name] = ZoningSystem.get_zoning(name)
         return cls(segmentation, default_zoning, segment_zoning)
 

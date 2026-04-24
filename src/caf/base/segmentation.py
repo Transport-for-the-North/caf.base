@@ -274,8 +274,8 @@ class SegmentationSlice:
         SegmentationSlice containing the passed in segments.
         """
         params = {seg: val for seg, val in self.data.items() if seg in segments}
-        if isinstance(segments, list[Segment]):
-            segments = [segment.name for segment in segments]
+        if isinstance(segments, list):
+            segments = [segment.name if isinstance(segment, Segment) else segment for segment in segments]
         return SegmentationSlice(params, segments)
 
 
