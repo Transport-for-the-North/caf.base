@@ -10,10 +10,8 @@ from typing import Optional, Self
 # Third Party
 import pandas as pd
 import pydantic
-from pydantic import ConfigDict, dataclasses
-
-# Local Imports
 from caf.toolkit import BaseConfig
+from pydantic import ConfigDict, dataclasses
 
 
 # # # CLASSES # # #

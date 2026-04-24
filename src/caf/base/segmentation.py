@@ -19,14 +19,14 @@ from pathlib import Path
 from typing import Iterator, Literal, NamedTuple, Optional
 
 # Third Party
+import caf.toolkit as ctk
 import h5py
 import pandas as pd
 import pydantic
+from caf.toolkit import BaseConfig
 
 # Local Imports
-import caf.toolkit as ctk
 from caf.base.segments import Segment, SegmentsSuper
-from caf.toolkit import BaseConfig
 
 # # # CONSTANTS # # #
 
