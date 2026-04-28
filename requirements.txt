@@ -9,4 +9,4 @@ strictyaml>=1.7.3
 # PyTables package has different names in conda-forge and PyPI
 # - PyPi: tables
 # - conda-forge: pytables
-tables>=3.9.1
+tables>=3.11.1
