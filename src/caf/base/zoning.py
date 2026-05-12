@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 """Holds the ZoningSystem Class which stores all information on different zoning systems."""
+
 # Allow class self hinting
 from __future__ import annotations
 

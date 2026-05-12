@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 """Tests for the `ZoningSystem` class."""
+
 # Built-Ins
 import dataclasses
 import string

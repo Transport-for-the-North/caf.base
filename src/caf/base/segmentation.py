@@ -5,6 +5,7 @@ Module for handling segmentation objects.
 This imports the Segment class from caf.base.segments, and the SegmentsSuper
 enumeration from caf.base.segments. Both are used for building segmentations.
 """
+
 from __future__ import annotations
 
 # Built-Ins
