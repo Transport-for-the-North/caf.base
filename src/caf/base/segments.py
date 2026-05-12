@@ -343,7 +343,6 @@ class SegmentsSuper(enum.Enum):
     MODE = "m"
     GENDER = "g"
     SOC = "soc"
-    SIC = "sic"
     CA = "ca"
     USERCLASS = "userclass"
     ACCOMODATION_TYPE_H = "accom_h"
@@ -373,7 +372,6 @@ class SegmentsSuper(enum.Enum):
     UNI = "uni"
     DIRECTION = "direction"
     DIRECTION_OD = "direction_od"
-    UC = "uc"
 
     @classmethod
     def values(cls):
