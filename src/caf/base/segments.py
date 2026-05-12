@@ -345,8 +345,6 @@ class SegmentsSuper(enum.Enum):
     SOC = "soc"
     SIC = "sic"
     CA = "ca"
-    TFN_AT = "tfn_at"
-    TFN_TT = "tfn_tt"
     USERCLASS = "userclass"
     ACCOMODATION_TYPE_H = "accom_h"
     ACCOMODATION_TYPE_HR = "accom_hr"
