@@ -12,6 +12,7 @@ File purpose:
 """
 
 # Built-Ins
+import pathlib
 
 # Third Party
 import numpy as np
@@ -123,6 +124,12 @@ class TestSegmentsSuper:
         """Test all segments in :class:`SegmentsSuper` have YAML files."""
         for i in segments.SegmentsSuper:
             i.get_segment()
+
+    def test_extra_yaml(self):
+        """Test if any segment YAMLs aren't defined in :class:`SegmentsSuper`."""
+        directory = pathlib.Path(segments.__file__).parent / "segments"
+        for path in directory.glob("*.yml"):
+            segments.SegmentsSuper(path.stem)
 
 
 ##### Tests & Fixtures for `Segment` #####
