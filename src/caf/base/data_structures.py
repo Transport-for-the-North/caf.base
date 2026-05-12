@@ -4,6 +4,7 @@ Module containing the data structures used in the CAF package.
 
 Currently this is only the DVector class, but this may be expanded in the future.
 """
+
 from __future__ import annotations
 
 # Built-Ins

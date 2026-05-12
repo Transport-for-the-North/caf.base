@@ -2,6 +2,7 @@
 """
 Example tests cases for implicit operations for Segmentation levels
 """
+
 from __future__ import annotations
 
 # Built-Ins
