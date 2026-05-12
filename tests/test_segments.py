@@ -118,6 +118,11 @@ class TestSegmentsSuper:
         with pytest.raises(ValueError, match=msg):
             segments.SegmentsSuper(name)
 
+    def test_get_all(self):
+        """Test all segments in :class:`SegmentsSuper` have YAML files."""
+        for i in segments.SegmentsSuper:
+            i.get_segment()
+
 
 ##### Tests & Fixtures for `Segment` #####
 
