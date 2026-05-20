@@ -10,7 +10,9 @@ Other updates made by:
 File purpose:
 
 """
+
 # Built-Ins
+import pathlib
 
 # Third Party
 import pandas as pd
@@ -107,6 +109,17 @@ class TestSegmentsSuper:
         msg = f"invalid SegmentsSuper: {name!r}"
         with pytest.raises(ValueError, match=msg):
             segments.SegmentsSuper(name)
+
+    def test_get_all(self):
+        """Test all segments in :class:`SegmentsSuper` have YAML files."""
+        for i in segments.SegmentsSuper:
+            i.get_segment()
+
+    def test_extra_yaml(self):
+        """Test if any segment YAMLs aren't defined in :class:`SegmentsSuper`."""
+        directory = pathlib.Path(segments.__file__).parent / "segments"
+        for path in directory.glob("*.yml"):
+            segments.SegmentsSuper(path.stem)
 
 
 ##### Tests & Fixtures for `Segment` #####
