@@ -14,6 +14,7 @@ import pathlib
 import re
 import sys
 
+# Third Party
 from sphinx.application import Sphinx
 
 dir_path = pathlib.Path(__file__).parents[2]
@@ -106,6 +107,7 @@ intersphinx_mapping = {
     "python": ("https://docs.python.org/3", None),
 }
 intersphinx_timeout = 30
+
 
 # -- Options for Todo extension ----------------------------------------------
 def get_env_bool(name: str, default: bool) -> bool:
