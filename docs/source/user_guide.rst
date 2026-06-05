@@ -13,6 +13,6 @@ This section provides an in-depth guide on using CAF.base.
 
    usage/index
    tutorial
-   examples/index
+   _generated/examples/index
    definitions
 
