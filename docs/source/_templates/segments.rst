@@ -9,7 +9,7 @@ files within `{{ relative_folder }} <{{ url }}/{{ relative_folder }}>`_.
 
 {% for name, segment in segments.items() -%}
 
-.. _def-{{ segment.name }}:
+.. _`def-{{ segment.name }}`:
 
 {{ name|replace("_", " ")|title }}
 {{ "-" * name|length }}
