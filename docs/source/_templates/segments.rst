@@ -1,3 +1,5 @@
+.. _`def-segments`:
+
 Segments
 ========
 

@@ -336,6 +336,11 @@ class SegmentsSuper(enum.Enum):
     This should be where segments forming segmentations come from. In most
     cases if a segment is not defined here it should be added, rather than
     defined as a custom segment in a Segmentation.
+
+    See Also
+    --------
+    :ref:`def-segments`
+        for the full list of segment definitions.
     """
 
     PURPOSE = "p"
