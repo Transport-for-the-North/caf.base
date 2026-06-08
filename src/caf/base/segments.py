@@ -52,6 +52,9 @@ class Segment(BaseConfig):
         The values forming the segment. Keys are the values, and values are
         descriptions, e.g. for 'p', 1: 'HB work'. Descriptions don't tend to
         get used in DVectors so can be as verbose as desired for clarity.
+    description: str | None
+        Optional description of the segment, with explanation of the source
+        or usecases.
     alias: str | None
         Optional alias to use when producing filenames (or other names)
         from segmentation slices, if not given then name will be used.
@@ -68,6 +71,7 @@ class Segment(BaseConfig):
     name: str
     values: dict[int, str]
     alias: Optional[str] = None
+    description: Optional[str] = None
     values_aliases: dict[int, str] = pydantic.Field(default_factory=dict)
     exclusions: list[Exclusion] = pydantic.Field(default_factory=list)
     lookups: list[Exclusion] = pydantic.Field(default_factory=list)

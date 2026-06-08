@@ -7,12 +7,20 @@ All the segments available within :mod:`caf.base`, accessible through the
 :class:`~caf.base.segments.SegmentsSuper` enum. Segments are defined as YAML
 files within `{{ relative_folder }} <{{ url }}/{{ relative_folder }}>`_.
 
+.. attention::
+    The definitions here are specific to caf.base version |version|, check
+    CAF dependency versions if there are any discrepancies.
+
 {% for name, segment in segments.items()|sort -%}
 
 .. _`def-{{ segment.name }}`:
 
-{{ name|replace("_", " ")|title }}
-{{ "-" * name|length }}
+{{ segment.name }}
+{{ "-" * segment.name|length }}
+
+{% if segment.description -%}
+{{ segment.description }}
+{%- endif %}
 
 - Name: {{ segment.name }}{% if segment.alias %} ({{ segment.alias }}) {%- endif %}
 - Enum: :attr:`~caf.base.segments.SegmentsSuper.{{ name|upper }}`
