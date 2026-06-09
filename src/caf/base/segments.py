@@ -52,6 +52,9 @@ class Segment(BaseConfig):
         The values forming the segment. Keys are the values, and values are
         descriptions, e.g. for 'p', 1: 'HB work'. Descriptions don't tend to
         get used in DVectors so can be as verbose as desired for clarity.
+    description: str | None
+        Optional description of the segment, with explanation of the source
+        or usecases.
     alias: str | None
         Optional alias to use when producing filenames (or other names)
         from segmentation slices, if not given then name will be used.
@@ -68,6 +71,7 @@ class Segment(BaseConfig):
     name: str
     values: dict[int, str]
     alias: Optional[str] = None
+    description: Optional[str] = None
     values_aliases: dict[int, str] = pydantic.Field(default_factory=dict)
     exclusions: list[Exclusion] = pydantic.Field(default_factory=list)
     lookups: list[Exclusion] = pydantic.Field(default_factory=list)
@@ -336,42 +340,81 @@ class SegmentsSuper(enum.Enum):
     This should be where segments forming segmentations come from. In most
     cases if a segment is not defined here it should be added, rather than
     defined as a custom segment in a Segmentation.
+
+    See Also
+    --------
+    :ref:`def-segments`
+        for the full list of segment definitions.
     """
 
     PURPOSE = "p"
+    "See :ref:`def-p` in :ref:`data definitions` for details."
     TIMEPERIOD = "tp"
+    "See :ref:`def-tp` in :ref:`data definitions` for details."
     MODE = "m"
+    "See :ref:`def-m` in :ref:`data definitions` for details."
     GENDER = "g"
+    "See :ref:`def-g` in :ref:`data definitions` for details."
     SOC = "soc"
+    "See :ref:`def-soc` in :ref:`data definitions` for details."
     CA = "ca"
+    "See :ref:`def-ca` in :ref:`data definitions` for details."
     USERCLASS = "userclass"
+    "See :ref:`def-userclass` in :ref:`data definitions` for details."
     ACCOMODATION_TYPE_H = "accom_h"
+    "See :ref:`def-accom_h` in :ref:`data definitions` for details."
     ACCOMODATION_TYPE_HR = "accom_hr"
+    "See :ref:`def-accom_hr` in :ref:`data definitions` for details."
     ADULTS = "adults"
+    "See :ref:`def-adults` in :ref:`data definitions` for details."
     CHILDREN = "children"
+    "See :ref:`def-children` in :ref:`data definitions` for details."
     CAR_AVAILABILITY = "car_availability"
+    "See :ref:`def-car_availability` in :ref:`data definitions` for details."
     AGE = "age_9"
+    "See :ref:`def-age_9` in :ref:`data definitions` for details."
     AGE_11 = "age_11"
+    "See :ref:`def-age_11` in :ref:`data definitions` for details."
     AGE_AGG = "age_5"
+    "See :ref:`def-age_5` in :ref:`data definitions` for details."
     AGE_NTEM = "age_ntem"
+    "See :ref:`def-age_ntem` in :ref:`data definitions` for details."
     AGE_EDGE = "age_edge"
+    "See :ref:`def-age_edge` in :ref:`data definitions` for details."
     GENDER_3 = "gender_3"
+    "See :ref:`def-gender_3` in :ref:`data definitions` for details."
     ECONOMIC_STATUS = "economic_status"
+    "See :ref:`def-economic_status` in :ref:`data definitions` for details."
     POP_EMP = "pop_emp"
+    "See :ref:`def-pop_emp` in :ref:`data definitions` for details."
     POP_ECON = "pop_econ"
+    "See :ref:`def-pop_econ` in :ref:`data definitions` for details."
     NS_SEC = "ns_sec"
+    "See :ref:`def-ns_sec` in :ref:`data definitions` for details."
     AWS = "aws"
+    "See :ref:`def-aws` in :ref:`data definitions` for details."
     HH_TYPE = "hh_type"
+    "See :ref:`def-hh_type` in :ref:`data definitions` for details."
     ADULT_NSSEC = "adult_nssec"
+    "See :ref:`def-adult_nssec` in :ref:`data definitions` for details."
     SIC_1 = "sic_1_digit"
+    "See :ref:`def-sic_1_digit` in :ref:`data definitions` for details."
     SIC_2 = "sic_2_digit"
+    "See :ref:`def-sic_2_digit` in :ref:`data definitions` for details."
     SIC_4 = "sic_4_digit"
+    "See :ref:`def-sic_4_digit` in :ref:`data definitions` for details."
     STATUS_APS = "status_aps"
+    "See :ref:`def-status_aps` in :ref:`data definitions` for details."
     NORCOM_0V1 = "norcom_0v1+"
+    "See :ref:`def-norcom_0v1+` in :ref:`data definitions` for details."
     TOTAL = "total"
+    "See :ref:`def-total` in :ref:`data definitions` for details."
     UNI = "uni"
+    "See :ref:`def-uni` in :ref:`data definitions` for details."
     DIRECTION = "direction"
+    "See :ref:`def-direction` in :ref:`data definitions` for details."
     DIRECTION_OD = "direction_od"
+    "See :ref:`def-direction_od` in :ref:`data definitions` for details."
 
     @classmethod
     def values(cls):

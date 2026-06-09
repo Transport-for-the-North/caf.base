@@ -14,6 +14,9 @@ import pathlib
 import re
 import sys
 
+# Third Party
+from sphinx.application import Sphinx
+
 dir_path = pathlib.Path(__file__).parents[2]
 source = dir_path / "src"
 sys.path.insert(0, str(source.absolute()))
@@ -56,6 +59,8 @@ templates_path = ["_templates", "_templates/autosummary"]
 # This pattern also affects html_static_path and html_extra_path.
 exclude_patterns = []
 
+generated_folder = "_generated"
+
 # -- Options for API summary -------------------------------------------------
 napoleon_google_docstring = False
 napoleon_numpy_docstring = True
@@ -78,10 +83,21 @@ autosummary_generate = True
 autosummary_imported_members = True
 modindex_common_prefix = ["caf.", "caf.base."]
 
+autosummary_context = {
+    # Enable inherited methods / attributes in all classes
+    "include_inherited_methods": False,
+    "include_inherited_attributes": False,
+    # Enable / disable inherited methods / attributes in some classes
+    "show_inherited": [],
+    "exclude_inherited": [],
+}
+
 # -- Options for Sphinx Examples gallery -------------------------------------
 sphinx_gallery_conf = {
     "examples_dirs": "../../examples",  # path to your example scripts
-    "gallery_dirs": "examples",  # path to where to save gallery generated output
+    "gallery_dirs": f"{generated_folder}/examples",  # path to where to save gallery generated output
+    "backreferences_dir": f"{generated_folder}/examples/backrefs",  # path to the backreferences files
+    "doc_module": ("caf.base",),
     # Regex pattern of filenames to be ran so the output can be included
     "filename_pattern": rf"{re.escape(os.sep)}run_.*\.py",
 }
@@ -148,6 +164,11 @@ html_theme_options = {
         },
     ],
     "primary_sidebar_end": ["indices.html", "sidebar-ethical-ads.html"],
+    "announcement": """
+        The documentation pages are currently work-in-progress, if you have any suggestions
+        for improvements please raise an issue on the
+        <a href="https://github.com/transport-for-the-north/caf.base/issues/new/choose">caf.base repository</a>.
+    """,
 }
 html_context = {
     "github_url": "https://github.com",
@@ -208,10 +229,38 @@ def linkcode_resolve(domain: str, info: dict) -> str | None:
     except ValueError:
         return None
 
+    return f"{get_github_url()}/{filepath}"
+
+
+def get_github_url():
+    """GitHub URL pointing to a specific tagged version."""
     tag = f"v{version.split('+', maxsplit=1)[0]}"
     github_url = (
         f"{html_context['github_url']}/{html_context['github_user']}"
         f"/{html_context['github_repo']}/tree/{tag}"
     )
 
-    return f"{github_url}/{filepath}"
+    return github_url
+
+
+# Generate segments documentation page
+def generate_segments_page(app: Sphinx):
+    """Load `Segments` and render them with the template to create the doc page."""
+    segments = {i.name: i.get_segment() for i in caf.base.segments.SegmentsSuper}
+    context = {
+        "segments": segments,
+        "relative_folder": "src/caf/base/segments",
+        "url": get_github_url(),
+    }
+
+    rendered = app.builder.templates.render("segments.rst", context)
+
+    out_path = pathlib.Path(app.srcdir) / f"{generated_folder}/segments.rst"
+    out_path.parent.mkdir(parents=True, exist_ok=True)
+    out_path.write_text(rendered, encoding="utf-8")
+
+
+# Setup additional sphinx connections
+def setup(app: Sphinx):
+    """Add initial setup steps to Sphinx."""
+    app.connect("builder-inited", generate_segments_page)

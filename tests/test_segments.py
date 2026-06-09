@@ -91,6 +91,7 @@ def fix_exp_hb_purpose():
             7: "HB Visiting friends and relatives",
             8: "HB Holiday / Day trip",
         },
+        description="Travel purpose, based on those from the UK National Trip End Model.",
     )
 
 
