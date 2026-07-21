@@ -275,12 +275,12 @@ class SegmentationSlice:
         -------
         SegmentationSlice containing the passed in segments.
         """
-        params = {seg: val for seg, val in self.data.items() if seg in segments}
         if isinstance(segments, list):
             segments = [
                 segment.name if isinstance(segment, Segment) else segment
                 for segment in segments
             ]
+        params = {seg: val for seg, val in self.data.items() if seg in segments}
         return SegmentationSlice(params, segments)
 
 
@@ -351,7 +351,7 @@ class SegmentationInput(BaseConfig):
         for seg in self.subsets.keys():
             if seg not in [i.value for i in self.enum_segments]:
                 raise ValueError(
-                    f"{seg} is not a valid segment  , and so can't be a subset value."
+                    f"{seg} is not a valid segment and so can't be a subset value."
                 )
         return self
 
@@ -603,7 +603,11 @@ class Segmentation:
                     f"string values rather than ints. Renaming.",
                     SegmentationWarning,
                 )
-                df = df.rename({j: i for i, j in built_values.items()})
+                df = df.rename(
+                    {j: i for i, j in built_values.items()},
+                    axis="index",
+                    level=name,
+                )
                 read_index = df.index
                 continue
             # The input segmentation should have had subsets defined. warn user but allow

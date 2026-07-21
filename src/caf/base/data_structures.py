@@ -369,7 +369,7 @@ class DVector:
         if not isinstance(value, (pd.DataFrame, pd.Series)):
             raise TypeError(
                 "data must be a pandas DataFrame or Series. Input "
-                f"value is {value.type}."
+                f"value is {type(value)}."
             )
         self._data, _ = self._dataframe_to_dvec(value)
 
@@ -1670,7 +1670,7 @@ class DVector:
             zoning_system=zoning_system,
         )
 
-    def reorder_levels(self, new_order: list[str]):
+    def reorder_levels(self, new_order: list[str]) -> DVector:
         new_seg = self.segmentation.copy()
         new_seg.naming_order = new_order
         new_data = self.data.copy()
@@ -1761,13 +1761,13 @@ class DVector:
             cut_read=self._cut_read,
         )
 
-    def filter_segment_values(self, filter: dict[str, list[int]]):
+    def filter_segment_values(self, filter: dict[str, list[int]]) -> DVector:
         out = self
         for seg, values in filter.items():
             out = out.filter_segment_value(seg, values)
         return out
 
-    def drop_by_segment_values(self, segment_name: str, segment_values: list[int]):
+    def drop_by_segment_values(self, segment_name: str, segment_values: list[int]) -> DVector:
         """Remove rows of DVector based on segment values.
 
         Parameters
@@ -1876,7 +1876,7 @@ class DVector:
         for name in drop_names:
             if name not in self.segmentation.names:
                 raise ValueError(
-                    f"{name} not in current segmentation so can'tbe used to convert."
+                    f"{name} not in current segmentation so can't be used to convert."
                 )
             if drop_old:
                 new_seg.remove_segment(name, inplace=True)
@@ -2001,7 +2001,7 @@ class DVector:
                             "the first target. It is possible later targets also don't match."
                         )
                 else:
-                    ZoningError("Zoning systems do not match.")
+                    raise ZoningError("Zoning systems do not match.")
                 continue
             subsets = target.data.segmentation.input.subsets
             if len(subsets) > 0:

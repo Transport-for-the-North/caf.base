@@ -25,7 +25,7 @@ class InputAndResults:
     expect_fail: bool = False
 
 
-@dataclasses.dataclassr
+@dataclasses.dataclass
 class Segment:
     """Example segment class
 
