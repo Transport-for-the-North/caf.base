@@ -80,7 +80,7 @@ class TimeFormat(enum.Enum):
         return [TimeFormat.AVG_WEEK, TimeFormat.AVG_DAY, TimeFormat.AVG_HOUR]
 
     @staticmethod
-    def _week_to_hour_factors() -> dict[int, float]:
+    def _week_to_hour_factors() -> dict[int, int | float]:
         """Compound week to day and day to hour factors."""
         return ctk.toolbox.combine_dict_list(
             dict_list=[
@@ -91,7 +91,7 @@ class TimeFormat(enum.Enum):
         )
 
     @staticmethod
-    def _hour_to_week_factors() -> dict[int, float]:
+    def _hour_to_week_factors() -> dict[int, int | float]:
         """Compound hour to day and day to week factors."""
         return ctk.toolbox.combine_dict_list(
             dict_list=[
