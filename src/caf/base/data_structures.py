@@ -620,7 +620,7 @@ class DVector:
         self,
         new_zoning: ZoningSystem,
         cache_path: Optional[PathLike] = None,
-        trans_vector: pd.DataFrame = None,
+        trans_vector: ctk.translation.ZoneCorrespondence | pd.DataFrame | None = None,
         weighting: str | TranslationWeighting = TranslationWeighting.SPATIAL,
         check_totals: bool = True,
         no_factors: bool = False,
@@ -718,43 +718,46 @@ class DVector:
                     new_zoning, weighting=weighting, cache_path=cache_path
                 )
         else:
-            trans_vector = target_zone.validate_translation_data(
-                new_zoning, trans_vector
-            )
-            trans_vector = ctk.translation.ZoneCorrespondence(
-                trans_vector,
-                target_zone.column_name,
-                new_zoning.column_name,
-                target_zone.translation_column_name(new_zoning),
-            )
+            if isinstance(trans_vector, pd.DataFrame):
+                trans_vector = target_zone.validate_translation_data(
+                    new_zoning, trans_vector
+                )
+                trans_vector = ctk.translation.ZoneCorrespondence(
+                    trans_vector,
+                    target_zone.column_name,
+                    new_zoning.column_name,
+                    target_zone.translation_column_name(new_zoning),
+                )
         factor_col = target_zone.translation_column_name(new_zoning)
         # factors equal one to propagate perfectly
         # This only works for perfect nesting
         if one_to_one:
-            idx = trans_vector.groupby(f"{normalise_column_name(target_zone.name)}_id")[
-                factor_col
-            ].idxmax()
-            trans_vector = trans_vector.loc[idx]
+            idx = trans_vector.vector.groupby(
+                f"{normalise_column_name(target_zone.name)}_id"
+            )[factor_col].idxmax()
+            trans_vector = trans_vector.vector.loc[idx]
             no_factors = True
         if no_factors:
-            trans_vector[factor_col] = 1
+            trans_vector.vector[factor_col] = 1
         # Use a simple replace and group for nested zoning
-        if trans_vector[
+        if trans_vector.vector[
             f"{normalise_column_name(target_zone.name)}_id"
-        ].nunique() == len(trans_vector):
-            if set(trans_vector[target_zone.column_name]).intersection(
+        ].nunique() == len(trans_vector.vector):
+            # unpack as it is just used as a lookup
+            trans_vector_df = trans_vector.vector
+            if set(trans_vector_df[target_zone.column_name]).intersection(
                 target_zone.zone_ids
             ) != set(target_zone.zone_ids):
                 warnings.warn(
                     "Not all zones in the DVector or defined in the zone_translation."
                 )
-            trans_vector = trans_vector.set_index(target_zone.column_name)[
+            trans_vector_dict = trans_vector_df.set_index(target_zone.column_name)[
                 new_zoning.column_name
             ].to_dict()
             translated = (
-                self.data.rename(columns=trans_vector).T.groupby(level=0).sum().T
+                self.data.rename(columns=trans_vector_dict).T.groupby(level=0).sum().T
             )
-            new_zones = set(trans_vector.values())
+            new_zones = set(trans_vector_dict.values())
             untranslated = [i for i in translated.columns if i not in new_zones]
             if len(untranslated) > 0:
                 warnings.warn(
@@ -1335,9 +1338,9 @@ class DVector:
                 self.zoning_system.translation_column_name(validated_zoning),
             )
         new_data = self.data.mul(
-            trans_vector.vector[
-                self.zoning_system.translation_column_name(validated_zoning)
-            ],
+            trans_vector.vector.set_index(
+                [self.zoning_system.column_name, validated_zoning.column_name]
+            )[self.zoning_system.translation_column_name(validated_zoning)],
             axis=1,
         )
 
@@ -2151,7 +2154,7 @@ class DVector:
         DVector matched to targets, rmse achieved.
         """
         # check DVectors compatible
-        # targets = self.validate_ipf_targets(targets, cache_path=zone_trans_cache)
+        targets = self.validate_ipf_targets(targets, cache_path=zone_trans_cache)
         new_dvec = self.copy()
         prev_rmse = np.inf
         rmse = np.inf
@@ -2321,7 +2324,7 @@ class DVector:
             if file.endswith(("hdf", "dvec")):
                 try:
                     dvec = cls.load(folder / file)
-                except:
+                except SegmentationError: # hdf file is not DVector, and therefore doesn't contain segmentation
                     continue
                 if zoning is None:
                     if isinstance(dvec.zoning_system, Sequence):

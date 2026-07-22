@@ -376,9 +376,10 @@ class SegmentsSuper(enum.Enum):
     STATUS_APS = "status_aps"
     NORCOM_0V1 = "norcom_0v1+"
     TOTAL = "total"
-    UNI = "uni"
     DIRECTION = "direction"
     DIRECTION_OD = "direction_od"
+    NORMS_UC_OD = "norms_uc_od"
+    NORMS_UC_PA = "norms_uc_pa"
 
     @classmethod
     def values(cls):

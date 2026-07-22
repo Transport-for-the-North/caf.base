@@ -763,7 +763,11 @@ class Segmentation:
         # pylint: disable=no-member
         if mode == "hdf":
             with h5py.File(in_path, "r") as h_file:
-                yam_load = h_file["segmentation"][()].decode("utf-8")
+                try:
+                    yam_load = h_file["segmentation"][()].decode("utf-8")
+                except KeyError:
+                    raise SegmentationError("This file does not contain segmentation information. " \
+                    "Double check the file is a DVector, and not an hdf file in some other format.")
                 config = SegmentationInput.from_yaml(yam_load)
         # pylint: enable=no-member
 
