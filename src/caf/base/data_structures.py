@@ -1770,7 +1770,9 @@ class DVector:
             out = out.filter_segment_value(seg, values)
         return out
 
-    def drop_by_segment_values(self, segment_name: str, segment_values: list[int]) -> DVector:
+    def drop_by_segment_values(
+        self, segment_name: str, segment_values: list[int]
+    ) -> DVector:
         """Remove rows of DVector based on segment values.
 
         Parameters
@@ -1812,8 +1814,8 @@ class DVector:
         self,
         from_seg: str | Segment,
         to_seg: str | Segment,
-        reverse: bool=False,
-        drop_from: bool=True,
+        reverse: bool = False,
+        drop_from: bool = True,
         _bypass_validation: bool = False,
     ):
         """
@@ -2324,7 +2326,7 @@ class DVector:
             if file.endswith(("hdf", "dvec")):
                 try:
                     dvec = cls.load(folder / file)
-                except SegmentationError: # hdf file is not DVector, and therefore doesn't contain segmentation
+                except SegmentationError:  # hdf file is not DVector, and therefore doesn't contain segmentation
                     continue
                 if zoning is None:
                     if isinstance(dvec.zoning_system, Sequence):

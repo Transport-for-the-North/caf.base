@@ -766,8 +766,10 @@ class Segmentation:
                 try:
                     yam_load = h_file["segmentation"][()].decode("utf-8")
                 except KeyError:
-                    raise SegmentationError("This file does not contain segmentation information. " \
-                    "Double check the file is a DVector, and not an hdf file in some other format.")
+                    raise SegmentationError(
+                        "This file does not contain segmentation information. "
+                        "Double check the file is a DVector, and not an hdf file in some other format."
+                    )
                 config = SegmentationInput.from_yaml(yam_load)
         # pylint: enable=no-member
 

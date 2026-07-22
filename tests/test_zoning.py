@@ -306,7 +306,9 @@ class TestZoning:
     ):
         """Test sucessfully obtaining zone_translation data."""
         trans = min_zoning_2.translate(min_zoning, cache_path=main_dir)
-        assert trans.vector.equals(test_trans[['zone_2_id','zone_1_id','zone_2_to_zone_1']])
+        assert trans.vector.equals(
+            test_trans[["zone_2_id", "zone_1_id", "zone_2_to_zone_1"]]
+        )
         assert min_zoning_2.translation_column_name(min_zoning) == "zone_2_to_zone_1"
 
     def test_getter(self, id_only_zoning: tuple[ZoningData, ZoningSystem], main_dir):
