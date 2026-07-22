@@ -1810,10 +1810,10 @@ class DVector:
 
     def translate_segment(
         self,
-        from_seg,
-        to_seg,
-        reverse=False,
-        drop_from=True,
+        from_seg: str | Segment,
+        to_seg: str | Segment,
+        reverse: bool=False,
+        drop_from: bool=True,
         _bypass_validation: bool = False,
     ):
         """
@@ -1821,9 +1821,9 @@ class DVector:
 
         Parameters
         ----------
-        from_seg:
+        from_seg: str | Segment
             Segment in DVector to translate.
-        to_seg:
+        to_seg: str | Segment
             Segment to translate from_seg to. A lookup for these must be defined
             in the seg_translations folder.
         reverse: bool = False
