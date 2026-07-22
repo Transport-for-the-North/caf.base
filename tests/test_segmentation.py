@@ -15,6 +15,7 @@ import pathlib
 import random
 
 # Third Party
+import h5py
 import pandas as pd
 import pytest
 
@@ -249,6 +250,48 @@ class TestSegmentation:
         answer = list(vanilla_seg.iter_slices(filter_=params))
         assert answer == expected
 
+    def test_contains(self, vanilla_seg: segmentation.Segmentation) -> None:
+        """Test membership checks for segment names and segment objects."""
+        assert "ca" in vanilla_seg
+        assert vanilla_seg.get_segment("m") in vanilla_seg
+        assert "not_a_segment" not in vanilla_seg
+
+    def test_seg_dict_order(self, nam_ord_seg: segmentation.Segmentation) -> None:
+        """Test `seg_dict` keys preserve naming order."""
+        assert list(nam_ord_seg.seg_dict.keys()) == nam_ord_seg.naming_order
+
+    def test_validate_segmentation_converts_string_index_values(
+        self,
+        simple_segmentation: segmentation.Segmentation,
+    ) -> None:
+        """Test string index values trigger conversion warning in validation."""
+        source = pd.DataFrame(index=simple_segmentation.ind())
+        source["value"] = 1
+        ca_values = simple_segmentation.get_segment("ca").values
+        source = source.rename(
+            {int_val: str_val for int_val, str_val in ca_values.items()},
+            axis="index",
+            level="ca",
+        )
+
+        with pytest.warns(segmentation.SegmentationWarning, match="string values"):
+            with pytest.raises(segmentation.SegmentationError, match="cut_read=True"):
+                segmentation.Segmentation.validate_segmentation(
+                    source=source,
+                    segmentation=simple_segmentation,
+                )
+
+    def test_load_hdf_missing_segmentation_raises(
+        self, tmp_path: pathlib.Path
+    ) -> None:
+        """Test loading an hdf without segmentation metadata raises a clear error."""
+        path = tmp_path / "no_segmentation_metadata.hdf"
+        with h5py.File(path, "w") as h_file:
+            h_file.create_dataset("data", data=[1, 2, 3])
+
+        with pytest.raises(segmentation.SegmentationError, match="does not contain segmentation"):
+            segmentation.Segmentation.load(path, mode="hdf")
+
     def test_find_files(
         self, vanilla_seg: segmentation.Segmentation, tmp_path: pathlib.Path
     ):
@@ -447,3 +490,14 @@ class TestSegmentationSlice:
         expected = "_".join(f"{aliases.get(i, i)}{params[i]}" for i in names)
 
         assert expected == slice_.generate_name()
+
+    def test_aggregate_by_names(
+        self,
+        slice_: segmentation.SegmentationSlice,
+    ) -> None:
+        """Test aggregating a slice to an explicit subset of segment names."""
+        keep = ["ca", "p"]
+        answer = slice_.aggregate(keep)
+
+        assert answer.naming_order == tuple(keep)
+        assert answer.data == {name: slice_[name] for name in keep}

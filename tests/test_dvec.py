@@ -309,3 +309,78 @@ class TestDvec:
         aggregated = basic_dvec_1.aggregate(["gender_3"])
         grouped = basic_dvec_1.data.groupby(level="gender_3").sum()
         assert grouped.equals(aggregated.data)
+
+    def test_validate_ipf_targets_series(self, basic_dvec_1):
+        """Test validating IPF targets provided as zonal totals series."""
+        target_series = basic_dvec_1.data.sum(axis=0)
+        target = data_structures.IpfTarget(data=target_series)
+
+        validated = basic_dvec_1.validate_ipf_targets([target])
+
+        assert validated[0].data.equals(target_series)
+
+    def test_validate_ipf_targets_series_bad_zoning_name(self, basic_dvec_1):
+        """Test series targets with non-matching zoning names are rejected."""
+        target_series = basic_dvec_1.data.sum(axis=0).copy()
+        target_series.index = target_series.index.rename("bad_zone_name")
+
+        with pytest.raises(data_structures.ZoningError, match="Zoning systems do not match"):
+            basic_dvec_1.validate_ipf_targets(
+                [data_structures.IpfTarget(data=target_series)]
+            )
+
+    def test_ipf_with_series_target(self, basic_dvec_1):
+        """Test IPF accepts and handles a pd.Series target."""
+        target_series = basic_dvec_1.data.sum(axis=0)
+        target = data_structures.IpfTarget(data=target_series)
+
+        fitted, rmse = basic_dvec_1.ipf([target], max_iters=2)
+
+        assert isclose(rmse, 0.0, abs_tol=1e-10)
+        assert np.allclose(fitted.data.values, basic_dvec_1.data.values)
+
+    def test_balance_protect_subset(self, basic_dvec_1, min_zoning):
+        """Test balancing while preserving protected subset values."""
+        target = basic_dvec_1.copy()
+        target.data = target.data * 1.5
+
+        protected_subset = {"gender_3": [1]}
+        balanced = basic_dvec_1.balance_protect_subset(
+            target,
+            target_zone=min_zoning,
+            protected_subset=protected_subset,
+        )
+
+        protected_mask = basic_dvec_1.data.index.get_level_values("gender_3").isin([1])
+        assert balanced.data.loc[protected_mask].equals(
+            basic_dvec_1.data.loc[protected_mask]
+        )
+        assert np.allclose(
+            balanced.data.sum(axis=0).values,
+            target.data.sum(axis=0).values,
+        )
+
+    def test_rename_segment(self, no_zone_dvec_1):
+        """Test `rename_segment` updates segmentation and index names."""
+        renamed = no_zone_dvec_1.rename_segment({"m": "mode"})
+
+        assert "mode" in renamed.segmentation.names
+        assert "m" not in renamed.segmentation.names
+        assert "mode" in renamed.data.index.names
+        assert "m" not in renamed.data.index.names
+        assert isclose(renamed.data.sum(), no_zone_dvec_1.data.sum())
+
+
+class TestIpfTarget:
+    """Tests for `IpfTarget` validation."""
+
+    def test_multizoned_dvector_rejected(self, comp_zoned_dvec):
+        """Test IpfTarget rejects multizoned DVector targets."""
+        with pytest.raises(TypeError, match="cannot currently be multizoned"):
+            data_structures.IpfTarget(data=comp_zoned_dvec)
+
+    def test_series_allowed(self, basic_dvec_1):
+        """Test IpfTarget accepts pd.Series targets."""
+        target_series = basic_dvec_1.data.sum(axis=0)
+        target = data_structures.IpfTarget(data=target_series)
+        assert target.data.equals(target_series)

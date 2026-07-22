@@ -190,3 +190,21 @@ class TestSegment:
         seg = segment.get_segment()
         values = seg.extract_values(text)
         assert values == expected
+
+    def test_val_to_int(self) -> None:
+        """Test `val_to_int` inverts the `values` mapping."""
+        seg = segments.SegmentsSuper.GENDER_3.get_segment()
+        expected = {value: key for key, value in seg.values.items()}
+
+        assert seg.val_to_int == expected
+
+    def test_translate_segment_reverse(self) -> None:
+        """Test reverse segment lookup translation returns expected mapping."""
+        seg = segments.SegmentsSuper.AGE_NTEM.get_segment()
+        new_seg, lookup = seg.translate_segment(segments.SegmentsSuper.AGE_11, reverse=True)
+
+        assert new_seg.name == "age_11"
+        assert lookup.name == "age_11"
+        assert list(lookup.loc[1]) == [1, 2, 3]
+        assert list(lookup.loc[2]) == [4, 5, 6, 7, 8, 9]
+        assert list(lookup.loc[3]) == [10, 11]
