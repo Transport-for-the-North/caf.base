@@ -122,6 +122,41 @@ class TestSegmentsSuper:
             segments.SegmentsSuper(path.stem)
 
 
+class TestSegConverter:
+    """Tests for `SegConverter` conversion definitions."""
+
+    @pytest.mark.parametrize(
+        ["converter", "expected_cols", "expected_levels"],
+        [
+            (segments.SegConverter.AG_G, ["gender_3"], ["age_9", "g"]),
+            (segments.SegConverter.APOPEMP_AWS, ["aws"], ["age_9", "pop_emp"]),
+            (
+                segments.SegConverter.CARADULT_HHTYPE,
+                ["hh_type"],
+                ["adults", "car_availability"],
+            ),
+            (segments.SegConverter.NSSEC_ADULT, ["adult_nssec"], ["ns_sec", "adults"]),
+        ],
+    )
+    def test_get_conversion_structure(
+        self,
+        converter: segments.SegConverter,
+        expected_cols: list[str],
+        expected_levels: list[str],
+    ) -> None:
+        """Test conversion outputs have expected index levels and output columns."""
+        out = converter.get_conversion()
+
+        assert list(out.columns) == expected_cols
+        assert list(out.index.names) == expected_levels
+        assert len(out) > 0
+
+    def test_get_conversion_invalid_input(self) -> None:
+        """Test invalid conversion input raises ValueError."""
+        with pytest.raises(ValueError, match="Invalid input segment"):
+            segments.SegConverter.get_conversion("not_a_converter")
+
+
 ##### Tests & Fixtures for `Segment` #####
 
 
@@ -191,6 +226,39 @@ class TestSegment:
         values = seg.extract_values(text)
         assert values == expected
 
+    def test_get_value_alias_invalid_value(self) -> None:
+        """Test invalid segment value raises a clear error."""
+        seg = segments.SegmentsSuper.GENDER_3.get_segment()
+        with pytest.raises(ValueError, match="invalid value"):
+            seg.get_value_alias(999)
+
+    def test_exclusion_and_lookup_indices(self) -> None:
+        """Test exclusion and lookup helper methods return expected indices."""
+        corr = segments.Exclusion(other_name="target", exclusions={1: [2, 3], 2: [1]})
+        seg = segments.Segment(
+            name="source",
+            values={1: "A", 2: "B"},
+            exclusions=[corr],
+            lookups=[corr],
+        )
+
+        expected = pd.MultiIndex.from_tuples(
+            [(1, 2), (1, 3), (2, 1)], names=["dummy", "target"]
+        )
+
+        assert corr.build_index().equals(expected)
+        assert seg.drop_indices("target").equals(expected)
+        assert seg.lookup_indices("target").equals(expected)
+        assert seg.drop_indices("other") is None
+        assert seg.lookup_indices("other") is None
+
+    def test_translate_segment_invalid_type(self) -> None:
+        """Test translate_segment rejects unsupported input type."""
+        seg = segments.SegmentsSuper.AGE_11.get_segment()
+
+        with pytest.raises(TypeError, match="expects either"):
+            seg.translate_segment(123)
+
     def test_val_to_int(self) -> None:
         """Test `val_to_int` inverts the `values` mapping."""
         seg = segments.SegmentsSuper.GENDER_3.get_segment()
@@ -208,3 +276,17 @@ class TestSegment:
         assert list(lookup.loc[1]) == [1, 2, 3]
         assert list(lookup.loc[2]) == [4, 5, 6, 7, 8, 9]
         assert list(lookup.loc[3]) == [10, 11]
+
+    def test_add_corr_from_df(self) -> None:
+        """Test adding lookup and exclusion correlations from conversion files."""
+        seg = segments.SegmentsSuper.AGE_11.get_segment().copy()
+        seg.lookups = []
+        seg.exclusions = []
+
+        seg.add_corr_from_df(segments.SegmentsSuper.AGE_NTEM, exclusion=False)
+        seg.add_corr_from_df(segments.SegmentsSuper.AGE_NTEM, exclusion=True)
+
+        assert len(seg.lookups) == 1
+        assert seg.lookups[0].other_name == "age_ntem"
+        assert len(seg.exclusions) == 1
+        assert seg.exclusions[0].other_name == "age_ntem"

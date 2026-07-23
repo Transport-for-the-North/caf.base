@@ -14,7 +14,12 @@ from numpy.testing import assert_array_equal
 from pandas.testing import assert_frame_equal, assert_series_equal
 
 # Local Imports
-from caf.base.zoning import ZoningSystem, ZoningSystemMetaData
+from caf.base.zoning import (
+    TranslationError,
+    TranslationWeighting,
+    ZoningSystem,
+    ZoningSystemMetaData,
+)
 
 
 @dataclasses.dataclass
@@ -317,3 +322,107 @@ class TestZoning:
         system.save(main_dir, "csv")
         got_zone = ZoningSystem.get_zoning(system.name, search_dir=main_dir)
         assert got_zone == system, "zoning system not equal after load"
+
+    def test_translation_weighting_suffixes(self) -> None:
+        """Test all translation weightings map to expected filename suffixes."""
+        expected = {
+            TranslationWeighting.SPATIAL: "spatial",
+            TranslationWeighting.POPULATION: "population_weight",
+            TranslationWeighting.EMPLOYMENT: "employment_weight",
+            TranslationWeighting.NO_WEIGHT: "no_weighting",
+            TranslationWeighting.AVERAGE: "weighted_average",
+            TranslationWeighting.POP: "pop",
+            TranslationWeighting.EMP: "emp",
+        }
+        for weighting, suffix in expected.items():
+            assert weighting.get_suffix() == suffix
+
+    def test_lookup_properties(
+        self, zoning_subsets: tuple[ZoningData, ZoningSystem]
+    ) -> None:
+        """Test ID/name/description lookup helper properties."""
+        _, system = zoning_subsets
+
+        assert system.name_to_id["a"] == 0
+        assert system.id_to_name[0] == "a"
+        assert system.desc_to_id["0-a"] == 0
+        assert system.id_to_desc[0] == "0-a"
+        assert system.id_to_internal[0]
+        assert not system.id_to_external[0]
+
+    def test_load_invalid_mode(self, main_dir: Path) -> None:
+        """Test loading with unsupported mode errors."""
+        with pytest.raises(ValueError, match="Mode can only be"):
+            ZoningSystem.load(main_dir, "invalid")
+
+    def test_zoning_from_df_col(self) -> None:
+        """Test creating a zoning system from a dataframe column."""
+        col = pd.Series(["A", "B", "A"], name="test_col")
+        zoning = ZoningSystem.zoning_from_df_col(col)
+
+        assert zoning.name == "test_col"
+        assert set(zoning.zone_ids) == {"A", "B"}
+
+    def test_trans_df_to_dict(self, test_trans: pd.DataFrame) -> None:
+        """Test conversion of nested translation dataframe to dict."""
+        out = ZoningSystem.trans_df_to_dict(
+            test_trans,
+            from_col="zone_1_id",
+            to_col="zone_2_id",
+            factor_col="zone_1_to_zone_2",
+        )
+        assert out[1] == 1
+        assert out[5] == 4
+
+    def test_trans_df_to_dict_not_nested(self, test_trans: pd.DataFrame) -> None:
+        """Test non-nested translation dataframe raises TranslationError."""
+        with pytest.raises(TranslationError, match="nested zoning systems"):
+            ZoningSystem.trans_df_to_dict(
+                test_trans,
+                from_col="zone_2_id",
+                to_col="zone_1_id",
+                factor_col="zone_2_to_zone_1",
+            )
+
+    def test_validate_translation_missing_columns(
+        self, min_zoning: ZoningSystem, min_zoning_2: ZoningSystem
+    ) -> None:
+        """Test translation validation fails when required columns are missing."""
+        bad = pd.DataFrame(
+            {
+                min_zoning.column_name: [1, 2, 3],
+                min_zoning_2.column_name: [1, 2, 3],
+            }
+        )
+
+        with pytest.raises(TranslationError, match="required columns missing"):
+            min_zoning.validate_translation_data(min_zoning_2, bad)
+
+    def test_translate_invalid_other_type(self, min_zoning: ZoningSystem) -> None:
+        """Test translating with invalid target type raises ValueError."""
+        with pytest.raises(ValueError, match="Expected ZoningSystem"):
+            min_zoning.translate("not-a-zoning")
+
+    def test_get_translation_definition_missing_weighting_file(
+        self,
+        min_zoning: ZoningSystem,
+        min_zoning_2: ZoningSystem,
+        main_dir: Path,
+        test_trans: pd.DataFrame,
+    ) -> None:
+        """Test missing weighting file in existing cache folder raises TranslationError."""
+        _ = test_trans
+        with pytest.raises(TranslationError, match="different weighting"):
+            min_zoning._get_translation_definition(
+                min_zoning_2,
+                weighting=TranslationWeighting.POPULATION,
+                trans_cache=main_dir,
+            )
+
+    def test_check_all_columns(self, zoning_subsets: tuple[ZoningData, ZoningSystem]) -> None:
+        """Test helper for selecting best ID replacement mapping from input columns."""
+        _, system = zoning_subsets
+
+        assert system.check_all_columns(pd.Series(system.zone_ids)) is None
+        lookup = system.check_all_columns(pd.Series(system.zone_names().values))
+        assert lookup == system.name_to_id

@@ -370,6 +370,94 @@ class TestDvec:
         assert "m" not in renamed.data.index.names
         assert isclose(renamed.data.sum(), no_zone_dvec_1.data.sum())
 
+    def test_remove_zoning_errors(self, basic_dvec_1, no_zone_dvec_1):
+        """Test remove_zoning input validation and no-zoning guard."""
+        with pytest.raises(ValueError, match="not callable"):
+            basic_dvec_1.remove_zoning(fn="not_a_function")
+
+        with pytest.raises(ValueError, match="There is no zoning to remove"):
+            no_zone_dvec_1.remove_zoning()
+
+    def test_concat_from_dir_skips_non_dvector_hdf(self, basic_dvec_1, tmp_path):
+        """Test concat_from_dir ignores non-DVector hdf files and loads DVector files."""
+        basic_dvec_1.save(tmp_path / "valid.hdf")
+        pd.DataFrame({"a": [1]}).to_hdf(tmp_path / "not_dvec.hdf", key="data")
+
+        out = data_structures.DVector.concat_from_dir(tmp_path)
+
+        assert out == basic_dvec_1
+
+    def test_concat_from_dir_multizoned_raises(self, comp_zoned_dvec, tmp_path):
+        """Test concat_from_dir rejects multizoned DVectors when zoning is inferred."""
+        comp_zoned_dvec.save(tmp_path / "comp.hdf")
+
+        with pytest.raises(TypeError, match="singly zoned"):
+            data_structures.DVector.concat_from_dir(tmp_path)
+
+    def test_concat_from_dir_segmentation_not_subset_raises(
+        self,
+        basic_dvec_2,
+        basic_segmentation_1,
+        min_zoning,
+        tmp_path,
+    ):
+        """Test concat_from_dir errors for non-subset segmentations."""
+        basic_dvec_2.save(tmp_path / "seg2.hdf")
+
+        with pytest.raises(data_structures.SegmentationError, match="not a subset"):
+            data_structures.DVector.concat_from_dir(
+                tmp_path,
+                zoning=min_zoning,
+                segmentation=basic_segmentation_1,
+            )
+
+    def test_concat_and_concat_list(self, basic_dvec_1):
+        """Test concat and concat_list with disjoint subset DVectors."""
+        subset_1 = basic_dvec_1.filter_segment_values({"gender_3": [1]})
+        subset_2 = basic_dvec_1.filter_segment_values({"gender_3": [2, 3]})
+
+        combined = subset_1.concat(subset_2)
+        combined_list = data_structures.DVector.concat_list(
+            [subset_1, subset_2],
+            basic_dvec_1.segmentation,
+        )
+
+        assert combined.data.sort_index().equals(basic_dvec_1.data.sort_index())
+        assert combined_list.data.sort_index().equals(basic_dvec_1.data.sort_index())
+
+    def test_concat_overlap_and_zoning_errors(self, basic_dvec_1, no_zone_dvec_1):
+        """Test concat errors for overlapping indices and mismatched zoning."""
+        subset_1 = basic_dvec_1.filter_segment_values({"gender_3": [1]})
+
+        with pytest.raises(ValueError, match="overlap in indices"):
+            subset_1.concat(subset_1)
+
+        with pytest.raises(ValueError, match="Zoning systems don't match"):
+            basic_dvec_1.concat(no_zone_dvec_1)
+
+    def test_add_value_to_subset(self, basic_dvec_1):
+        """Test deprecated add_value_to_subset still appends rows and updates subset."""
+        subset_1 = basic_dvec_1.filter_segment_values({"gender_3": [1]})
+        data_for_new_value = basic_dvec_1.filter_segment_values({"gender_3": [2]}).data
+        data_for_new_value = data_for_new_value.droplevel("gender_3")
+
+        out = subset_1.add_value_to_subset("gender_3", 2, data_for_new_value)
+
+        assert 2 in out.data.index.get_level_values("gender_3")
+        assert sorted(out.segmentation.input.subsets["gender_3"]) == [1, 2]
+
+    def test_balance_by_segments_none_and_type_error(self, basic_dvec_1, no_zone_dvec_1):
+        """Test balancing without zones arg and guard for unzoned inputs."""
+        other = basic_dvec_1.copy()
+        other.data = other.data * 2
+
+        balanced = basic_dvec_1.balance_by_segments(other, balancing_zones=None)
+
+        assert np.allclose(balanced.data.values, other.data.values)
+
+        with pytest.raises(TypeError, match="single zone systems"):
+            no_zone_dvec_1.balance_by_segments(no_zone_dvec_1)
+
 
 class TestIpfTarget:
     """Tests for `IpfTarget` validation."""
