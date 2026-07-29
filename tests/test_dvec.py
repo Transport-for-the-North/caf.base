@@ -459,6 +459,128 @@ class TestDvec:
             no_zone_dvec_1.balance_by_segments(no_zone_dvec_1)
 
 
+class TestTimeFormat:
+    """Tests for `TimeFormat` conversion helpers and validation."""
+
+    def test_get_strips_and_normalises(self):
+        """Test `get` accepts mixed-case values with whitespace."""
+        out = data_structures.TimeFormat.get("  AVG_DAY  ")
+        assert out == data_structures.TimeFormat.AVG_DAY
+
+    def test_get_invalid_raises(self):
+        """Test `get` rejects invalid values."""
+        with pytest.raises(ValueError, match="time_format is not valid"):
+            data_structures.TimeFormat.get("bad_value")
+
+    @pytest.mark.parametrize(
+        ["from_", "to_", "expected_fn"],
+        [
+            (
+                data_structures.TimeFormat.AVG_WEEK,
+                data_structures.TimeFormat.AVG_DAY,
+                data_structures.TimeFormat._week_to_day_factors,
+            ),
+            (
+                data_structures.TimeFormat.AVG_WEEK,
+                data_structures.TimeFormat.AVG_HOUR,
+                data_structures.TimeFormat._week_to_hour_factors,
+            ),
+            (
+                data_structures.TimeFormat.AVG_DAY,
+                data_structures.TimeFormat.AVG_WEEK,
+                data_structures.TimeFormat._day_to_week_factors,
+            ),
+            (
+                data_structures.TimeFormat.AVG_DAY,
+                data_structures.TimeFormat.AVG_HOUR,
+                data_structures.TimeFormat._day_to_hour_factors,
+            ),
+            (
+                data_structures.TimeFormat.AVG_HOUR,
+                data_structures.TimeFormat.AVG_WEEK,
+                data_structures.TimeFormat._hour_to_week_factors,
+            ),
+            (
+                data_structures.TimeFormat.AVG_HOUR,
+                data_structures.TimeFormat.AVG_DAY,
+                data_structures.TimeFormat._hour_to_day_factors,
+            ),
+        ],
+    )
+    def test_get_conversion_factors(self, from_, to_, expected_fn):
+        """Test conversion routing returns factors from the expected helper."""
+        out = from_.get_conversion_factors(to_)
+        assert out == expected_fn()
+
+    def test_get_conversion_factors_type_validation(self):
+        """Test conversion requires TimeFormat destination enum."""
+        with pytest.raises(ValueError, match="Expected to_time_format"):
+            data_structures.TimeFormat.AVG_WEEK.get_conversion_factors("avg_day")
+
+    def test_get_conversion_factors_same_format_raises(self):
+        """Test conversion to self is rejected."""
+        with pytest.raises(ValueError, match="converting to self"):
+            data_structures.TimeFormat.AVG_DAY.get_conversion_factors(
+                data_structures.TimeFormat.AVG_DAY
+            )
+
+
+class TestDVectorValidation:
+    """Tests for DVector constructor/setter input validation."""
+
+    def test_constructor_rejects_invalid_zoning_type(self, basic_segmentation_1):
+        """Test non-zoning objects for `zoning_system` are rejected."""
+        data = pd.Series(np.random.rand(24), index=basic_segmentation_1.ind())
+
+        with pytest.raises(ValueError, match="not a caf.base.ZoningSystem"):
+            data_structures.DVector(
+                segmentation=basic_segmentation_1,
+                import_data=data,
+                zoning_system=1,
+            )
+
+    def test_constructor_rejects_non_zoning_in_sequence(
+        self, basic_segmentation_1, min_zoning
+    ):
+        """Test sequence zoning input must only contain `ZoningSystem` objects."""
+        data = pd.DataFrame(
+            np.random.rand(24, 5),
+            index=basic_segmentation_1.ind(),
+            columns=min_zoning.zone_ids,
+        )
+
+        with pytest.raises(TypeError, match="All zoning_systems"):
+            data_structures.DVector(
+                segmentation=basic_segmentation_1,
+                import_data=data,
+                zoning_system=[min_zoning, "bad"],
+            )
+
+    def test_constructor_rejects_invalid_segmentation_type(self, min_zoning):
+        """Test non-segmentation objects are rejected."""
+        data = pd.DataFrame(np.random.rand(2, 5), columns=min_zoning.zone_ids)
+
+        with pytest.raises(ValueError, match="not a caf.base.SegmentationLevel"):
+            data_structures.DVector(
+                segmentation="bad_segmentation",
+                import_data=data,
+                zoning_system=min_zoning,
+            )
+
+    def test_constructor_rejects_unsupported_import_type(self, basic_segmentation_1):
+        """Test unsupported `import_data` input types raise NotImplementedError."""
+        with pytest.raises(NotImplementedError, match="Don't know how to deal"):
+            data_structures.DVector(
+                segmentation=basic_segmentation_1,
+                import_data={"not": "a dataframe"},
+            )
+
+    def test_data_setter_rejects_non_dataframe_or_series(self, no_zone_dvec_1):
+        """Test DVector `data` setter validates pandas input types."""
+        with pytest.raises(TypeError, match="data must be a pandas DataFrame or Series"):
+            no_zone_dvec_1.data = [1, 2, 3]
+
+
 class TestIpfTarget:
     """Tests for `IpfTarget` validation."""
 
@@ -472,3 +594,74 @@ class TestIpfTarget:
         target_series = basic_dvec_1.data.sum(axis=0)
         target = data_structures.IpfTarget(data=target_series)
         assert target.data.equals(target_series)
+
+    def test_check_compatibility_no_adjust(self, basic_dvec_1):
+        """Test compatibility check returns RMSE table and unchanged targets."""
+        target_1 = basic_dvec_1.copy()
+        target_2 = basic_dvec_1.copy()
+        target_2.data = target_2.data * 1.1
+
+        rmses, targets_out, differences = data_structures.IpfTarget.check_compatibility(
+            [target_1, target_2],
+            adjust=False,
+            chain_adjust=False,
+        )
+
+        assert not rmses.empty
+        assert len(targets_out) == 2
+        assert len(differences) == 2
+
+    def test_check_compatibility_adjust(self, basic_dvec_1):
+        """Test compatibility check can adjust targets towards reference target."""
+        target_1 = basic_dvec_1.copy()
+        target_1.data = target_1.data * 0.5
+        target_2 = basic_dvec_1.copy()
+
+        _, adjusted, _ = data_structures.IpfTarget.check_compatibility(
+            [target_1, target_2],
+            adjust=True,
+            chain_adjust=False,
+            reference=target_2,
+        )
+
+        assert adjusted[0].sum() > target_1.sum()
+        assert isclose(adjusted[1].sum(), target_2.sum())
+
+    def test_check_compatibility_subset_skip(self, basic_dvec_1):
+        """Test compatibility loop handles subset targets without crashing."""
+        subset_target = basic_dvec_1.filter_segment_values({"gender_3": [1]})
+        full_target = basic_dvec_1.copy()
+
+        rmses, targets_out, _ = data_structures.IpfTarget.check_compatibility(
+            [subset_target, full_target],
+            adjust=False,
+            chain_adjust=True,
+        )
+
+        assert isinstance(rmses, pd.DataFrame)
+        assert len(targets_out) == 2
+
+    def test_validate_ipf_targets_missing_seg_translation_raises(self, basic_dvec_1):
+        """Test non-subset target segmentation without translations raises ValueError."""
+        target = basic_dvec_1.add_segments(
+            [SegmentsSuper("tp").get_segment(subset=[1, 2])], split_method="duplicate"
+        )
+
+        with pytest.raises(ValueError, match="segmentation is not a subset"):
+            basic_dvec_1.validate_ipf_targets([data_structures.IpfTarget(data=target)])
+
+    def test_validate_ipf_targets_bad_seg_translation_mapping_raises(self, basic_dvec_1):
+        """Test invalid segment translation mapping raises ValueError."""
+        target = basic_dvec_1.add_segments(
+            [SegmentsSuper("tp").get_segment(subset=[1, 2])], split_method="duplicate"
+        )
+
+        with pytest.raises(ValueError, match="No translation defined"):
+            basic_dvec_1.calc_rmse(
+                [
+                    data_structures.IpfTarget(
+                        data=target,
+                        segment_translations={"tp": "not_in_seed"},
+                    )
+                ]
+            )

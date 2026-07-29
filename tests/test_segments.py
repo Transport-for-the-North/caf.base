@@ -121,6 +121,11 @@ class TestSegmentsSuper:
         for path in directory.glob("*.yml"):
             segments.SegmentsSuper(path.stem)
 
+    def test_values_returns_all_enum_values(self) -> None:
+        """Test `SegmentsSuper.values` mirrors enum `.value` members."""
+        expected = [member.value for member in segments.SegmentsSuper]
+        assert segments.SegmentsSuper.values() == expected
+
 
 class TestSegConverter:
     """Tests for `SegConverter` conversion definitions."""
@@ -265,6 +270,14 @@ class TestSegment:
         expected = {value: key for key, value in seg.values.items()}
 
         assert seg.val_to_int == expected
+
+    def test_int_values_len_and_get_alias_without_alias(self) -> None:
+        """Test simple Segment property helpers on a custom segment."""
+        seg = segments.Segment(name="custom", values={1: "a", 2: "b"})
+
+        assert seg.int_values == [1, 2]
+        assert len(seg) == 2
+        assert seg.get_alias() == "custom"
 
     def test_translate_segment_reverse(self) -> None:
         """Test reverse segment lookup translation returns expected mapping."""

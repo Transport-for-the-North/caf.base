@@ -171,6 +171,26 @@ class TestZoning:
         if "descriptions" in columns:
             assert_series_equal(data["descriptions"], system.zone_descriptions())
 
+    def test_init_errors(self, zoning_data: ZoningData) -> None:
+        """Test invalid zoning inputs raise clear initialisation errors."""
+        meta = ZoningSystemMetaData(name=zoning_data.name)
+
+        with pytest.raises(
+            ValueError, match=r"mandatory ID column \(zone_id\) missing from zones data"
+        ):
+            ZoningSystem(
+                name=zoning_data.name,
+                unique_zones=pd.DataFrame({"missing": [1, 2, 3]}),
+                metadata=meta,
+            )
+
+        with pytest.raises(ValueError, match=r"duplicate zone IDs"):
+            ZoningSystem(
+                name=zoning_data.name,
+                unique_zones=pd.DataFrame({"zone_id": [1, 1, 2, 3]}),
+                metadata=meta,
+            )
+
     # def test_init_errors(self, zoning_data: ZoningData) -> None:
     #     """Test initialising ZoningSystem with invalid, or missing, ID column."""
     #     meta = ZoningSystemMetaData(name=zoning_data.name)
