@@ -283,7 +283,9 @@ class TestSegment:
     def test_translate_segment_reverse(self) -> None:
         """Test reverse segment lookup translation returns expected mapping."""
         seg = segments.SegmentsSuper.AGE_NTEM.get_segment()
-        new_seg, lookup = seg.translate_segment(segments.SegmentsSuper.AGE_11, reverse=True)
+        new_seg, lookup = seg.translate_segment(
+            segments.SegmentsSuper.AGE_11, reverse=True
+        )
 
         assert new_seg.name == "age_11"
         assert lookup.name == "age_11"

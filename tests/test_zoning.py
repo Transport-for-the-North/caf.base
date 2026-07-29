@@ -439,7 +439,9 @@ class TestZoning:
                 trans_cache=main_dir,
             )
 
-    def test_check_all_columns(self, zoning_subsets: tuple[ZoningData, ZoningSystem]) -> None:
+    def test_check_all_columns(
+        self, zoning_subsets: tuple[ZoningData, ZoningSystem]
+    ) -> None:
         """Test helper for selecting best ID replacement mapping from input columns."""
         _, system = zoning_subsets
 

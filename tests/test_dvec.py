@@ -324,7 +324,9 @@ class TestDvec:
         target_series = basic_dvec_1.data.sum(axis=0).copy()
         target_series.index = target_series.index.rename("bad_zone_name")
 
-        with pytest.raises(data_structures.ZoningError, match="Zoning systems do not match"):
+        with pytest.raises(
+            data_structures.ZoningError, match="Zoning systems do not match"
+        ):
             basic_dvec_1.validate_ipf_targets(
                 [data_structures.IpfTarget(data=target_series)]
             )
@@ -446,7 +448,9 @@ class TestDvec:
         assert 2 in out.data.index.get_level_values("gender_3")
         assert sorted(out.segmentation.input.subsets["gender_3"]) == [1, 2]
 
-    def test_balance_by_segments_none_and_type_error(self, basic_dvec_1, no_zone_dvec_1):
+    def test_balance_by_segments_none_and_type_error(
+        self, basic_dvec_1, no_zone_dvec_1
+    ):
         """Test balancing without zones arg and guard for unzoned inputs."""
         other = basic_dvec_1.copy()
         other.data = other.data * 2
@@ -577,7 +581,9 @@ class TestDVectorValidation:
 
     def test_data_setter_rejects_non_dataframe_or_series(self, no_zone_dvec_1):
         """Test DVector `data` setter validates pandas input types."""
-        with pytest.raises(TypeError, match="data must be a pandas DataFrame or Series"):
+        with pytest.raises(
+            TypeError, match="data must be a pandas DataFrame or Series"
+        ):
             no_zone_dvec_1.data = [1, 2, 3]
 
 
@@ -650,7 +656,9 @@ class TestIpfTarget:
         with pytest.raises(ValueError, match="segmentation is not a subset"):
             basic_dvec_1.validate_ipf_targets([data_structures.IpfTarget(data=target)])
 
-    def test_validate_ipf_targets_bad_seg_translation_mapping_raises(self, basic_dvec_1):
+    def test_validate_ipf_targets_bad_seg_translation_mapping_raises(
+        self, basic_dvec_1
+    ):
         """Test invalid segment translation mapping raises ValueError."""
         target = basic_dvec_1.add_segments(
             [SegmentsSuper("tp").get_segment(subset=[1, 2])], split_method="duplicate"

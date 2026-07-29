@@ -281,15 +281,15 @@ class TestSegmentation:
                     segmentation=simple_segmentation,
                 )
 
-    def test_load_hdf_missing_segmentation_raises(
-        self, tmp_path: pathlib.Path
-    ) -> None:
+    def test_load_hdf_missing_segmentation_raises(self, tmp_path: pathlib.Path) -> None:
         """Test loading an hdf without segmentation metadata raises a clear error."""
         path = tmp_path / "no_segmentation_metadata.hdf"
         with h5py.File(path, "w") as h_file:
             h_file.create_dataset("data", data=[1, 2, 3])
 
-        with pytest.raises(segmentation.SegmentationError, match="does not contain segmentation"):
+        with pytest.raises(
+            segmentation.SegmentationError, match="does not contain segmentation"
+        ):
             segmentation.Segmentation.load(path, mode="hdf")
 
     def test_find_files(
