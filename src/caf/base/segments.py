@@ -416,13 +416,14 @@ class SegmentsSuper(enum.Enum):
     "See :ref:`def-norcom_0v1+` in :ref:`data definitions` for details."
     TOTAL = "total"
     "See :ref:`def-total` in :ref:`data definitions` for details."
-    "See :ref:`def-uni` in :ref:`data definitions` for details."
     DIRECTION = "direction"
     "See :ref:`def-direction` in :ref:`data definitions` for details."
     DIRECTION_OD = "direction_od"
     "See :ref:`def-direction_od` in :ref:`data definitions` for details."
     NORMS_UC_OD = "norms_uc_od"
+    "See :ref:`def-norms_uc_od` in :ref:`data definitions` for details."
     NORMS_UC_PA = "norms_uc_pa"
+    "See :ref:`def-norms_uc_pa` in :ref:`data definitions` for details."
 
     @classmethod
     def values(cls):
