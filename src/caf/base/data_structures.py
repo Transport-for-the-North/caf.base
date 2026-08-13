@@ -797,6 +797,7 @@ class DVector:
     def to_internal(self, zone_name: str | None = None) -> DVector:
         """
         Create a new DVector filtering on the internal zones from the provided DVector's zoning system.
+        
         Parameters
         ----------
         dvector : cb.DVector
