@@ -820,7 +820,7 @@ class DVector:
                 ),
             ]
             new_zoning = zoning_systems.to_internal()
-            #zoning_systems = new_zoning
+            zoning_systems = new_zoning
         elif isinstance(zoning_systems, Sequence):
             if zone_name is None:
                 raise ValueError(
@@ -828,19 +828,18 @@ class DVector:
                 )
             else:
                 zoning_idx = next(
-                        i for i, z in enumerate(zoning_systems)
-                        if z.name == zone_name
-                        )
+                    i for i, z in enumerate(zoning_systems) if z.name == zone_name
+                )
                 internal_ids = zoning_systems[zoning_idx].get_subset("internal")
                 new_data = self.data.loc[
-                    :,
-                    self.data.columns.get_level_values(f"{zone_name}_id").isin(internal_ids)
-                    ]
+                    :, self.data.columns.get_level_values(f"{zone_name}_id").isin(internal_ids)
+                ]
                 new_zoning = zoning_systems[zoning_idx].to_internal()
-                #zoning_systems[zoning_idx] = new_zoning
-        
-        return DVector(segmentation=self.segmentation, import_data=new_data, zoning_system=new_zoning)
+                zoning_systems[zoning_idx] = new_zoning
 
+        return DVector(
+            segmentation=self.segmentation, import_data=new_data, zoning_system=zoning_systems
+        )   
 
     def split_by_agg_zoning(
         self, agg_zoning: ZoningSystem, trans: pd.DataFrame | None = None
