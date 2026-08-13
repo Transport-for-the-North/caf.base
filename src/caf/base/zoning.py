@@ -341,6 +341,19 @@ class ZoningSystem:
         """Getter for external column."""
         return self._get_column("external")
 
+    def to_internal(self) -> Self:
+        """Return a zoning system with only internal zones."""
+        internal_ids = self.get_subset("internal")
+        internal_zones_df = self.zones_data.loc[
+                self.zones_data.index.isin(internal_ids)
+            ]
+        return ZoningSystem(
+            name=self.name,
+            unique_zones=internal_zones_df.reset_index(),
+            metadata=self.metadata,
+        )
+
+
     def _get_mask_column(self, name: str) -> pd.Series:
         """Get subset mask column from zones data, validate it contains bool values."""
         if name in (self._id_column, self._name_column, self._desc_column):
