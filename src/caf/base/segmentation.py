@@ -929,7 +929,7 @@ class Segmentation:
         given in determine the naming order of the returned Segmentation.
         """
         custom = None
-        subsets = None
+        subsets: dict[str, list[int]] | None = None
 
         for i in new_segs:
             if i not in self.names:
