@@ -1200,6 +1200,7 @@ class DVector:
         )
 
     def __mul__(self, other):
+        """Mul dunder method."""
         return self.mul(other)
 
     def add(
@@ -1218,6 +1219,7 @@ class DVector:
         )
 
     def __add__(self, other):
+        """Add dunder method."""
         return self.add(other)
 
     def sub(
@@ -1236,6 +1238,7 @@ class DVector:
         )
 
     def __sub__(self, other):
+        """Subtract dunder method."""
         return self.sub(other)
 
     def truediv(
@@ -1254,6 +1257,7 @@ class DVector:
         )
 
     def __truediv__(self, other):
+        """Divide dunder method."""
         return self.truediv(other)
 
     def __eq__(self, other):
@@ -1728,6 +1732,18 @@ class DVector:
         )
 
     def reorder_levels(self, new_order: list[str]) -> DVector:
+        """
+        Reorder segmentation of a DVector.
+
+        Parameters
+        ----------
+        new_order : list[str]
+            The new order of segments.
+
+        Returns
+        -------
+        DVector
+        """
         new_seg = self.segmentation.copy()
         new_seg.naming_order = new_order
         new_data = self.data.copy()
@@ -1819,6 +1835,7 @@ class DVector:
         )
 
     def filter_segment_values(self, filter: dict[str, list[int]]) -> DVector:
+        """Filter multiple segments in one call."""
         out = self
         for seg, values in filter.items():
             out = out.filter_segment_value(seg, values)
@@ -2814,7 +2831,25 @@ class DVector:
         other: DVector,
         target_zone: ZoningSystem,
         protected_subset: dict[str, list[int]],
-    ):
+    ) -> "DVector":
+        """
+        Balance two DVectors, protecting a subset on the DVector being altered.
+
+        _extended_summary_
+
+        Parameters
+        ----------
+        other : DVector
+            The DVector being balanced to.
+        target_zone : ZoningSystem
+            The zone_system in the DVectors to match on.
+        protected_subset : dict[str, list[int]]
+            The subset of the segmentation to not alter.
+
+        Returns
+        -------
+        DVector
+        """
         protected = self.filter_segment_values(protected_subset).data.sum()
         non_protected = self.data.sum() - protected
         other_non_protected = other.data.sum() - protected

@@ -411,6 +411,7 @@ class Segmentation:
         return self.seg_dict.__iter__()
 
     def __contains__(self, segment: Segment | str):
+        """Contains dunder method."""
         if isinstance(segment, str):
             if segment in self.names:
                 return True
