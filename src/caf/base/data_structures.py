@@ -797,7 +797,7 @@ class DVector:
     def to_internal(self, zone_name: str | None = None) -> DVector:
         """
         Create a new DVector filtering on the internal zones from the provided DVector's zoning system.
-        
+
         Parameters
         ----------
         dvector : cb.DVector
@@ -828,19 +828,25 @@ class DVector:
                     "zone_name must be provided when there are multiple zoning systems."
                 )
             else:
+                zoning_systems = list(zoning_systems)
                 zoning_idx = next(
                     i for i, z in enumerate(zoning_systems) if z.name == zone_name
                 )
                 internal_ids = zoning_systems[zoning_idx].get_subset("internal")
                 new_data = self.data.loc[
-                    :, self.data.columns.get_level_values(f"{zone_name}_id").isin(internal_ids)
+                    :,
+                    self.data.columns.get_level_values(f"{zone_name}_id").isin(
+                        internal_ids
+                    ),
                 ]
                 new_zoning = zoning_systems[zoning_idx].to_internal()
                 zoning_systems[zoning_idx] = new_zoning
 
         return DVector(
-            segmentation=self.segmentation, import_data=new_data, zoning_system=zoning_systems
-        )   
+            segmentation=self.segmentation,
+            import_data=new_data,
+            zoning_system=zoning_systems,
+        )
 
     def split_by_agg_zoning(
         self, agg_zoning: ZoningSystem, trans: pd.DataFrame | None = None

@@ -341,10 +341,12 @@ class ZoningSystem:
         """Getter for external column."""
         return self._get_column("external")
 
-    def to_internal(self) -> Self:
+    def to_internal(self) -> ZoningSystem:
         """Return a zoning system with only internal zones."""
         internal_ids = self.get_subset("internal")
-        internal_zones_df = self.zones_data.loc[self.zones_data.index.isin(internal_ids)]
+        internal_zones_df = self.zones_data.loc[
+            self.zones_data.index.isin(internal_ids)
+        ]
         return ZoningSystem(
             name=self.name,
             unique_zones=internal_zones_df.reset_index(),
