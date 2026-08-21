@@ -1463,7 +1463,7 @@ class DVector:
 
     def remove_segment(self, seg: str | Segment) -> "DVector":
         """Remove a segment from self."""
-        segments = self.segmentation.naming_order
+        segments = self.segmentation.naming_order.copy()
         if isinstance(seg, Segment):
             seg = seg.name
         if seg not in segments:
@@ -1988,13 +1988,21 @@ class DVector:
         for target in targets:
             check = self.copy()
             if target.zone_translation is not None:
-                if target.data.zoning_system is None:
-                    raise TypeError(
+                if isinstance(target.data, DVector):
+                    if target.data.zoning_system is None:
+                        raise ZoningError(
+                            "A translation is provided but the target has no zoning_system."
+                        )
+                    assert isinstance(target.data.zoning_system, ZoningSystem)
+                    target_zone = target.data.zoning_system
+                elif target.zoning_system is None:
+                    raise ZoningError(
                         "A translation is provided but the target has no zoning_system."
                     )
-                assert isinstance(target.data.zoning_system, ZoningSystem)
+                else:
+                    target_zone = target.zoning_system
                 check = self.translate_zoning(
-                    target.data.zoning_system,
+                    target_zone,
                     trans_vector=target.zone_translation,
                     _bypass_validation=True,
                 )
@@ -2958,6 +2966,9 @@ class IpfTarget:
         A dict defining corresponding segments in seed for segments in target not
         in seed. These will be used to find lookups in the seg_translations folder.
         As with zoning, these must be strict aggregations from seed to target segment.
+    zoning_system: ZoningSystem | None = None
+        The zoning system of the target. This is only needed if the target is a series,
+         and therefore doesn't already have a zoning system attached.
     """
 
     data: DVector | pd.Series
@@ -2966,6 +2977,7 @@ class IpfTarget:
     segment_translations: dict[str, str] | None = (
         None  # keys are segment in target, values, segment in seed
     )
+    zoning_system: ZoningSystem | None = None
 
     @pydantic.model_validator(mode="after")
     @classmethod

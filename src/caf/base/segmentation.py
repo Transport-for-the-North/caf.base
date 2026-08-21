@@ -531,14 +531,14 @@ class Segmentation:
         cut_read: bool = False,
     ) -> tuple[Segmentation, bool, pd.DataFrame]:
         """
-        Validate a segmentation from either a path to a csv, or a dataframe.
+        Validate a segmentation from a dataframe.
 
         This could either be purely a segmentation, or data with a segmentation
         index.
 
         Parameters
         ----------
-        source : Path | pd.DataFrame
+        source : pd.DataFrame
             Either a path to a csv containing a segmentation or a dataframe
             containing a segmentation. If source is a dataframe the
             segmentation should not form the index.
