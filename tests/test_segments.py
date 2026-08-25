@@ -15,7 +15,6 @@ File purpose:
 import pathlib
 
 # Third Party
-import numpy as np
 import pandas as pd
 import pytest
 
@@ -26,30 +25,21 @@ from caf.base import segments
 
 
 # # # CLASSES # # #
-@pytest.fixture(scope="session", name="multi-index")
-def fix_mult():
-    # Define the index levels
-    level_a = ["A", "B", "C", "D", "E", "F"]
-    level_b = ["G", "H", "I", "J", "K", "L"]
-    level_c = ["M", "N", "O", "P", "Q", "R"]
-    level_d = ["S", "T", "U", "V", "W", "X"]
-
-    # Create a MultiIndex
-    index = pd.MultiIndex.from_tuples(
-        [(a, b, c, d) for a, b, c, d in zip(level_a, level_b, level_c, level_d)],
-        names=["a", "b", "c", "d"],
-    )
-
-    # Create a DataFrame with random data
-    data = np.random.rand(6, 1)
-
-    df = pd.DataFrame(data, index=index, columns=["RandomData"])
-
-
 @pytest.fixture(scope="session", name="expected_excl_ind")
 def fix_excl_ind():
     return pd.MultiIndex.from_tuples(
-        [(1, 1), (2, 1), (2, 2), (2, 3), (3, 1), (3, 2), (3, 3), (4, 1), (4, 2), (4, 3)],
+        [
+            (1, 1),
+            (2, 1),
+            (2, 2),
+            (2, 3),
+            (3, 1),
+            (3, 2),
+            (3, 3),
+            (4, 1),
+            (4, 2),
+            (4, 3),
+        ],
         names=["test seg 1", "test seg 2"],
     )
 
@@ -132,6 +122,46 @@ class TestSegmentsSuper:
         for path in directory.glob("*.yml"):
             segments.SegmentsSuper(path.stem)
 
+    def test_values_returns_all_enum_values(self) -> None:
+        """Test `SegmentsSuper.values` mirrors enum `.value` members."""
+        expected = [member.value for member in segments.SegmentsSuper]
+        assert segments.SegmentsSuper.values() == expected
+
+
+class TestSegConverter:
+    """Tests for `SegConverter` conversion definitions."""
+
+    @pytest.mark.parametrize(
+        ["converter", "expected_cols", "expected_levels"],
+        [
+            (segments.SegConverter.AG_G, ["gender_3"], ["age_9", "g"]),
+            (segments.SegConverter.APOPEMP_AWS, ["aws"], ["age_9", "pop_emp"]),
+            (
+                segments.SegConverter.CARADULT_HHTYPE,
+                ["hh_type"],
+                ["adults", "car_availability"],
+            ),
+            (segments.SegConverter.NSSEC_ADULT, ["adult_nssec"], ["ns_sec", "adults"]),
+        ],
+    )
+    def test_get_conversion_structure(
+        self,
+        converter: segments.SegConverter,
+        expected_cols: list[str],
+        expected_levels: list[str],
+    ) -> None:
+        """Test conversion outputs have expected index levels and output columns."""
+        out = converter.get_conversion()
+
+        assert list(out.columns) == expected_cols
+        assert list(out.index.names) == expected_levels
+        assert len(out) > 0
+
+    def test_get_conversion_invalid_input(self) -> None:
+        """Test invalid conversion input raises ValueError."""
+        with pytest.raises(ValueError, match="Invalid input segment"):
+            segments.SegConverter.get_conversion("not_a_converter")
+
 
 ##### Tests & Fixtures for `Segment` #####
 
@@ -201,3 +231,78 @@ class TestSegment:
         seg = segment.get_segment()
         values = seg.extract_values(text)
         assert values == expected
+
+    def test_get_value_alias_invalid_value(self) -> None:
+        """Test invalid segment value raises a clear error."""
+        seg = segments.SegmentsSuper.GENDER_3.get_segment()
+        with pytest.raises(ValueError, match="invalid value"):
+            seg.get_value_alias(999)
+
+    def test_exclusion_and_lookup_indices(self) -> None:
+        """Test exclusion and lookup helper methods return expected indices."""
+        corr = segments.Exclusion(other_name="target", exclusions={1: [2, 3], 2: [1]})
+        seg = segments.Segment(
+            name="source",
+            values={1: "A", 2: "B"},
+            exclusions=[corr],
+            lookups=[corr],
+        )
+
+        expected = pd.MultiIndex.from_tuples(
+            [(1, 2), (1, 3), (2, 1)], names=["dummy", "target"]
+        )
+
+        assert corr.build_index().equals(expected)
+        assert seg.drop_indices("target").equals(expected)
+        assert seg.lookup_indices("target").equals(expected)
+        assert seg.drop_indices("other") is None
+        assert seg.lookup_indices("other") is None
+
+    def test_translate_segment_invalid_type(self) -> None:
+        """Test translate_segment rejects unsupported input type."""
+        seg = segments.SegmentsSuper.AGE_11.get_segment()
+
+        with pytest.raises(TypeError, match="expects either"):
+            seg.translate_segment(123)
+
+    def test_val_to_int(self) -> None:
+        """Test `val_to_int` inverts the `values` mapping."""
+        seg = segments.SegmentsSuper.GENDER_3.get_segment()
+        expected = {value: key for key, value in seg.values.items()}
+
+        assert seg.val_to_int == expected
+
+    def test_int_values_len_and_get_alias_without_alias(self) -> None:
+        """Test simple Segment property helpers on a custom segment."""
+        seg = segments.Segment(name="custom", values={1: "a", 2: "b"})
+
+        assert seg.int_values == [1, 2]
+        assert len(seg) == 2
+        assert seg.get_alias() == "custom"
+
+    def test_translate_segment_reverse(self) -> None:
+        """Test reverse segment lookup translation returns expected mapping."""
+        seg = segments.SegmentsSuper.AGE_NTEM.get_segment()
+        new_seg, lookup = seg.translate_segment(
+            segments.SegmentsSuper.AGE_11, reverse=True
+        )
+
+        assert new_seg.name == "age_11"
+        assert lookup.name == "age_11"
+        assert list(lookup.loc[1]) == [1, 2, 3]
+        assert list(lookup.loc[2]) == [4, 5, 6, 7, 8, 9]
+        assert list(lookup.loc[3]) == [10, 11]
+
+    def test_add_corr_from_df(self) -> None:
+        """Test adding lookup and exclusion correlations from conversion files."""
+        seg = segments.SegmentsSuper.AGE_11.get_segment().copy()
+        seg.lookups = []
+        seg.exclusions = []
+
+        seg.add_corr_from_df(segments.SegmentsSuper.AGE_NTEM, exclusion=False)
+        seg.add_corr_from_df(segments.SegmentsSuper.AGE_NTEM, exclusion=True)
+
+        assert len(seg.lookups) == 1
+        assert seg.lookups[0].other_name == "age_ntem"
+        assert len(seg.exclusions) == 1
+        assert seg.exclusions[0].other_name == "age_ntem"

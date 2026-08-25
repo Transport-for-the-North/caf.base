@@ -33,9 +33,7 @@ class Exclusion:
 
     def build_index(self):
         """Return an index formed of the exclusions."""
-        frame = pd.DataFrame.from_dict(self.exclusions, orient="index").stack().reset_index()
-        frame[0] = frame[0].astype(int)
-        frame.drop("level_1", axis=1, inplace=True)
+        frame = pd.Series(self.exclusions).explode().reset_index()
         return pd.MultiIndex.from_frame(frame, names=["dummy", self.other_name])
 
 
@@ -115,6 +113,11 @@ class Segment(BaseConfig):
         """Return integer values of segment."""
         return list(self.values.keys())
 
+    @property
+    def val_to_int(self) -> dict[str, int]:
+        """Return a dict of string to integer values of segment."""
+        return {val: int_val for int_val, val in self.values.items()}
+
     def __len__(self):
         """Return length of segment."""
         return len(self.values)
@@ -173,7 +176,8 @@ class Segment(BaseConfig):
 
         # Pylint hasn't picked up the type correctly
         aliases = "|".join(
-            i for i in self.values_aliases.values()  # pylint: disable=no-member
+            i
+            for i in self.values_aliases.values()  # pylint: disable=no-member
         )
 
         if len(aliases) > 0:
@@ -207,7 +211,8 @@ class Segment(BaseConfig):
         pattern = re.compile(self.value_regex(), re.IGNORECASE)
         # Pylint hasn't picked up the type correctly
         values_lookup = {
-            j: i for i, j in self.values_aliases.items()  # pylint: disable=no-member
+            j: i
+            for i, j in self.values_aliases.items()  # pylint: disable=no-member
         }
 
         values = []
@@ -265,6 +270,8 @@ class Segment(BaseConfig):
         lookup = pd.read_csv(
             lookup_dir / f"{name_1}_to_{name_2}.csv", index_col=0, usecols=[0, 1]
         ).squeeze()
+        if reverse:
+            lookup = lookup.reset_index().set_index(name_2).squeeze()
         return new_seg, lookup
 
     def translate_exclusion(self, new_seg: str):
@@ -409,12 +416,14 @@ class SegmentsSuper(enum.Enum):
     "See :ref:`def-norcom_0v1+` in :ref:`data definitions` for details."
     TOTAL = "total"
     "See :ref:`def-total` in :ref:`data definitions` for details."
-    UNI = "uni"
-    "See :ref:`def-uni` in :ref:`data definitions` for details."
     DIRECTION = "direction"
     "See :ref:`def-direction` in :ref:`data definitions` for details."
     DIRECTION_OD = "direction_od"
     "See :ref:`def-direction_od` in :ref:`data definitions` for details."
+    NORMS_UC_OD = "norms_uc_od"
+    "See :ref:`def-norms_uc_od` in :ref:`data definitions` for details."
+    NORMS_UC_PA = "norms_uc_pa"
+    "See :ref:`def-norms_uc_pa` in :ref:`data definitions` for details."
 
     @classmethod
     def values(cls):
@@ -608,7 +617,17 @@ class SegConverter(enum.Enum):
 
         if self == SegConverter.CARADULT_HHTYPE:
             from_ind = pd.MultiIndex.from_tuples(
-                [(1, 1), (1, 2), (1, 3), (2, 1), (2, 2), (2, 3), (3, 1), (3, 2), (3, 3)],
+                [
+                    (1, 1),
+                    (1, 2),
+                    (1, 3),
+                    (2, 1),
+                    (2, 2),
+                    (2, 3),
+                    (3, 1),
+                    (3, 2),
+                    (3, 3),
+                ],
                 names=["adults", "car_availability"],
             )
             to_vals = [1, 2, 2, 3, 4, 5, 6, 7, 8]

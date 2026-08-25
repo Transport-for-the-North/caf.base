@@ -16,7 +16,7 @@ import itertools
 import warnings
 from os import PathLike
 from pathlib import Path
-from typing import Iterator, Literal, NamedTuple, Optional, Union
+from typing import Iterator, Literal, NamedTuple, Optional
 
 # Third Party
 import caf.toolkit as ctk
@@ -59,7 +59,7 @@ class SegmentationSlice:
     def __init__(
         self,
         slice_params: dict[str, int],
-        naming_order: collections.abc.Sequence[str] | None = None,
+        naming_order: collections.abc.Sequence[str] | Segmentation | None = None,
     ):
         """Initialize a SegmentationSlice object from parameters dict.
 
@@ -144,7 +144,9 @@ class SegmentationSlice:
         """Check equality of two SegmentationSlice objects."""
         if not isinstance(value, SegmentationSlice):
             return False
-        return (self.as_tuple() + self.naming_order) == (value.as_tuple() + value.naming_order)
+        return (self.as_tuple() + self.naming_order) == (
+            value.as_tuple() + value.naming_order
+        )
 
     def generate_name(self, segments: dict[str, Segment] | None = None) -> str:
         """Generate name for a slice of the segmentation from parameters.
@@ -203,7 +205,9 @@ class SegmentationSlice:
         """Check if segment is in slice."""
         return item in self.data
 
-    def replace(self, current: str, new: str, value: int | None = None) -> "SegmentationSlice":
+    def replace(
+        self, current: str, new: str, value: int | None = None
+    ) -> "SegmentationSlice":
         """Create a copy of slice with current segment replaced with new.
 
         Parameters
@@ -255,6 +259,29 @@ class SegmentationSlice:
         data.pop(segment)
         naming = [i for i in self.naming_order if i != segment]
         return SegmentationSlice(data, naming)
+
+    def aggregate(
+        self, segments: list[Segment] | Segmentation | list[str]
+    ) -> "SegmentationSlice":
+        """
+        Aggregate slice to only include the segments asked for.
+
+        Parameters
+        ----------
+        segments: list[Segment]
+            The segments which will be aggregated to. These must be contained in self.
+
+        Returns
+        -------
+        SegmentationSlice containing the passed in segments.
+        """
+        if isinstance(segments, list):
+            segments = [
+                segment.name if isinstance(segment, Segment) else segment
+                for segment in segments
+            ]
+        params = {seg: val for seg, val in self.data.items() if seg in segments}
+        return SegmentationSlice(params, segments)
 
 
 class SegmentationInput(BaseConfig):
@@ -312,7 +339,9 @@ class SegmentationInput(BaseConfig):
             seg_names += [i.name for i in self.custom_segments]
 
         if set(seg_names) != set(v):
-            raise ValueError("Names provided for naming_order do not match names in segments")
+            raise ValueError(
+                "Names provided for naming_order do not match names in segments"
+            )
 
         return self
 
@@ -322,7 +351,7 @@ class SegmentationInput(BaseConfig):
         for seg in self.subsets.keys():
             if seg not in [i.value for i in self.enum_segments]:
                 raise ValueError(
-                    f"{seg} is not a valid segment  " ", and so can't be a subset value."
+                    f"{seg} is not a valid segment and so can't be a subset value."
                 )
         return self
 
@@ -359,7 +388,9 @@ class Segmentation:
         else:
             enum_segments = []
             for seg in config.enum_segments:
-                segment = SegmentsSuper(seg).get_segment(subset=config.subsets.get(seg.value))
+                segment = SegmentsSuper(seg).get_segment(
+                    subset=config.subsets.get(seg.value)
+                )
                 enum_segments.append(segment)
 
         self.segments = config.custom_segments + enum_segments
@@ -368,7 +399,8 @@ class Segmentation:
     @property
     def seg_dict(self):
         """Access segments in dict form."""
-        return {seg.name: seg for seg in self.segments}
+        unordered_dict = {seg.name: seg for seg in self.segments}
+        return {name: unordered_dict[name] for name in self.naming_order}
 
     def get_segment(self, seg_name: str) -> Segment:
         """Get a segment based on its name."""
@@ -377,6 +409,16 @@ class Segmentation:
     def __iter__(self):
         """Iterate through seg_dict."""
         return self.seg_dict.__iter__()
+
+    def __contains__(self, segment: Segment | str):
+        """Contains dunder method."""
+        if isinstance(segment, str):
+            if segment in self.names:
+                return True
+        if isinstance(segment, Segment):
+            if segment.name in self.names:
+                return True
+        return False
 
     @property
     def names(self):
@@ -445,7 +487,9 @@ class Segmentation:
         exclusions into account if any exist between segments.
         """
         joined, no_prod = self.lookup_ind()
-        prod = [self.seg_dict[i].int_values for i in self.naming_order if i not in no_prod]
+        prod = [
+            self.seg_dict[i].int_values for i in self.naming_order if i not in no_prod
+        ]
         names = [i for i in self.naming_order if i not in no_prod]
         if len(prod) == 0:
             return joined.reorder_levels(self.naming_order).sort_index().index
@@ -481,22 +525,21 @@ class Segmentation:
     @classmethod
     def validate_segmentation(
         cls,
-        source: Union[Path, pd.DataFrame],
+        source: pd.DataFrame,
         segmentation: Segmentation,
         escalate_warning: bool = False,
         cut_read: bool = False,
-    ) -> tuple[Segmentation, bool]:
+    ) -> tuple[Segmentation, bool, pd.DataFrame]:
         """
-        Validate a segmentation from either a path to a csv, or a dataframe.
+        Validate a segmentation from a dataframe.
 
         This could either be purely a segmentation, or data with a segmentation
         index.
 
         Parameters
         ----------
-        source : Path | pd.DataFrame
-            Either a path to a csv containing a segmentation or a dataframe
-            containing a segmentation. If source is a dataframe the
+        source : pd.DataFrame
+            Dataframe containing a segmentation, the
             segmentation should not form the index.
         segmentation : Segmentation
             The segmentation you expect 'source' to match.
@@ -507,14 +550,11 @@ class Segmentation:
 
         Returns
         -------
-        Segmentation class
+        Segmentation class, bool of whether data needs be cut, and source data.
         """
         if escalate_warning:
             warnings.filterwarnings("error", category=SegmentationWarning)
-        if isinstance(source, Path):
-            df = pd.read_csv(source)
-        else:
-            df = source
+        df = source.copy()
         naming_order = segmentation.naming_order
         conf = copy.deepcopy(segmentation.input)
         if df.index.names == naming_order:
@@ -539,7 +579,7 @@ class Segmentation:
 
         # Perfect match, return segmentation with no more checks
         if read_index.equals(built_index):
-            return segmentation, False
+            return segmentation, False, df
         if not cut_read:
             if len(read_index) > len(built_index):
                 raise IndexError(
@@ -554,6 +594,21 @@ class Segmentation:
             read_level = set(read_index.get_level_values(name))
             # This level matches, check the next one
             if read_level == built_level:
+                continue
+            built_values = segmentation.get_segment(name).values
+            if read_level == set(built_values.values()):
+                # assumes values are unique to the level
+                warnings.warn(
+                    f"Level {name} of the import data's index contains "
+                    f"string values rather than ints. Renaming.",
+                    SegmentationWarning,
+                )
+                df = df.rename(
+                    {j: i for i, j in built_values.items()},
+                    axis="index",
+                    level=name,
+                )
+                read_index = df.index
                 continue
             # The input segmentation should have had subsets defined. warn user but allow
             if read_level.issubset(built_level):
@@ -570,7 +625,7 @@ class Segmentation:
                     else:
                         conf.subsets = {name: list(read_level)}
                 else:
-                    raise SegmentationError(f"{name} segment does not match " f"the data.")
+                    raise SegmentationError(f"{name} segment does not match the data.")
             # Not a subset so doesn't match completely
             else:
                 raise ValueError(
@@ -582,12 +637,12 @@ class Segmentation:
         built_segmentation = cls(conf)
         built_index = built_segmentation.ind()
         if read_index.equals(built_index):
-            return built_segmentation, False
+            return built_segmentation, False, df
         # Still doesn't match, this is probably an exclusion error. User should check that
         # proper exclusions are defined in SegmentsSuper.
         if built_index.equals(built_index.intersection(read_index)):
             if cut_read:
-                return built_segmentation, False
+                return built_segmentation, False, df
             raise SegmentationError(
                 "Read data contains rows not in the generated segmentation. "
                 "If you want this data to simply be cut to match, set 'cut_read=True'"
@@ -598,7 +653,7 @@ class Segmentation:
                 "be defined but isn't. The data will be expanded to the expected segmenation, and "
                 "infilled with zeroes."
             )
-            return built_segmentation, True
+            return built_segmentation, True, df
         raise ValueError(
             "The read in segmentation does not match the given parameters. The segment names"
             " are correct, but segment values don't match. This could be due to an incompatibility"
@@ -648,7 +703,9 @@ class Segmentation:
                 new_conf.enum_segments.remove(SegmentsSuper(from_seg.name))
             else:
                 new_conf.custom_segments.remove(from_seg)
-            new_conf.naming_order[new_conf.naming_order.index(from_seg.name)] = to_seg.name
+            new_conf.naming_order[new_conf.naming_order.index(from_seg.name)] = (
+                to_seg.name
+            )
         else:
             new_conf.naming_order.append(to_seg.name)
         try:
@@ -686,7 +743,9 @@ class Segmentation:
             raise ValueError(f"Mode must be either 'hdf' or 'yaml', not {mode}")
 
     @classmethod
-    def load(cls, in_path: PathLike, mode: Literal["hdf", "yaml"] = "hdf") -> Segmentation:
+    def load(
+        cls, in_path: PathLike, mode: Literal["hdf", "yaml"] = "hdf"
+    ) -> Segmentation:
         """
         Load the segmentation from a file, either an hdf or csv file.
 
@@ -704,7 +763,13 @@ class Segmentation:
         # pylint: disable=no-member
         if mode == "hdf":
             with h5py.File(in_path, "r") as h_file:
-                yam_load = h_file["segmentation"][()].decode("utf-8")
+                try:
+                    yam_load = h_file["segmentation"][()].decode("utf-8")
+                except KeyError as exc:
+                    raise SegmentationError(
+                        "This file does not contain segmentation information. "
+                        "Double check the file is a DVector, and not an hdf file in some other format."
+                    ) from exc
                 config = SegmentationInput.from_yaml(yam_load)
         # pylint: enable=no-member
 
@@ -803,7 +868,9 @@ class Segmentation:
                 ]
             elif self.input.subsets[name] != other.input.subsets[name]:
                 missing_list = [
-                    i for i in self.input.subsets[name] if i not in other.input.subsets[name]
+                    i
+                    for i in self.input.subsets[name]
+                    if i not in other.input.subsets[name]
                 ]
                 if len(missing_list) > 0:
                     missing_other[name] = missing_list
@@ -816,7 +883,9 @@ class Segmentation:
                 ]
             elif self.input.subsets[name] != other.input.subsets[name]:
                 missing_list = [
-                    i for i in other.input.subsets[name] if i not in self.input.subsets[name]
+                    i
+                    for i in other.input.subsets[name]
+                    if i not in self.input.subsets[name]
                 ]
                 if len(missing_list) > 0:
                     missing_self[name] = missing_list
@@ -832,7 +901,11 @@ class Segmentation:
 
         This method will not error if other contains segments not in self.
         """
-        return [self.get_segment(i) for i in self.naming_order if i not in other.naming_order]
+        return [
+            self.get_segment(i)
+            for i in self.naming_order
+            if i not in other.naming_order
+        ]
 
     def __ne__(self, other) -> bool:
         """Override the default implementation."""
@@ -856,7 +929,7 @@ class Segmentation:
         given in determine the naming order of the returned Segmentation.
         """
         custom = None
-        subsets = None
+        subsets: dict[str, list[int]] | None = None
 
         for i in new_segs:
             if i not in self.names:
@@ -964,7 +1037,8 @@ class Segmentation:
             segment_name = segment_name.name
         if segment_name not in self.names:
             raise SegmentationError(
-                f"{segment_name} is not in the current segmentation, so " f"cannot be removed."
+                f"{segment_name} is not in the current segmentation, so "
+                f"cannot be removed."
             )
         if inplace:
             self.input.naming_order.remove(segment_name)
@@ -998,10 +1072,9 @@ class Segmentation:
         """
         out_seg = self.input.copy()
         for key, val in extension.items():
-
             if key not in self.names:
                 raise ValueError(
-                    f"{key} not in current segmentation, so can't " "be added to subsets"
+                    f"{key} not in current segmentation, so can't be added to subsets"
                 )
             if isinstance(val, int):
                 val = [val]
@@ -1012,7 +1085,9 @@ class Segmentation:
                     out_seg.subsets[key] = list(set(out_seg.subsets[key] + val))
             else:
                 if remove:
-                    out_seg.subsets[key] = list(set(self.seg_dict[key].values) - set(val))
+                    out_seg.subsets[key] = list(
+                        set(self.seg_dict[key].values) - set(val)
+                    )
                 else:
                     out_seg.subsets.update({key: val})
         return Segmentation(out_seg)
@@ -1223,7 +1298,8 @@ class Segmentation:
                 slice_ = self.convert_slice_name(path.stem)
             except (ValueError, KeyError) as exc:
                 warnings.warn(
-                    f"Found unexpected file while searching: {path}\n{exc}", RuntimeWarning
+                    f"Found unexpected file while searching: {path}\n{exc}",
+                    RuntimeWarning,
                 )
                 continue
 
@@ -1236,7 +1312,9 @@ class Segmentation:
                 filepaths[slice_] = path
                 missing.pop(slice_)
             else:
-                warnings.warn(f"Found unexpected file while searching: {path}", RuntimeWarning)
+                warnings.warn(
+                    f"Found unexpected file while searching: {path}", RuntimeWarning
+                )
 
         if len(missing) == 0:
             return filepaths
@@ -1278,7 +1356,7 @@ class Segmentation:
                 f"{len(extra)} segments in slice but not segmentation: {', '.join(extra)}"
             )
 
-        if slice_.naming_order != self.naming_order:
+        if list(slice_.naming_order) != list(self.naming_order):
             if not fix_order:
                 raise ValueError(
                     "slice naming order is incorrect got "
