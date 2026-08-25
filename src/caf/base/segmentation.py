@@ -539,8 +539,7 @@ class Segmentation:
         Parameters
         ----------
         source : pd.DataFrame
-            Either a path to a csv containing a segmentation or a dataframe
-            containing a segmentation. If source is a dataframe the
+            Dataframe containing a segmentation, the
             segmentation should not form the index.
         segmentation : Segmentation
             The segmentation you expect 'source' to match.
