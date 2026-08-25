@@ -6,7 +6,7 @@ black>=24
 mypy>=2
 mypy_extensions>=1.0.0
 pydocstyle[toml]>=6.3
-pylint>=3.2
+pylint>=4.0.7
 isort>=5.13
 
 # Testing
