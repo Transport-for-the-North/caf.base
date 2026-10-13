@@ -777,9 +777,16 @@ class DVector:
             )
 
         transposed = self.data.astype(float).transpose()
+        # Yan: the upstream factor DVector is not indexed in teh way the wrapped "ZoneCorrespondence" expects,
+        # now convert trans_vector to Dvector to be consistent with factor Dvector to force it to the old style path and
+        # reinstate the removed spec for from col, to col and factor col
+
         translated = translation.pandas_vector_zone_translation(
             transposed,
-            trans_vector,
+            trans_vector.vector if hasattr(trans_vector, "vector") else trans_vector, # force to be DVector
+            translation_from_col=target_zone.column_name, # Yan: previously existed but removed from update
+            translation_to_col=new_zoning.column_name, # Yan: previously existed but removed from update
+            translation_factors_col=factor_col, # Yan: previously existed but removed from update
             check_totals=check_totals,
         )
         translated = translated.transpose()
@@ -2093,7 +2100,7 @@ class DVector:
                     if target == comp_target:
                         continue
                     # Check that subsets exist in comp_target
-                    if set(subsets.keys()) <= set(comp_target.data.segmentation.names):
+                    if not set(subsets.keys()) <= set(comp_target.data.segmentation.names):
                         continue
                     comp_seg = comp_target.data.segmentation.copy()
                     comp_seg.input.subsets = subsets
@@ -3021,35 +3028,74 @@ class IpfTarget:
 
         if agg_1.zoning_system != agg_2.zoning_system:
             try:
+                ## ==== ORIGINAL =======
+                # if trans_cache is None:
+                #     trans = agg_1.zoning_system.translate(agg_2.zoning_system)
+                # else:
+                #     trans = agg_1.zoning_system.translate(
+                #         agg_2.zoning_system, cache_path=trans_cache
+                #     )
+
+                # nested_1 = (
+                #     trans[
+                #         agg_1.zoning_system.translation_column_name(agg_2.zoning_system)
+                #     ]
+                #     == 1
+                # ).all()
+                # nested_2 = (
+                #     trans[
+                #         agg_2.zoning_system.translation_column_name(agg_1.zoning_system)
+                #     ]
+                #     == 1
+                # ).all()
+
+                #Yan: ==== FIX  =======
                 if trans_cache is None:
-                    trans = agg_1.zoning_system.translate(agg_2.zoning_system)
+                    trans_obj_12 = agg_1.zoning_system.translate(agg_2.zoning_system)
                 else:
-                    trans = agg_1.zoning_system.translate(
+                    trans_obj_12 = agg_1.zoning_system.translate(
                         agg_2.zoning_system, cache_path=trans_cache
                     )
-                nested_1 = (
-                    trans[
-                        agg_1.zoning_system.translation_column_name(agg_2.zoning_system)
-                    ]
-                    == 1
-                ).all()
-                nested_2 = (
-                    trans[
-                        agg_2.zoning_system.translation_column_name(agg_1.zoning_system)
-                    ]
-                    == 1
-                ).all()
+
+                trans_12 = trans_obj_12.vector if hasattr(trans_obj_12, "vector") else trans_obj_12
+                col_12 = agg_1.zoning_system.translation_column_name(agg_2.zoning_system)
+                factor_col_12 = getattr(trans_obj_12, "factors_col_name", None)
+
+                nested_1 = False
+                if col_12 in trans_12.columns:
+                    nested_1 = (trans_12[col_12] == 1).all()
+                elif factor_col_12 == col_12:
+                    nested_1 = (trans_12[factor_col_12] == 1).all()
+
                 if nested_1:
                     agg_1 = agg_1.translate_zoning(
-                        agg_2.zoning_system, trans_vector=trans
+                        agg_2.zoning_system, trans_vector=trans_obj_12
                     )
                     zoning_diff = True
-                elif nested_2:
-                    agg_2 = agg_2.translate_zoning(
-                        agg_1.zoning_system, trans_vector=trans
-                    )
                 else:
-                    raise TranslationError("not raised used to trigger exception")
+                    if trans_cache is None:
+                        trans_obj_21 = agg_2.zoning_system.translate(agg_1.zoning_system)
+                    else:
+                        trans_obj_21 = agg_2.zoning_system.translate(
+                            agg_1.zoning_system, cache_path=trans_cache
+                        )
+
+                    trans_21 = trans_obj_21.vector if hasattr(trans_obj_21, "vector") else trans_obj_21
+                    col_21 = agg_2.zoning_system.translation_column_name(agg_1.zoning_system)
+                    factor_col_21 = getattr(trans_obj_21, "factors_col_name", None)
+
+                    nested_2 = False
+                    if col_21 in trans_21.columns:
+                        nested_2 = (trans_21[col_21] == 1).all()
+                    elif factor_col_21 == col_21:
+                        nested_2 = (trans_21[factor_col_21] == 1).all()
+
+                    if nested_2:
+                        agg_2 = agg_2.translate_zoning(
+                            agg_1.zoning_system, trans_vector=trans_obj_21
+                        )
+                    else:
+                        raise TranslationError("not raised used to trigger exception")
             except TranslationError:
                 agg_1 = agg_1.remove_zoning()
                 agg_2 = agg_2.remove_zoning()
@@ -3073,16 +3119,24 @@ class IpfTarget:
                 if isinstance(target_1.zoning_system, ZoningSystem):
                     if isinstance(target_2.zoning_system, ZoningSystem):
                         if isinstance(adj, DVector):
+                            if trans_obj_12 is None:
+                                raise TranslationError(
+                                    "Forward translation onject missing for zone adjustment"
+                                )
                             adj = adj.translate_zoning(
                                 target_1.zoning_system,
-                                trans_vector=trans,
+                                trans_vector=trans_obj_12,
                                 no_factors=True,
                             )
                         elif isinstance(adj, pd.Series):
                             # Here use the 'wrong' factors column as we are disaggregating factors
+                            if trans_obj_12 is None:
+                                raise TranslationError(
+                                   "Forward translation onject missing for zone adjustment" 
+                                )
                             adj = translation.pandas_vector_zone_translation(
                                 adj,
-                                trans,
+                                trans_12,
                                 f"{target_2.zoning_system.name.lower()}_id",
                                 f"{target_1.zoning_system.name.lower()}_id",
                                 target_1.zoning_system.translation_column_name(
