@@ -888,6 +888,8 @@ class ZoningSystem:
                     yam_load = h_file[metas[0]][()].decode("utf-8")
                     zoning_meta = ZoningSystemMetaData.from_yaml(yam_load)
                     zoning = pd.read_hdf(in_path, key=zones[0], mode="r")
+                elif len(metas) == 0:
+                    return None
                 else:
                     out = []
                     zones.sort()

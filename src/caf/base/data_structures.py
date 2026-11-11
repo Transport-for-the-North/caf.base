@@ -604,10 +604,11 @@ class DVector:
         zoning = ZoningSystem.load(in_path, "hdf")
         segmentation = Segmentation.load(in_path, "hdf")
         data = pd.read_hdf(in_path, key="data", mode="r")
-        if isinstance(data.columns, pd.MultiIndex):
-            data.columns = data.columns.reorder_levels(
-                [zon.column_name for zon in zoning]
-            )
+        if zoning is not None:
+            if isinstance(data.columns, pd.MultiIndex):
+                data.columns = data.columns.reorder_levels(
+                    [zon.column_name for zon in zoning]
+                )
 
         return cls(
             segmentation=segmentation,
@@ -3184,3 +3185,7 @@ class IpfTarget:
             targets_out,
             targ_differences,
         )
+
+if __name__ == "__main__":
+    dvec = DVector.load(r"T:\JaroslawHryscko\NoHAM_Checks\conversion_factors.dvec")
+    print('debugging')
