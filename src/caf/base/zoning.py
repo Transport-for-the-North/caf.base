@@ -975,7 +975,7 @@ class ZoningSystem:
                     "There is a directory for this zone_name, but "
                     "the required files are not there. There "
                     "should be two files called 'zoning.csv' and "
-                    f"'metadata.yml' in the folder {zone_dir}."
+                    f"'zoning_meta.yml' in the folder {zone_dir}."
                 ) from exc
         raise FileNotFoundError(f"{zone_dir} does not exist. Please recheck inputs.")
 
