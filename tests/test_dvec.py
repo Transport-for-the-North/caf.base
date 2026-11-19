@@ -106,9 +106,7 @@ def fix_basic_dvec_2(min_zoning, basic_segmentation_2, dvec_data_2):
 
 
 @pytest.fixture(name="comp_zoned_dvec", scope="session")
-def fix_comp_dvec(
-    min_zoning, min_zoning_2, test_trans, basic_segmentation_1, dvec_data_1
-):
+def fix_comp_dvec(min_zoning, min_zoning_2, test_trans, basic_segmentation_1, dvec_data_1):
     data = dvec_data_1.mul(
         test_trans.set_index(["zone_1_id", "zone_2_id"])["zone_1_to_zone_2"], axis=1
     )
@@ -148,9 +146,7 @@ class TestDvec:
         test = basic_dvec_1.composite_zoning(min_zoning_2, test_trans)
         assert test == comp_zoned_dvec
 
-    @pytest.mark.parametrize(
-        "dvec", ["basic_dvec_1", "basic_dvec_2", "comp_zoned_dvec"]
-    )
+    @pytest.mark.parametrize("dvec", ["basic_dvec_1", "basic_dvec_2", "comp_zoned_dvec"])
     @pytest.mark.parametrize("subset", [None, [1, 2, 3]])
     @pytest.mark.parametrize("method", ["split", "duplicate"])
     def test_add_segments(self, dvec, subset, method, request):
@@ -299,9 +295,7 @@ class TestDvec:
             )
         assert added_dvec.data.sort_index().equals(added_df.sort_index())
 
-    def test_trans(
-        self, basic_dvec_1, test_trans, min_zoning_2, expected_trans, main_dir
-    ):
+    def test_trans(self, basic_dvec_1, test_trans, min_zoning_2, expected_trans, main_dir):
         translation = basic_dvec_1.translate_zoning(min_zoning_2, cache_path=main_dir)
         assert translation == expected_trans
 
@@ -324,12 +318,8 @@ class TestDvec:
         target_series = basic_dvec_1.data.sum(axis=0).copy()
         target_series.index = target_series.index.rename("bad_zone_name")
 
-        with pytest.raises(
-            data_structures.ZoningError, match="Zoning systems do not match"
-        ):
-            basic_dvec_1.validate_ipf_targets(
-                [data_structures.IpfTarget(data=target_series)]
-            )
+        with pytest.raises(data_structures.ZoningError, match="Zoning systems do not match"):
+            basic_dvec_1.validate_ipf_targets([data_structures.IpfTarget(data=target_series)])
 
     def test_ipf_with_series_target(self, basic_dvec_1):
         """Test IPF accepts and handles a pd.Series target."""
@@ -354,9 +344,7 @@ class TestDvec:
         )
 
         protected_mask = basic_dvec_1.data.index.get_level_values("gender_3").isin([1])
-        assert balanced.data.loc[protected_mask].equals(
-            basic_dvec_1.data.loc[protected_mask]
-        )
+        assert balanced.data.loc[protected_mask].equals(basic_dvec_1.data.loc[protected_mask])
         assert np.allclose(
             balanced.data.sum(axis=0).values,
             target.data.sum(axis=0).values,
@@ -448,9 +436,7 @@ class TestDvec:
         assert 2 in out.data.index.get_level_values("gender_3")
         assert sorted(out.segmentation.input.subsets["gender_3"]) == [1, 2]
 
-    def test_balance_by_segments_none_and_type_error(
-        self, basic_dvec_1, no_zone_dvec_1
-    ):
+    def test_balance_by_segments_none_and_type_error(self, basic_dvec_1, no_zone_dvec_1):
         """Test balancing without zones arg and guard for unzoned inputs."""
         other = basic_dvec_1.copy()
         other.data = other.data * 2
@@ -581,9 +567,7 @@ class TestDVectorValidation:
 
     def test_data_setter_rejects_non_dataframe_or_series(self, no_zone_dvec_1):
         """Test DVector `data` setter validates pandas input types."""
-        with pytest.raises(
-            TypeError, match="data must be a pandas DataFrame or Series"
-        ):
+        with pytest.raises(TypeError, match="data must be a pandas DataFrame or Series"):
             no_zone_dvec_1.data = [1, 2, 3]
 
 
@@ -656,9 +640,7 @@ class TestIpfTarget:
         with pytest.raises(ValueError, match="segmentation is not a subset"):
             basic_dvec_1.validate_ipf_targets([data_structures.IpfTarget(data=target)])
 
-    def test_validate_ipf_targets_bad_seg_translation_mapping_raises(
-        self, basic_dvec_1
-    ):
+    def test_validate_ipf_targets_bad_seg_translation_mapping_raises(self, basic_dvec_1):
         """Test invalid segment translation mapping raises ValueError."""
         target = basic_dvec_1.add_segments(
             [SegmentsSuper("tp").get_segment(subset=[1, 2])], split_method="duplicate"

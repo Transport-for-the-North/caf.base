@@ -214,9 +214,7 @@ class TestSegmentation:
         # fmt: on
         expected = [segmentation.SegmentationSlice(i) for i in expected]
         expected = sorted(expected, key=lambda x: x.as_tuple())
-        answer = sorted(
-            list(simple_segmentation.iter_slices()), key=lambda x: x.as_tuple()
-        )
+        answer = sorted(list(simple_segmentation.iter_slices()), key=lambda x: x.as_tuple())
 
         assert answer == expected, "incorrect segmentation parameters"
 
@@ -292,9 +290,7 @@ class TestSegmentation:
         ):
             segmentation.Segmentation.load(path, mode="hdf")
 
-    def test_find_files(
-        self, vanilla_seg: segmentation.Segmentation, tmp_path: pathlib.Path
-    ):
+    def test_find_files(self, vanilla_seg: segmentation.Segmentation, tmp_path: pathlib.Path):
         """Test `Segmentation.find_files` finds correct files."""
         folder = tmp_path / "find_files"
         folder.mkdir()
@@ -367,9 +363,7 @@ class TestSegmentation:
 
 
 @pytest.fixture(name="slice_params")
-def fix_slice_params() -> tuple[
-    list[str], dict[str, int], segmentation.SegmentationSlice
-]:
+def fix_slice_params() -> tuple[list[str], dict[str, int], segmentation.SegmentationSlice]:
     """Returns a slice with the naming order and parameters dict."""
     max_values = [("p", 8), ("m", 6), ("ca", 2), ("gender_3", 3)]
     names = [i[0] for i in max_values]
