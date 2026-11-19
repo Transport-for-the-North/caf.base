@@ -223,9 +223,7 @@ class TimeFormat(enum.Enum):
             )
 
         if to_time_format == self:
-            raise ValueError(
-                "Cannot get the conversion factors when converting to self."
-            )
+            raise ValueError("Cannot get the conversion factors when converting to self.")
 
         # Figure out which function to call
         if self == TimeFormat.AVG_WEEK and to_time_format == TimeFormat.AVG_DAY:
@@ -368,8 +366,7 @@ class DVector:
         """Set _data."""
         if not isinstance(value, (pd.DataFrame, pd.Series)):
             raise TypeError(
-                "data must be a pandas DataFrame or Series. Input "
-                f"value is {type(value)}."
+                "data must be a pandas DataFrame or Series. Input " f"value is {type(value)}."
             )
         self._data, _ = self._dataframe_to_dvec(value)
 
@@ -460,9 +457,7 @@ class DVector:
                 seg.ind(), axis="index", method=None
             ).sort_index()
             cut_sum = sorted_data.values.sum()
-            warnings.warn(
-                f"{full_sum - cut_sum} dropped on seg validation.", stacklevel=2
-            )
+            warnings.warn(f"{full_sum - cut_sum} dropped on seg validation.", stacklevel=2)
 
         if self.zoning_system is None:
             if isinstance(sorted_data, pd.DataFrame):
@@ -490,25 +485,19 @@ class DVector:
                 if set(lev) != set(sys.zone_ids):
                     column_lookup = self._fix_zoning(lev, sys)
                     if column_lookup is not None:
-                        sorted_data.rename(
-                            columns=column_lookup, level=lev.name, inplace=True
-                        )
+                        sorted_data.rename(columns=column_lookup, level=lev.name, inplace=True)
             sorted_data.columns = sorted_data.columns.reorder_levels(
                 [sys.column_name for sys in self.zoning_system]
             )
         else:
             if set(sorted_data.columns) != set(self.zoning_system.zone_ids):
-                column_lookup = self._fix_zoning(
-                    sorted_data.columns, self.zoning_system
-                )
+                column_lookup = self._fix_zoning(sorted_data.columns, self.zoning_system)
                 if column_lookup is not None:
                     sorted_data.rename(columns=column_lookup, inplace=True)
             sorted_data.columns.name = self.zoning_system.column_name
 
         if len(seg.names) > 1:
-            sorted_data.index = sorted_data.index.map(
-                lambda x: tuple(int(i) for i in x)
-            )
+            sorted_data.index = sorted_data.index.map(lambda x: tuple(int(i) for i in x))
         else:
             sorted_data.index = sorted_data.index.astype(int)
         if len(sorted_data.columns.names) > 1:
@@ -567,23 +556,17 @@ class DVector:
             # so applied here not in the validation section as it can take a few seconds to run.
             self.data = self.data.apply(
                 lambda col: (
-                    pd.to_numeric(col, errors="coerce")
-                    if col.dtype == "object"
-                    else col
+                    pd.to_numeric(col, errors="coerce") if col.dtype == "object" else col
                 )
             )
-            self._data.to_hdf(
-                out_path, key="data", mode="w", complevel=1, format="fixed"
-            )
+            self._data.to_hdf(out_path, key="data", mode="w", complevel=1, format="fixed")
             if isinstance(self.zoning_system, Sequence):
                 for zone in self.zoning_system:
                     zone.save(out_path, mode="hdf")
             else:
                 self.zoning_system.save(out_path, "hdf")
         else:
-            self._data.to_hdf(
-                out_path, key="data", mode="w", complevel=1, format="fixed"
-            )
+            self._data.to_hdf(out_path, key="data", mode="w", complevel=1, format="fixed")
 
         self.segmentation.save(out_path, "hdf")
 
@@ -605,9 +588,7 @@ class DVector:
         segmentation = Segmentation.load(in_path, "hdf")
         data = pd.read_hdf(in_path, key="data", mode="r")
         if isinstance(data.columns, pd.MultiIndex):
-            data.columns = data.columns.reorder_levels(
-                [zon.column_name for zon in zoning]
-            )
+            data.columns = data.columns.reorder_levels([zon.column_name for zon in zoning])
 
         return cls(
             segmentation=segmentation,
@@ -719,9 +700,7 @@ class DVector:
                 )
         else:
             if isinstance(trans_vector, pd.DataFrame):
-                trans_vector = target_zone.validate_translation_data(
-                    new_zoning, trans_vector
-                )
+                trans_vector = target_zone.validate_translation_data(new_zoning, trans_vector)
                 trans_vector = ctk.translation.ZoneCorrespondence(
                     trans_vector,
                     target_zone.column_name,
@@ -732,9 +711,9 @@ class DVector:
         # factors equal one to propagate perfectly
         # This only works for perfect nesting
         if one_to_one:
-            idx = trans_vector.vector.groupby(
-                f"{normalise_column_name(target_zone.name)}_id"
-            )[factor_col].idxmax()
+            idx = trans_vector.vector.groupby(f"{normalise_column_name(target_zone.name)}_id")[
+                factor_col
+            ].idxmax()
             trans_vector = trans_vector.vector.loc[idx]
             no_factors = True
         if no_factors:
@@ -754,15 +733,11 @@ class DVector:
             trans_vector_dict = trans_vector_df.set_index(target_zone.column_name)[
                 new_zoning.column_name
             ].to_dict()
-            translated = (
-                self.data.rename(columns=trans_vector_dict).T.groupby(level=0).sum().T
-            )
+            translated = self.data.rename(columns=trans_vector_dict).T.groupby(level=0).sum().T
             new_zones = set(trans_vector_dict.values())
             untranslated = [i for i in translated.columns if i not in new_zones]
             if len(untranslated) > 0:
-                warnings.warn(
-                    f"{untranslated} zones not translated. These are being dropped."
-                )
+                warnings.warn(f"{untranslated} zones not translated. These are being dropped.")
             translated.drop(untranslated, axis=1, inplace=True)
             translated.columns.name = f"{new_zoning.name}_id"
 
@@ -835,9 +810,7 @@ class DVector:
                 internal_ids = zoning_systems[zoning_idx].get_subset("internal")
                 new_data = self.data.loc[
                     :,
-                    self.data.columns.get_level_values(f"{zone_name}_id").isin(
-                        internal_ids
-                    ),
+                    self.data.columns.get_level_values(f"{zone_name}_id").isin(internal_ids),
                 ]
                 new_zoning = zoning_systems[zoning_idx].to_internal()
                 zoning_systems[zoning_idx] = new_zoning
@@ -880,9 +853,7 @@ class DVector:
                     new_data = self.data[
                         zone
                     ]  # Assume agg zoning is top level, this should be enforced somewhere
-                    new_zoning = [
-                        zon for zon in self.zoning_system if zon != agg_zoning
-                    ][0]
+                    new_zoning = [zon for zon in self.zoning_system if zon != agg_zoning][0]
                     out_dvecs[zone] = DVector(
                         import_data=new_data,
                         segmentation=self.segmentation,
@@ -1027,9 +998,7 @@ class DVector:
                     other.segmentation.naming_order
                 ):
                     excess = [
-                        i
-                        for i in other.segmentation.names
-                        if i not in self.segmentation.names
+                        i for i in other.segmentation.names if i not in self.segmentation.names
                     ]
                     raise SegmentationError(
                         "An outer dunder method cannot be performed where other "
@@ -1073,9 +1042,7 @@ class DVector:
                 if all(i in self.zoning_system for i in other.zoning_system):
                     prod = series_method(
                         out.data.stack(level=out.data.columns.names, future_stack=True),
-                        other.data.stack(
-                            level=other.data.columns.names, future_stack=True
-                        ),
+                        other.data.stack(level=other.data.columns.names, future_stack=True),
                     ).unstack(level=out.data.columns.names)
                     prod = prod[prod.columns.intersection(out.data.columns)]
 
@@ -1292,12 +1259,8 @@ class DVector:
         for zoning in new_zoning:
             if isinstance(zoning, str):
                 if zoning not in trans_vector.columns:
-                    raise ValueError(
-                        "string zoning must be a column of the trans_vector."
-                    )
-                validated_zoning.append(
-                    ZoningSystem.zoning_from_df_col(trans_vector[zoning])
-                )
+                    raise ValueError("string zoning must be a column of the trans_vector.")
+                validated_zoning.append(ZoningSystem.zoning_from_df_col(trans_vector[zoning]))
             elif isinstance(zoning, ZoningSystem):
                 validated_zoning.append(zoning)
             else:
@@ -1312,14 +1275,11 @@ class DVector:
         )
 
         trans = trans_vector.set_index(
-            [self.zoning_system.column_name]
-            + [zon.column_name for zon in validated_zoning]
+            [self.zoning_system.column_name] + [zon.column_name for zon in validated_zoning]
         )[factor_col]
         fully_zoned_df = self.data.mul(trans, axis=1)
         return_zoned_df = (
-            fully_zoned_df.T.groupby([zon.column_name for zon in validated_zoning])
-            .sum()
-            .T
+            fully_zoned_df.T.groupby([zon.column_name for zon in validated_zoning]).sum().T
         )
         return DVector(
             import_data=return_zoned_df,
@@ -1328,9 +1288,7 @@ class DVector:
         )
 
     @classmethod
-    def concat_to_comp_zoning(
-        cls, dvecs: dict[int, DVector], zone_system: str | ZoningSystem
-    ):
+    def concat_to_comp_zoning(cls, dvecs: dict[int, DVector], zone_system: str | ZoningSystem):
         """
         Concatenate Dvectors to a resulting DVector with composite zoning.
 
@@ -1423,9 +1381,7 @@ class DVector:
             segmentation=self.segmentation,
         )
 
-    def aggregate(
-        self, segs: list[str] | Segmentation, _bypass_validation: bool = False
-    ):
+    def aggregate(self, segs: list[str] | Segmentation, _bypass_validation: bool = False):
         """
         Aggregate DVector to new segmentation.
 
@@ -1529,9 +1485,7 @@ class DVector:
             if agg_zone != other.zoning_system:
                 translation = self.zoning_system.translate(agg_zone)
                 if not (
-                    translation.vector[
-                        self.zoning_system.translation_column_name(agg_zone)
-                    ]
+                    translation.vector[self.zoning_system.translation_column_name(agg_zone)]
                     == 1
                 ).all():
                     raise TranslationError(
@@ -1549,9 +1503,7 @@ class DVector:
                     .sum()
                 )
                 translated_ungrouped: pd.DataFrame = (
-                    other.data.rename(columns=translation_dict)
-                    .groupby(level=0, axis=1)
-                    .sum()
+                    other.data.rename(columns=translation_dict).groupby(level=0, axis=1).sum()
                 )
                 # factors at common segmentation and agg zoning
                 translated: pd.DataFrame = translated_ungrouped / translated_grouped
@@ -1682,9 +1634,7 @@ class DVector:
 
         if match_props:
             splitter = other.data.sum(axis=1)
-            return self.add_segments(
-                expansion_segs, split_method="split", splitter=splitter
-            )
+            return self.add_segments(expansion_segs, split_method="split", splitter=splitter)
 
         return self.add_segments(expansion_segs)
 
@@ -1810,9 +1760,7 @@ class DVector:
         if isinstance(self.segmentation.ind(), pd.MultiIndex):
             if isinstance(segment_values, list):
                 new_data = new_data[
-                    new_data.index.get_level_values(level=segment_name).isin(
-                        segment_values
-                    )
+                    new_data.index.get_level_values(level=segment_name).isin(segment_values)
                 ]
             else:
                 new_data = new_data.xs(segment_values, level=segment_name)
@@ -1841,9 +1789,7 @@ class DVector:
             out = out.filter_segment_value(seg, values)
         return out
 
-    def drop_by_segment_values(
-        self, segment_name: str, segment_values: list[int]
-    ) -> DVector:
+    def drop_by_segment_values(self, segment_name: str, segment_values: list[int]) -> DVector:
         """Remove rows of DVector based on segment values.
 
         Parameters
@@ -1859,9 +1805,7 @@ class DVector:
         else:
             new_data = new_data.drop(segment_values)
 
-        new_seg = self.segmentation.update_subsets(
-            {segment_name: segment_values}, remove=True
-        )
+        new_seg = self.segmentation.update_subsets({segment_name: segment_values}, remove=True)
 
         return DVector(
             import_data=new_data,
@@ -2028,9 +1972,9 @@ class DVector:
                 ) ** 2
             else:
                 diff = (
-                    check.aggregate(
-                        target.data.segmentation, _bypass_validation=True
-                    ).sub(target.data, _bypass_validation=True)
+                    check.aggregate(target.data.segmentation, _bypass_validation=True).sub(
+                        target.data, _bypass_validation=True
+                    )
                 ) ** 2
             mse += diff.sum() / len(target.data)
         return mse**0.5
@@ -2075,9 +2019,7 @@ class DVector:
                             f"sums, so ipf will fail target at position {position} doesn't match "
                             "the first target. It is possible later targets also don't match."
                         )
-                elif target.data.index.name in [
-                    zone.column_name for zone in self_zoning
-                ]:
+                elif target.data.index.name in [zone.column_name for zone in self_zoning]:
                     if not math.isclose(self.sum(), target.data.sum(), rel_tol=rel_tol):
                         raise ValueError(
                             "Input target DVectors do not have consistent "
@@ -2162,23 +2104,19 @@ class DVector:
                             raise ZoningError("Target not contained in self.")
                 else:
                     target.zoning_diff = True
-                    if isinstance(
-                        target.data.zoning_system, ZoningSystem
-                    ) and isinstance(self.zoning_system, ZoningSystem):
+                    if isinstance(target.data.zoning_system, ZoningSystem) and isinstance(
+                        self.zoning_system, ZoningSystem
+                    ):
                         if target.zone_translation is None:
                             try:
                                 if cache_path is not None:
-                                    target.zone_translation = (
-                                        self.zoning_system.translate(
-                                            target.data.zoning_system,
-                                            cache_path=cache_path,
-                                        )
+                                    target.zone_translation = self.zoning_system.translate(
+                                        target.data.zoning_system,
+                                        cache_path=cache_path,
                                     )
                                 else:
-                                    target.zone_translation = (
-                                        self.zoning_system.translate(
-                                            target.data.zoning_system
-                                        )
+                                    target.zone_translation = self.zoning_system.translate(
+                                        target.data.zoning_system
                                     )
                             except TranslationError:
                                 raise TranslationError(
@@ -2259,9 +2197,7 @@ class DVector:
                             to_seg=targ_seg,
                             _bypass_validation=bypass,
                         )
-                agg = inner.aggregate(
-                    target.data.segmentation, _bypass_validation=bypass
-                )
+                agg = inner.aggregate(target.data.segmentation, _bypass_validation=bypass)
                 if target.zone_translation is not None:
                     agg = agg.translate_zoning(
                         target.data.zoning_system,
@@ -2270,16 +2206,12 @@ class DVector:
                     )
                 if target.data.zoning_system is None:
                     agg = agg.remove_zoning()
-                factor = target.data.truediv(
-                    agg, _bypass_validation=bypass, how="outer"
-                )
+                factor = target.data.truediv(agg, _bypass_validation=bypass, how="outer")
                 factor.fillna(0)
                 if (factor.data.values == np.inf).any():
                     factor.fill(np.inf, 0)
 
-                if (target.zoning_diff is not None) & (
-                    target.data.zoning_system is not None
-                ):
+                if (target.zoning_diff is not None) & (target.data.zoning_system is not None):
                     factor = factor.translate_zoning(
                         self.zoning_system,
                         trans_vector=target.zone_translation,
@@ -2405,13 +2337,13 @@ class DVector:
             if file.endswith(("hdf", "dvec")):
                 try:
                     dvec = cls.load(folder / file)
-                except SegmentationError:  # hdf file is not DVector, and therefore doesn't contain segmentation
+                except (
+                    SegmentationError
+                ):  # hdf file is not DVector, and therefore doesn't contain segmentation
                     continue
                 if zoning is None:
                     if isinstance(dvec.zoning_system, Sequence):
-                        raise TypeError(
-                            "This method only works for singly zoned DVectors."
-                        )
+                        raise TypeError("This method only works for singly zoned DVectors.")
                     zoning = dvec.zoning_system
                 else:
                     if dvec.zoning_system != zoning:
@@ -2593,9 +2525,7 @@ class DVector:
             dvec.data.reorder_levels(new_segmentation.naming_order) for dvec in dvecs
         )
         del dvecs
-        return cls(
-            import_data=new_data, zoning_system=zoning, segmentation=new_segmentation
-        )
+        return cls(import_data=new_data, zoning_system=zoning, segmentation=new_segmentation)
 
     def concat(self, other: DVector):
         """
@@ -2703,12 +2633,8 @@ class DVector:
                 balancing_zones.column_name,
                 other_zoning.translation_column_name(balancing_zones),
             )
-        self_agg = (
-            self_data.rename(columns=self_trans_dic).groupby(level=0, axis=1).sum()
-        )
-        other_agg = (
-            other_data.rename(columns=other_trans_dic).groupby(level=0, axis=1).sum()
-        )
+        self_agg = self_data.rename(columns=self_trans_dic).groupby(level=0, axis=1).sum()
+        other_agg = other_data.rename(columns=other_trans_dic).groupby(level=0, axis=1).sum()
         agg_factors = other_agg / self_agg
         factors = ctk.translation.pandas_vector_zone_translation(
             agg_factors,
@@ -2887,9 +2813,7 @@ class DVector:
         # Check if all segments from slice are available
         seg_names = set(slice_.data.keys())
         if not seg_names <= set(self.segmentation.seg_dict.keys()):
-            raise ValueError(
-                "slice contains segments not found in DVector segmentation"
-            )
+            raise ValueError("slice contains segments not found in DVector segmentation")
 
         mask = np.full(len(self.segmentation), True)
         for nm, value in slice_.data.items():
@@ -3028,26 +2952,18 @@ class IpfTarget:
                         agg_2.zoning_system, cache_path=trans_cache
                     )
                 nested_1 = (
-                    trans[
-                        agg_1.zoning_system.translation_column_name(agg_2.zoning_system)
-                    ]
+                    trans[agg_1.zoning_system.translation_column_name(agg_2.zoning_system)]
                     == 1
                 ).all()
                 nested_2 = (
-                    trans[
-                        agg_2.zoning_system.translation_column_name(agg_1.zoning_system)
-                    ]
+                    trans[agg_2.zoning_system.translation_column_name(agg_1.zoning_system)]
                     == 1
                 ).all()
                 if nested_1:
-                    agg_1 = agg_1.translate_zoning(
-                        agg_2.zoning_system, trans_vector=trans
-                    )
+                    agg_1 = agg_1.translate_zoning(agg_2.zoning_system, trans_vector=trans)
                     zoning_diff = True
                 elif nested_2:
-                    agg_2 = agg_2.translate_zoning(
-                        agg_1.zoning_system, trans_vector=trans
-                    )
+                    agg_2 = agg_2.translate_zoning(agg_1.zoning_system, trans_vector=trans)
                 else:
                     raise TranslationError("not raised used to trigger exception")
             except TranslationError:
