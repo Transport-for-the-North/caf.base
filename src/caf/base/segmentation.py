@@ -144,9 +144,7 @@ class SegmentationSlice:
         """Check equality of two SegmentationSlice objects."""
         if not isinstance(value, SegmentationSlice):
             return False
-        return (self.as_tuple() + self.naming_order) == (
-            value.as_tuple() + value.naming_order
-        )
+        return (self.as_tuple() + self.naming_order) == (value.as_tuple() + value.naming_order)
 
     def generate_name(self, segments: dict[str, Segment] | None = None) -> str:
         """Generate name for a slice of the segmentation from parameters.
@@ -205,9 +203,7 @@ class SegmentationSlice:
         """Check if segment is in slice."""
         return item in self.data
 
-    def replace(
-        self, current: str, new: str, value: int | None = None
-    ) -> "SegmentationSlice":
+    def replace(self, current: str, new: str, value: int | None = None) -> "SegmentationSlice":
         """Create a copy of slice with current segment replaced with new.
 
         Parameters
@@ -339,9 +335,7 @@ class SegmentationInput(BaseConfig):
             seg_names += [i.name for i in self.custom_segments]
 
         if set(seg_names) != set(v):
-            raise ValueError(
-                "Names provided for naming_order do not match names in segments"
-            )
+            raise ValueError("Names provided for naming_order do not match names in segments")
 
         return self
 
@@ -388,9 +382,7 @@ class Segmentation:
         else:
             enum_segments = []
             for seg in config.enum_segments:
-                segment = SegmentsSuper(seg).get_segment(
-                    subset=config.subsets.get(seg.value)
-                )
+                segment = SegmentsSuper(seg).get_segment(subset=config.subsets.get(seg.value))
                 enum_segments.append(segment)
 
         self.segments = config.custom_segments + enum_segments
@@ -487,9 +479,7 @@ class Segmentation:
         exclusions into account if any exist between segments.
         """
         joined, no_prod = self.lookup_ind()
-        prod = [
-            self.seg_dict[i].int_values for i in self.naming_order if i not in no_prod
-        ]
+        prod = [self.seg_dict[i].int_values for i in self.naming_order if i not in no_prod]
         names = [i for i in self.naming_order if i not in no_prod]
         if len(prod) == 0:
             return joined.reorder_levels(self.naming_order).sort_index().index
@@ -703,9 +693,7 @@ class Segmentation:
                 new_conf.enum_segments.remove(SegmentsSuper(from_seg.name))
             else:
                 new_conf.custom_segments.remove(from_seg)
-            new_conf.naming_order[new_conf.naming_order.index(from_seg.name)] = (
-                to_seg.name
-            )
+            new_conf.naming_order[new_conf.naming_order.index(from_seg.name)] = to_seg.name
         else:
             new_conf.naming_order.append(to_seg.name)
         try:
@@ -743,9 +731,7 @@ class Segmentation:
             raise ValueError(f"Mode must be either 'hdf' or 'yaml', not {mode}")
 
     @classmethod
-    def load(
-        cls, in_path: PathLike, mode: Literal["hdf", "yaml"] = "hdf"
-    ) -> Segmentation:
+    def load(cls, in_path: PathLike, mode: Literal["hdf", "yaml"] = "hdf") -> Segmentation:
         """
         Load the segmentation from a file, either an hdf or csv file.
 
@@ -868,9 +854,7 @@ class Segmentation:
                 ]
             elif self.input.subsets[name] != other.input.subsets[name]:
                 missing_list = [
-                    i
-                    for i in self.input.subsets[name]
-                    if i not in other.input.subsets[name]
+                    i for i in self.input.subsets[name] if i not in other.input.subsets[name]
                 ]
                 if len(missing_list) > 0:
                     missing_other[name] = missing_list
@@ -883,9 +867,7 @@ class Segmentation:
                 ]
             elif self.input.subsets[name] != other.input.subsets[name]:
                 missing_list = [
-                    i
-                    for i in other.input.subsets[name]
-                    if i not in self.input.subsets[name]
+                    i for i in other.input.subsets[name] if i not in self.input.subsets[name]
                 ]
                 if len(missing_list) > 0:
                     missing_self[name] = missing_list
@@ -901,11 +883,7 @@ class Segmentation:
 
         This method will not error if other contains segments not in self.
         """
-        return [
-            self.get_segment(i)
-            for i in self.naming_order
-            if i not in other.naming_order
-        ]
+        return [self.get_segment(i) for i in self.naming_order if i not in other.naming_order]
 
     def __ne__(self, other) -> bool:
         """Override the default implementation."""
@@ -1037,8 +1015,7 @@ class Segmentation:
             segment_name = segment_name.name
         if segment_name not in self.names:
             raise SegmentationError(
-                f"{segment_name} is not in the current segmentation, so "
-                f"cannot be removed."
+                f"{segment_name} is not in the current segmentation, so " f"cannot be removed."
             )
         if inplace:
             self.input.naming_order.remove(segment_name)
@@ -1085,9 +1062,7 @@ class Segmentation:
                     out_seg.subsets[key] = list(set(out_seg.subsets[key] + val))
             else:
                 if remove:
-                    out_seg.subsets[key] = list(
-                        set(self.seg_dict[key].values) - set(val)
-                    )
+                    out_seg.subsets[key] = list(set(self.seg_dict[key].values) - set(val))
                 else:
                     out_seg.subsets.update({key: val})
         return Segmentation(out_seg)
@@ -1312,9 +1287,7 @@ class Segmentation:
                 filepaths[slice_] = path
                 missing.pop(slice_)
             else:
-                warnings.warn(
-                    f"Found unexpected file while searching: {path}", RuntimeWarning
-                )
+                warnings.warn(f"Found unexpected file while searching: {path}", RuntimeWarning)
 
         if len(missing) == 0:
             return filepaths

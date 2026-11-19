@@ -176,8 +176,7 @@ class Segment(BaseConfig):
 
         # Pylint hasn't picked up the type correctly
         aliases = "|".join(
-            i
-            for i in self.values_aliases.values()  # pylint: disable=no-member
+            i for i in self.values_aliases.values()  # pylint: disable=no-member
         )
 
         if len(aliases) > 0:
@@ -211,8 +210,7 @@ class Segment(BaseConfig):
         pattern = re.compile(self.value_regex(), re.IGNORECASE)
         # Pylint hasn't picked up the type correctly
         values_lookup = {
-            j: i
-            for i, j in self.values_aliases.items()  # pylint: disable=no-member
+            j: i for i, j in self.values_aliases.items()  # pylint: disable=no-member
         }
 
         values = []

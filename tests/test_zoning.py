@@ -133,9 +133,7 @@ class TestZoning:
         "columns", [["zone_id"], ["zone_id", "zone_name", "descriptions"]]
     )
     @pytest.mark.parametrize("subset", [True, False])
-    def test_init(
-        self, zoning_data: ZoningData, columns: list[str], subset: bool
-    ) -> None:
+    def test_init(self, zoning_data: ZoningData, columns: list[str], subset: bool) -> None:
         """Test initialising `ZoningSystem` with / without subsets."""
         all_columns = columns.copy()
         if subset:
@@ -162,9 +160,9 @@ class TestZoning:
         assert_frame_equal(data, system.zones_data)
 
         if subset:
-            assert sorted(system.subset_columns) == sorted(zoning_data.subsets), (
-                "incorrect subsets"
-            )
+            assert sorted(system.subset_columns) == sorted(
+                zoning_data.subsets
+            ), "incorrect subsets"
 
         if "zone_name" in columns:
             assert_series_equal(data["zone_name"], system.zone_names())
@@ -258,9 +256,7 @@ class TestZoning:
 
         for name, values in data.subsets.items():
             subset = system.get_subset(name)
-            assert_array_equal(
-                np.array(values), subset, f"incorrect values for subset {name}"
-            )
+            assert_array_equal(np.array(values), subset, f"incorrect values for subset {name}")
 
             subset = system.get_inverse_subset(name)
             assert_array_equal(
@@ -279,9 +275,7 @@ class TestZoning:
         with pytest.raises(TypeError):
             system.get_subset(name)
 
-    def test_old_to_new_zoning(
-        self, old_zoning_dir: Path, zoning_data: ZoningData
-    ) -> None:
+    def test_old_to_new_zoning(self, old_zoning_dir: Path, zoning_data: ZoningData) -> None:
         """Test `old_to_new_zoning` method can load in old format and output new."""
         new_dir = old_zoning_dir / "new"
         new_dir.mkdir(exist_ok=True)
@@ -331,9 +325,7 @@ class TestZoning:
     ):
         """Test sucessfully obtaining zone_translation data."""
         trans = min_zoning_2.translate(min_zoning, cache_path=main_dir)
-        assert trans.vector.equals(
-            test_trans[["zone_2_id", "zone_1_id", "zone_2_to_zone_1"]]
-        )
+        assert trans.vector.equals(test_trans[["zone_2_id", "zone_1_id", "zone_2_to_zone_1"]])
         assert min_zoning_2.translation_column_name(min_zoning) == "zone_2_to_zone_1"
 
     def test_getter(self, id_only_zoning: tuple[ZoningData, ZoningSystem], main_dir):
@@ -357,9 +349,7 @@ class TestZoning:
         for weighting, suffix in expected.items():
             assert weighting.get_suffix() == suffix
 
-    def test_lookup_properties(
-        self, zoning_subsets: tuple[ZoningData, ZoningSystem]
-    ) -> None:
+    def test_lookup_properties(self, zoning_subsets: tuple[ZoningData, ZoningSystem]) -> None:
         """Test ID/name/description lookup helper properties."""
         _, system = zoning_subsets
 
@@ -439,9 +429,7 @@ class TestZoning:
                 trans_cache=main_dir,
             )
 
-    def test_check_all_columns(
-        self, zoning_subsets: tuple[ZoningData, ZoningSystem]
-    ) -> None:
+    def test_check_all_columns(self, zoning_subsets: tuple[ZoningData, ZoningSystem]) -> None:
         """Test helper for selecting best ID replacement mapping from input columns."""
         _, system = zoning_subsets
 
